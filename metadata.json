@@ -1,0 +1,7 @@
+{
+  "name": "Vehicle Inspection System",
+  "description": "A bilingual, mobile-first smart vehicle inspection system with driver readiness checks and PDF reporting.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
