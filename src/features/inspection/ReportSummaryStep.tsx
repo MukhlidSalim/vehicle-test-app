@@ -284,7 +284,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
     let pass = 0;
     let fail = 0;
     let warning = 0;
-    Object.values(data.checklist).forEach(item => {
+    data.checklist.forEach(item => {
       if (item.status === 'pass') pass++;
       else if (item.status === 'fail') fail++;
       else if (item.status === 'warning') warning++;
@@ -297,7 +297,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
     notesOnly: np.map(n => ({ kind: "note_only" as const, item: n }))
   }));
 
-  const hasTyrePressures = !!(data.tyrePressures && Object.values(data.tyrePressures).some((val) => val.trim() !== ''));
+  const hasTyrePressures = !!(data.tyrePressures && Object.values(data.tyrePressures).some((val) => typeof val === 'string' && val.trim() !== ''));
   const hasAdditionalNotes = !!data.additionalNotes?.trim();
   const hasTextNotesPage = checklistNotesOnlyEvidenceItems.length > 0 || hasTyrePressures || hasAdditionalNotes;
   const hasPhotoPages = photoEvidencePages.length > 0;
@@ -915,7 +915,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                           <div key={`u-tyres`} className={`${rowSpanClass} min-h-0 bg-gray-50 rounded-2xl border border-gray-300 p-3 shadow-sm flex flex-col`}>
                             <h3 className="text-[10px] font-black text-primary-900 uppercase tracking-widest mb-2 pb-1 border-b border-gray-300">{isRTL ? 'قياسات ضغط الإطارات' : 'Tyre Pressures'}</h3>
                             <div className="grid grid-cols-4 gap-2 flex-1 min-h-0">
-                              {Object.entries(data.tyrePressures || {}).filter(([_, v]) => v.trim() !== '').slice(0, 4).map(([key, val]) => (
+                              {Object.entries(data.tyrePressures || {}).filter(([_, v]) => typeof v === 'string' && v.trim() !== '').slice(0, 4).map(([key, val]) => (
                                 <div key={key} className="bg-white rounded-lg border border-gray-200 p-1 flex flex-col items-center justify-center">
                                   <span className="text-[8px] font-black text-gray-400 uppercase">{key}</span>
                                   <span className="text-sm font-black text-primary-900">{val}</span>

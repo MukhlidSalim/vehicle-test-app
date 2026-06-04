@@ -20,6 +20,7 @@ export type VehicleType =
   | "light_vehicle"
   | "heavy_bus"
   | "light_bus"
+  | "small_bus"
   | "ambulance"
   | "pickup"
   | "electric_vehicle";
