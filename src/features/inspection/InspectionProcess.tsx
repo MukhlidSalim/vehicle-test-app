@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CheckCircle, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { InspectionData, InspectionMode } from '../../types';
 import { READINESS_QUESTIONS } from '../../constants';
@@ -6,6 +7,7 @@ import { BasicInfoStep } from './BasicInfoStep';
 import { DriverReadinessStep } from './DriverReadinessStep';
 import { ChecklistStep } from './ChecklistStep';
 import { ReportSummaryStep } from './ReportSummaryStep';
+import { SignaturePad } from '../../components/SignaturePad';
 
 interface InspectionProcessProps {
   t: any;
@@ -37,6 +39,7 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
   const [attemptedStep2, setAttemptedStep2] = useState<boolean>(false);
   const [attemptedStep3, setAttemptedStep3] = useState<boolean>(false);
   const [attemptedStep4, setAttemptedStep4] = useState<boolean>(false);
+  const [attemptedSignature, setAttemptedSignature] = useState<boolean>(false);
 
   const [uiAlert, setUiAlert] = useState<{ show: boolean; message: string; type: 'warning' | 'fail' | 'info' }>({
     show: false,
@@ -51,7 +54,16 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
 
   const scrollToFirstErrorInDOM = () => {
     window.setTimeout(() => {
-      const first = document.querySelector('[data-error="true"]') as HTMLElement | null;
+      // Find all error elements and trigger shake animation
+      const errorElements = document.querySelectorAll('[data-error="true"]');
+      errorElements.forEach((el) => {
+        el.classList.remove('animate-shake');
+        // Force reflow to restart animation
+        void (el as HTMLElement).offsetWidth;
+        el.classList.add('animate-shake');
+      });
+
+      const first = errorElements[0] as HTMLElement | null;
       if (!first) return;
       first.scrollIntoView({ behavior: 'smooth', block: 'center' });
       const focusable = first.querySelector('input, textarea, select, button') as HTMLElement | null;
@@ -76,19 +88,23 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
 
   return (
     <div className="space-y-6 animate-fade-in">
-       {/* Validation Alerts */}
-       {uiAlert.show && (
-         <div
-           className={`p-3 rounded-xl border font-black text-sm v-center-cairo no-print ${
-             uiAlert.type === 'fail'
-               ? 'bg-red-50 text-red-700 border-red-200'
-               : uiAlert.type === 'warning'
-               ? 'bg-amber-50 text-amber-800 border-amber-200'
-               : 'bg-blue-50 text-blue-800 border-blue-200'
-           }`}
-         >
-           {uiAlert.message}
-         </div>
+       {/* Validation Alerts (Fixed Toast via Portal) */}
+       {uiAlert.show && typeof document !== 'undefined' && createPortal(
+         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[300] w-11/12 max-w-md pointer-events-none no-print animate-fade-in-down">
+           <div
+             className={`p-4 rounded-2xl border shadow-2xl font-black text-sm flex items-center gap-3 ${
+               uiAlert.type === 'fail'
+                 ? 'bg-red-50 text-red-800 border-red-300 shadow-red-200'
+                 : uiAlert.type === 'warning'
+                 ? 'bg-amber-50 text-amber-900 border-amber-300 shadow-amber-200'
+                 : 'bg-blue-50 text-blue-900 border-blue-300 shadow-blue-200'
+             }`}
+           >
+             <AlertTriangle className={`w-6 h-6 flex-shrink-0 ${uiAlert.type === 'fail' ? 'text-red-600' : uiAlert.type === 'warning' ? 'text-amber-600' : 'text-blue-600'}`} />
+             <span className="v-center-cairo leading-tight">{uiAlert.message}</span>
+           </div>
+         </div>,
+         document.body
        )}
 
        {/* Progress Tracker Bar */}
@@ -150,8 +166,54 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
 
        {/* Bottom Pagination Controls (Hidden on summary preview step 5) */}
        {step < 5 && (
-          <div className="flex gap-4 border-t border-gray-300 pt-8 pb-10 no-print">
+          <div className="space-y-6 pb-10 no-print">
+            {/* Signature Section (Always shown at the end of the last active step) */}
+            {currentStepIndex === totalSteps - 2 && (
+              <div className="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm space-y-5 animate-in fade-in slide-in-from-bottom-4">
+                <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                  <div className="p-2 bg-gray-50 rounded-xl text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
+                  </div>
+                  <h3 className="text-sm font-black text-gray-800">
+                    {isRTL ? 'التواقيع' : 'Signatures'}
+                  </h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <SignaturePad
+                    label={
+                      data.mode === 'maintenance' 
+                        ? (isRTL ? 'توقيع الفاحص' : 'Inspector Signature') 
+                        : (isRTL ? 'توقيع السائق' : 'Driver Signature')
+                    }
+                    isRTL={isRTL}
+                    initialSignature={data.mode === 'maintenance' ? data.signatures?.inspector : data.signatures?.driver}
+                    error={attemptedSignature && !(data.mode === 'maintenance' ? data.signatures?.inspector : data.signatures?.driver)}
+                    onSave={(base64) => {
+                      setAttemptedSignature(false);
+                      setData(p => ({
+                        ...p,
+                        signatures: { 
+                          ...p.signatures, 
+                          [data.mode === 'maintenance' ? 'inspector' : 'driver']: base64 
+                        }
+                      }));
+                    }}
+                    onClear={() => setData(p => ({
+                      ...p,
+                      signatures: { 
+                        ...p.signatures, 
+                        [data.mode === 'maintenance' ? 'inspector' : 'driver']: undefined 
+                      }
+                    }))}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-4 border-t border-gray-300 pt-8">
              <button 
+               type="button"
                onClick={() => { 
                  if (currentStepIndex === 0) onExit(); 
                  else setStep(currentModeSteps[currentStepIndex - 1]);
@@ -162,24 +224,73 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
              </button>
              
              <button 
+               type="button"
                onClick={() => { 
                   if (step === 2) {
                     setAttemptedStep2(true);
-                    const { name, plateNumber, phoneNumber, nextInspectionDate, odometer, vehicleType } = data.driverInfo;
-                    if (!name || !plateNumber || !phoneNumber || !nextInspectionDate || !odometer || !vehicleType) {
+                    const { name, plateNumber, phoneNumber, currentOdometer, odometer, vehicleType, departure, destination, vehicleExpiryDate } = data.driverInfo;
+                    
+                    // Common required fields
+                    let isValid = name && phoneNumber && plateNumber && currentOdometer && odometer && vehicleType;
+                    
+                    // Mode specific required fields
+                    if (data.mode === 'full' || data.mode === 'driver_only') {
+                      if (!departure || !destination) isValid = false;
+                    } else {
+                      if (!vehicleExpiryDate) isValid = false;
+                    }
+
+                    if (!isValid) {
                       showUiAlert(t.required, 'warning');
                       scrollToFirstErrorInDOM();
                       return;
+                    }
+                    if (Number(currentOdometer) >= Number(odometer)) {
+                      showUiAlert(
+                        isRTL 
+                          ? 'قراءة العداد الحالية يجب أن تكون أقل من قراءة العداد عند موعد الصيانة القادمة.' 
+                          : 'Current odometer must be less than the next maintenance odometer.', 
+                        'warning'
+                      );
+                      scrollToFirstErrorInDOM();
+                      return;
+                    }
+
+                    // If we are about to proceed to the summary, ensure signature is captured
+                    if (currentStepIndex === totalSteps - 2) {
+                      const sigRequired = data.mode === 'maintenance' ? data.signatures?.inspector : data.signatures?.driver;
+                      if (!sigRequired) {
+                        setAttemptedSignature(true);
+                        showUiAlert(isRTL ? "التوقيع إلزامي قبل عرض التقرير النهائي." : "Signature is mandatory before viewing the summary.", 'warning');
+                        scrollToFirstErrorInDOM();
+                        return;
+                      }
                     }
                     setStep(currentModeSteps[currentStepIndex + 1]);
                   } 
                   else if (step === 3) { 
                     setAttemptedStep3(true);
                     const allAnswered = Object.keys(data.readiness.answers).length >= READINESS_QUESTIONS.length;
-                    if (!allAnswered || !data.readiness.finalConfirmation) {
-                       showUiAlert(isRTL ? "يرجى الإجابة على جميع الأسئلة وتأكيد الجاهزية قبل المتابعة." : "Please answer all questions and confirm readiness before proceeding.", 'warning');
+                    
+                    if (!allAnswered) {
+                       showUiAlert(isRTL ? "يرجى الإجابة على جميع بنود الجاهزية بنعم أو لا." : "Please answer all readiness items with Yes or No.", 'warning');
                        scrollToFirstErrorInDOM();
                        return;
+                    }
+                    if (!data.readiness.tbtAcknowledge) {
+                       showUiAlert(isRTL ? "يرجى تأكيد الاطلاع على موضوع التوعية (TBT)." : "Please acknowledge the TBT topic.", 'warning');
+                       scrollToFirstErrorInDOM();
+                       return;
+                    }
+                    // If we are about to proceed to the summary, ensure signature is captured
+                    if (currentStepIndex === totalSteps - 2) {
+                      const sigRequired = data.mode === 'maintenance' ? data.signatures?.inspector : data.signatures?.driver;
+                      if (!sigRequired) {
+                        setAttemptedSignature(true);
+                        showUiAlert(isRTL ? "التوقيع إلزامي قبل عرض التقرير النهائي." : "Signature is mandatory before viewing the summary.", 'warning');
+                        scrollToFirstErrorInDOM();
+                        return;
+                      }
                     }
                     setStep(currentModeSteps[currentStepIndex + 1]); 
                   } 
@@ -229,6 +340,16 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
                       scrollToFirstErrorInDOM();
                       return;
                     }
+                    // If we are about to proceed to the summary, ensure signature is captured
+                    if (currentStepIndex === totalSteps - 2) {
+                      const sigRequired = data.mode === 'maintenance' ? data.signatures?.inspector : data.signatures?.driver;
+                      if (!sigRequired) {
+                        setAttemptedSignature(true);
+                        showUiAlert(isRTL ? "التوقيع إلزامي قبل عرض التقرير النهائي." : "Signature is mandatory before viewing the summary.", 'warning');
+                        scrollToFirstErrorInDOM();
+                        return;
+                      }
+                    }
                     setStep(currentModeSteps[currentStepIndex + 1]); 
                   } 
                }} 
@@ -247,6 +368,7 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
                )}
              </button>
           </div>
+        </div>
        )}
     </div>
   );

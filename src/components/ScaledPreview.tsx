@@ -6,7 +6,9 @@ import React, { useState, useRef, useEffect } from 'react';
  */
 export const ScaledPreview: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [scale, setScale] = useState<number>(1);
+  const [contentHeight, setContentHeight] = useState<number>(1122.5); // Default to approx 297mm in px
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -29,7 +31,29 @@ export const ScaledPreview: React.FC<React.PropsWithChildren> = ({ children }) =
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const visualHeight = 297 * 3.78 * scale; // Visual height in px calculated based on A4 aspect ratio
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    
+    // Measure actual height of the inner content wrapper
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        setContentHeight(entry.target.scrollHeight);
+      }
+    });
+    
+    // Check inner children since the outer div scales
+    const innerWrapper = el.firstElementChild;
+    if (innerWrapper) {
+       resizeObserver.observe(innerWrapper);
+    } else {
+       resizeObserver.observe(el);
+    }
+    
+    return () => resizeObserver.disconnect();
+  }, [children]);
+
+  const visualHeight = contentHeight * scale;
 
   return (
     <div 
@@ -38,11 +62,13 @@ export const ScaledPreview: React.FC<React.PropsWithChildren> = ({ children }) =
       style={{ height: `${visualHeight}px`, marginBottom: scale < 1 ? '1rem' : '2.5rem' }}
     >
       <div 
+        ref={contentRef}
         style={{ 
           transform: `scale(${scale})`, 
           transformOrigin: 'top center',
           width: '210mm',
-          height: '297mm'
+          minHeight: '297mm',
+          height: 'fit-content'
         }}
         className="flex-shrink-0"
       >

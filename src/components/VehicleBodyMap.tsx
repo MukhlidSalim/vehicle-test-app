@@ -86,7 +86,7 @@ export const VehicleBodyMap: React.FC<VehicleBodyMapProps> = ({
     onAddPoint({ x, y });
   };
 
-  const Marker = ({ p, idx }: { p: DamagePoint; idx: number }) => {
+  const Marker = ({ p, idx }: { p: DamagePoint; idx: number; key?: number }) => {
     const isSelected = typeof selectedIndex === 'number' && selectedIndex === idx;
     const baseCls = `absolute w-6 h-6 rounded-full border border-white shadow transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center text-[11px] text-white font-black z-[60] ${
       readOnly ? 'pointer-events-none' : 'pointer-events-auto'

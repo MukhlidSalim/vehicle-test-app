@@ -95,8 +95,6 @@ export const captureNode = async (node: HTMLElement): Promise<{ dataUrl: string;
       skipAutoScale: true,
       style: {
         margin: '0',
-        width: '794px',  // A4 width in pixels at 96 DPI
-        height: '1123px', // A4 height in pixels at 96 DPI
         background: '#ffffff',
       },
     } as any);
@@ -179,7 +177,19 @@ export const generatePdfReport = async ({
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-        pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        let position = 0;
+        let remainingHeight = pdfHeight;
+
+        while (remainingHeight > 5) { // 5mm threshold to avoid blank pages for tiny overflows
+          pdf.addImage(dataUrl, 'JPEG', 0, position, pdfWidth, pdfHeight, undefined, 'FAST');
+          remainingHeight -= pageHeight;
+          position -= pageHeight;
+          
+          if (remainingHeight > 5) {
+            pdf.addPage();
+          }
+        }
       } catch (e) {
         hadIncompleteCapture = true;
 

@@ -56,10 +56,15 @@ export interface DriverInfo {
 
   plateNumber: PlateNumberString;
   phoneNumber: PhoneString;
+  currentOdometer?: OdometerString;
   odometer: OdometerString;
 
   /** Vehicle registration / license expiry date */
   vehicleExpiryDate?: DateString;
+
+  /** Trip Route */
+  departure?: string;
+  destination?: string;
 
   /** See DateString note above */
   timestamp: DateString;
@@ -71,6 +76,9 @@ export interface DriverInfo {
 export interface DriverReadiness {
   declaration: boolean;
   finalConfirmation: boolean;
+  
+  tbtTopic?: { id: string; titleKey: string; introKey: string; pointsKey: string };
+  tbtAcknowledge?: boolean;
 
   /**
    * IMPORTANT: Choose ONE consistent key strategy across the app:
@@ -111,6 +119,8 @@ export interface DamagePoint {
   x: number;
   y: number;
   note: string;
+  severity?: 'warning' | 'fail';
+  photos?: string[];
 }
 
 export interface ChecklistItem {
@@ -151,9 +161,17 @@ export interface InspectionData {
    * 6-tyre vehicles (ambulance, heavy_bus, light_bus) use: fl, fr, rlo, rli, rro, rri
    */
   tyrePressures?: {
-    fl: string; fr: string;
-    rl: string; rr: string;
-    rlo: string; rli: string; rro: string; rri: string;
+    fl?: string; fr?: string;
+    rl?: string; rr?: string;
+    rlo?: string; rli?: string; rro?: string; rri?: string;
+  };
+
+  /**
+   * Signatures captured at the end of the inspection as base64 images.
+   */
+  signatures?: {
+    inspector?: string;
+    driver?: string;
   };
 
   /** Optional free-text notes not tied to any specific checklist item */

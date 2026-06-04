@@ -1,7 +1,7 @@
 import React from 'react';
 import { ShieldCheck, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 import { InspectionData } from '../../types';
-import { READINESS_QUESTIONS } from '../../constants';
+import { READINESS_QUESTIONS, TBT_TOPICS } from '../../constants';
 
 interface DriverReadinessStepProps {
   t: any;
@@ -22,6 +22,7 @@ export const DriverReadinessStep: React.FC<DriverReadinessStepProps> = ({
   setData,
   attemptedStep3,
 }) => {
+  const [isTbtModalOpen, setIsTbtModalOpen] = React.useState(false);
   
   const handleReadinessAnswer = (id: string, val: boolean) => {
     setData((p) => {
@@ -41,6 +42,16 @@ export const DriverReadinessStep: React.FC<DriverReadinessStepProps> = ({
       };
     });
   };
+
+  React.useEffect(() => {
+    if (!data.readiness.tbtTopic) {
+      const randomTopic = TBT_TOPICS[Math.floor(Math.random() * TBT_TOPICS.length)];
+      setData((p) => ({
+        ...p,
+        readiness: { ...p.readiness, tbtTopic: randomTopic }
+      }));
+    }
+  }, [data.readiness.tbtTopic, setData]);
 
   return (
     <div className="space-y-6">
@@ -85,7 +96,7 @@ export const DriverReadinessStep: React.FC<DriverReadinessStepProps> = ({
              >
                 <div className="flex flex-col md:flex-row md:items-center gap-5">
                    <div className="p-3 bg-primary-50 rounded-xl text-primary-600 group-hover:bg-primary-600 group-hover:text-white transition-all w-fit">
-                     <q.icon size={22} />
+                     {(() => { const Icon = q.icon as React.ElementType; return <Icon size={22} />; })()}
                    </div>
                    <div className="flex-1">
                       <p className="font-bold text-base text-gray-800 leading-tight v-center-cairo justify-start">
@@ -123,30 +134,124 @@ export const DriverReadinessStep: React.FC<DriverReadinessStepProps> = ({
              );
           })}
           
-          {/* Final declaration confirmation checkbox */}
-          <div
-            id="readiness-final-wrapper"
-            data-error={attemptedStep3 && !data.readiness.finalConfirmation ? 'true' : undefined}
-            className={`bg-white p-6 rounded-2xl border-2 space-y-3 mt-4 shadow-lg shadow-primary-50/50 ${
-              attemptedStep3 && !data.readiness.finalConfirmation ? 'border-red-500 bg-red-50' : 'border-primary-100'
-            }`}
-          >
-            <label className="flex items-center gap-4 p-3 rounded-xl hover:bg-primary-50 cursor-pointer group">
-              <input 
-                id="readiness-final-confirmation" 
-                type="checkbox" 
-                className="w-6 h-6 rounded text-primary-600 border-gray-300 transition-all focus:ring-primary-500" 
-                checked={data.readiness.finalConfirmation} 
-                onChange={e => setData((p) => ({ 
-                  ...p, 
-                  readiness: { ...p.readiness, finalConfirmation: e.target.checked } 
-                }))} 
-              />
-              <span className="font-black text-lg text-primary-900 v-center-cairo leading-snug">
-                {t.readiness_final_confirm} *
-              </span>
-            </label>
-          </div>
+          {/* TBT Section */}
+          {data.readiness.tbtTopic && (
+            <div
+              id="readiness-tbt-wrapper"
+              data-error={attemptedStep3 && !data.readiness.tbtAcknowledge ? 'true' : undefined}
+              className={`bg-white p-6 rounded-2xl border-2 space-y-4 mt-8 shadow-md flex items-center justify-between gap-4 ${
+                attemptedStep3 && !data.readiness.tbtAcknowledge ? 'border-red-500 bg-red-50' : 'border-primary-200'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary-100 text-primary-700 rounded-xl">
+                  <ShieldCheck size={24} />
+                </div>
+                <div className="flex flex-col">
+                  <h3 className="font-black text-lg text-primary-900 v-center-cairo leading-tight">
+                    {t.tbt_section_title || (isRTL ? 'موضوع التوعية اليومي (TBT)' : 'Daily Toolbox Talk (TBT)')}
+                  </h3>
+                  {data.readiness.tbtAcknowledge && (
+                    <span className="text-[11px] font-black text-green-600 uppercase tracking-widest v-center-cairo">
+                      <CheckCircle size={12} className="mr-1 ml-1" />
+                      {isRTL ? 'تم الإطلاع' : 'Acknowledged'}
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              <button
+                type="button"
+                onClick={() => setIsTbtModalOpen(true)}
+                className={`px-5 py-2.5 rounded-xl font-black text-sm v-center-cairo transition-all active:scale-95 ${
+                  data.readiness.tbtAcknowledge 
+                    ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300' 
+                    : 'bg-primary-600 text-white hover:bg-primary-700 shadow-md shadow-primary-200'
+                }`}
+              >
+                {isRTL ? 'قراءة الموضوع' : 'Read Topic'}
+              </button>
+            </div>
+          )}
+
+          {/* TBT Modal */}
+          {isTbtModalOpen && data.readiness.tbtTopic && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+                <div className="p-6 bg-primary-600 text-white flex items-center gap-4 border-b border-primary-700">
+                  <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                    <ShieldCheck size={32} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-2xl v-center-cairo text-white">
+                      {t.tbt_section_title || (isRTL ? 'موضوع التوعية اليومي' : 'Daily Toolbox Talk')}
+                    </h3>
+                    <p className="text-primary-100 text-xs font-bold uppercase tracking-widest mt-1">
+                      {isRTL ? 'يرجى قراءة الموضوع بعناية' : 'Please read carefully'}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="p-6 overflow-y-auto space-y-4 flex-1">
+                  <div className="bg-primary-50 p-6 rounded-2xl border border-primary-100">
+                    {(() => {
+                      // Lookup the topic from TBT_TOPICS to ensure we have the latest keys, 
+                      // even if localStorage has an old cached version.
+                      const topic = TBT_TOPICS.find(t => t.id === data.readiness.tbtTopic?.id) || data.readiness.tbtTopic;
+                      if (!topic) return null;
+                      
+                      const title = t[topic.titleKey as keyof typeof t] || topic.titleKey;
+                      const intro = t[(topic as any).introKey as keyof typeof t] || (topic as any).introKey || '';
+                      const points = t[(topic as any).pointsKey as keyof typeof t];
+                      
+                      return (
+                        <>
+                          <h4 className="font-black text-xl text-primary-900 mb-4 v-center-cairo text-center">
+                            {title}
+                          </h4>
+                          <p className="font-bold text-sm text-primary-800 leading-relaxed text-center mb-6 px-4">
+                            {intro}
+                          </p>
+                          <div className="space-y-3">
+                            {Array.isArray(points) ? 
+                              (points as string[]).map((point, idx) => (
+                                <div key={idx} className="flex items-start gap-3 bg-white p-3 rounded-xl shadow-sm border border-primary-100/50">
+                                  <div className="min-w-[8px] max-w-[8px] h-[8px] bg-primary-500 rounded-full mt-2 shadow-sm" />
+                                  <span className="text-sm font-bold text-gray-700 leading-relaxed v-center-cairo">{point}</span>
+                                </div>
+                              ))
+                              : null}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                <div className="p-6 bg-gray-50 border-t border-gray-200 flex flex-col gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setData((p) => ({ ...p, readiness: { ...p.readiness, tbtAcknowledge: true } }));
+                      setIsTbtModalOpen(false);
+                    }}
+                    className="w-full py-4 rounded-xl font-black text-lg text-white bg-green-600 hover:bg-green-700 shadow-lg shadow-green-200 transition-all active:scale-95 v-center-cairo flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle size={24} />
+                    {t.tbt_acknowledge || (isRTL ? 'تم الإطلاع وفهم الموضوع' : 'I have read and understood the topic')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsTbtModalOpen(false)}
+                    className="w-full py-3 rounded-xl font-bold text-sm text-gray-500 hover:bg-gray-200 transition-all active:scale-95 v-center-cairo text-center"
+                  >
+                    {isRTL ? 'إغلاق ومراجعة لاحقاً' : 'Close and review later'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
        </div>
     </div>
   );

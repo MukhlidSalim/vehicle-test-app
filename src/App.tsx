@@ -1,15 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Language, 
-  InspectionMode, 
-  InspectionData, 
-  View 
-} from './types';
-import { 
-  TRANSLATIONS, 
-  INITIAL_READINESS 
-} from './constants';
-import { getChecklistForType } from './utils/inspectionHelpers';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { Language, InspectionMode, View } from './types';
+import { TRANSLATIONS } from './constants';
+import { useInspectionSession } from './hooks/useInspectionSession';
 
 // Layout & structure components
 import { TopBar } from './components/TopBar';
@@ -24,37 +17,31 @@ import { PreTripTipsView } from './features/guides/PreTripTipsView';
 import { InspectionProcess } from './features/inspection/InspectionProcess';
 
 export default function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
   // Detect default browser language on initial load
   const [lang, setLang] = useState<Language>(() => {
     const browserLang = navigator.language.split('-')[0];
     return browserLang === 'ar' ? 'ar' : 'en';
   });
   
-  const [currentView, setCurrentView] = useState<View>('home');
+  const currentView = location.pathname === '/' ? 'home' : location.pathname.substring(1) as View;
+  
+  const setCurrentView = (view: View) => {
+    navigate(view === 'home' ? '/' : `/${view}`);
+  };
+
   const t = TRANSLATIONS[lang];
   const isRTL = lang === 'ar';
-  
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const [inspectionStep, setInspectionStep] = useState<number>(1);
-  const [data, setData] = useState<InspectionData>({
-    mode: 'full',
-    driverInfo: {
-      name: '',
-      assistantName: '',
-      assistantPhone: '',
-      vehicleType: 'light_vehicle',
-      plateNumber: '',
-      phoneNumber: '',
-      odometer: '',
-      vehicleExpiryDate: '',
-      timestamp: new Date().toLocaleString('en-US', { numberingSystem: 'latn' }),
-      nextInspectionDate: '', // Used to store Current Odometer
-    },
-    readiness: { ...INITIAL_READINESS },
-    checklist: getChecklistForType('light_vehicle'),
-    tyrePressures: { fl: '', fr: '', rl: '', rr: '', rlo: '', rli: '', rro: '', rri: '' },
-    additionalNotes: '',
-  });
+
+  const { 
+    data, setData, 
+    inspectionStep, setInspectionStep, 
+    saveStatus, 
+    startInspection: hookStartInspection, 
+    resetSession 
+  } = useInspectionSession();
 
   // Scroll to top on navigation/view change
   useEffect(() => {
@@ -67,91 +54,14 @@ export default function App() {
     document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
   }, [lang, isRTL]);
 
-  // Restore session from localStorage if present on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('svi_session');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const now = Date.now();
-        const EXPIRE_TIME = 60 * 60 * 1000; // 1 Hour session lifespan
-        if (!parsed.timestamp || (now - parsed.timestamp > EXPIRE_TIME)) {
-          localStorage.removeItem('svi_session');
-          return;
-        }
-        if (parsed.step > 1) {
-          setData(parsed.data);
-          setInspectionStep(parsed.step);
-          setCurrentView('inspection_process');
-          setSaveStatus('saved');
-        }
-      } catch (e) { 
-        localStorage.removeItem('svi_session');
-      }
-    }
-  }, []);
-
-  // Auto-save progress to localStorage on data or step changes
-  useEffect(() => {
-    let handler: ReturnType<typeof setTimeout>;
-    
-    if (inspectionStep > 1) {
-      setSaveStatus('saving');
-      handler = setTimeout(() => {
-        try {
-          localStorage.setItem('svi_session', JSON.stringify({ 
-            data, 
-            step: inspectionStep,
-            timestamp: Date.now()
-          }));
-          setSaveStatus('saved');
-        } catch (e) { 
-          setSaveStatus('error'); 
-        }
-      }, 1000);
-    }
-    
-    return () => {
-      if (handler) clearTimeout(handler);
-    };
-  }, [data, inspectionStep]);
-
-  // Initialize a new inspection session
   const startInspection = (mode: InspectionMode) => {
-    setData(prev => ({ 
-      ...prev, 
-      mode,
-      checklist: getChecklistForType(prev.driverInfo.vehicleType)
-    }));
-    setInspectionStep(2);
+    hookStartInspection(mode);
     setCurrentView('inspection_process');
   };
 
-  // Reset the application state completely and clear saved session
   const resetApp = () => {
-    localStorage.removeItem('svi_session');
+    resetSession();
     setCurrentView('home');
-    setInspectionStep(1);
-    setSaveStatus('idle');
-    setData({
-      mode: 'full',
-      driverInfo: { 
-        name: '', 
-        assistantName: '', 
-        assistantPhone: '',
-        vehicleType: 'light_vehicle', 
-        plateNumber: '', 
-        phoneNumber: '', 
-        odometer: '', 
-        vehicleExpiryDate: '',
-        timestamp: new Date().toLocaleString('en-US', { numberingSystem: 'latn' }), 
-        nextInspectionDate: '',
-      },
-      readiness: { ...INITIAL_READINESS },
-      checklist: getChecklistForType('light_vehicle'),
-      tyrePressures: { fl: '', fr: '', rl: '', rr: '', rlo: '', rli: '', rro: '', rri: '' },
-      additionalNotes: '',
-    });
   };
 
   return (
@@ -165,48 +75,49 @@ export default function App() {
       />
       <main className="flex-1 w-full max-w-7xl mx-auto pt-14 flex flex-col">
         <div className="flex-1 p-4 md:p-8 w-full">
-            {currentView === 'home' && (
+          <Routes>
+            <Route path="/" element={
               <HomeView 
                 t={t} 
                 isRTL={isRTL} 
                 setCurrentView={setCurrentView} 
                 startInspection={startInspection} 
               />
-            )}
-
-            {currentView === 'driver_safety' && (
+            } />
+            
+            <Route path="/driver_safety" element={
               <DriverGuideView 
                 t={t} 
                 isRTL={isRTL} 
                 onBack={() => setCurrentView('home')} 
               />
-            )}
-
-            {currentView === 'vehicle_safety' && (
+            } />
+            
+            <Route path="/vehicle_safety" element={
               <VehicleGuideView 
                 t={t} 
                 isRTL={isRTL} 
                 onBack={() => setCurrentView('home')} 
               />
-            )}
-
-            {currentView === 'emergency_procedures' && (
+            } />
+            
+            <Route path="/emergency_procedures" element={
               <EmergencyProcView 
                 t={t} 
                 isRTL={isRTL} 
                 onBack={() => setCurrentView('home')} 
               />
-            )}
-
-            {currentView === 'pre_trip_tips' && (
+            } />
+            
+            <Route path="/pre_trip_tips" element={
               <PreTripTipsView 
                 t={t} 
                 isRTL={isRTL} 
                 onBack={() => setCurrentView('home')} 
               />
-            )}
-
-            {currentView === 'inspection_process' && (
+            } />
+            
+            <Route path="/inspection_process" element={
               <InspectionProcess 
                 t={t} 
                 lang={lang} 
@@ -218,7 +129,11 @@ export default function App() {
                 onExit={resetApp} 
                 saveStatus={saveStatus} 
               />
-            )}
+            } />
+            
+            {/* Catch all route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </div>
       </main>
       <LowerBar />

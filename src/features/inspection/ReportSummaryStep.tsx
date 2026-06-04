@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Loader2, 
   Share2, 
@@ -23,6 +24,7 @@ import {
 } from '../../constants';
 import { ScaledPreview } from '../../components/ScaledPreview';
 import { ReportPageFooter } from '../../components/ReportPageFooter';
+import { getChecklistDefForType } from '../../utils/inspectionHelpers';
 import { VehicleBodyMap } from '../../components/VehicleBodyMap';
 import { generatePdfReport } from '../../utils/pdfGenerator';
 
@@ -225,7 +227,8 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
   };
 
   // --- Helpers for formatting report layout ---
-  const activeChecklistDef = data.driverInfo.vehicleType === 'heavy_bus' ? HEAVY_BUS_CHECKLIST : GENERIC_CHECKLIST;
+  const vType = data.driverInfo.vehicleType;
+  const activeChecklistDef = getChecklistDefForType(vType, data.mode);
   const bodyDamageItem = data.checklist.find((i) => i.key === 'body_damage');
   const bodyDamagePoints = bodyDamageItem?.damagePoints || [];
 
@@ -265,29 +268,159 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
     while (chk.length >= 2) pages.push(chk.splice(0, 2).map(i => ({ kind: "photo_checklist" as const, item: i })));
     while (bd.length >= 2) pages.push(bd.splice(0, 2).map(d => ({ kind: "photo_body" as const, item: d })));
 
-    if (chk.length === 1 && bd.length === 1) {
-      pages.push([{ kind: "photo_checklist" as const, item: chk.shift() }, { kind: "photo_body" as const, item: bd.shift() }]);
-    } else if (chk.length === 1 && bd.length > 0) {
-      pages.push([{ kind: "photo_checklist" as const, item: chk.shift() }, { kind: "photo_body" as const, item: bd.shift() }]);
-    } else if (bd.length === 1 && chk.length > 0) {
-      pages.push([{ kind: "photo_body" as const, item: bd.shift() }, { kind: "photo_checklist" as const, item: chk.shift() }]);
-    } else if (chk.length === 1) {
-      pages.push([{ kind: "photo_checklist" as const, item: chk.shift() }]);
-    } else if (bd.length === 1) {
-      pages.push([{ kind: "photo_body" as const, item: bd.shift() }]);
+    if (chk.length + bd.length > 0) {
+      const remaining: EvidenceEntry[] = [
+        ...chk.map(i => ({ kind: "photo_checklist" as const, item: i })),
+        ...bd.map(d => ({ kind: "photo_body" as const, item: d }))
+      ];
+      pages.push(remaining);
     }
-
     return pages;
   };
+
+
+  // Calculate digital summary stats
+  const checklistStats = useMemo(() => {
+    let pass = 0;
+    let fail = 0;
+    let warning = 0;
+    Object.values(data.checklist).forEach(item => {
+      if (item.status === 'pass') pass++;
+      else if (item.status === 'fail') fail++;
+      else if (item.status === 'warning') warning++;
+    });
+    return { total: pass + fail + warning, pass, fail, warning };
+  }, [data.checklist]);
 
   const photoEvidencePages = buildSmartPhotoPages(checklistPhotoEvidenceItems, []).map(p => ({ photos: p }));
   const textEvidencePages = chunkBy([...checklistNotesOnlyEvidenceItems], 5).map(np => ({
     notesOnly: np.map(n => ({ kind: "note_only" as const, item: n }))
   }));
 
-  const hasTyrePressures = !!(data.tyrePressures && (data.tyrePressures.fl || data.tyrePressures.fr || data.tyrePressures.rl || data.tyrePressures.rr || data.tyrePressures.rlo || data.tyrePressures.rli || data.tyrePressures.rro || data.tyrePressures.rri));
-  const hasAdditionalNotes = !!(data.additionalNotes && data.additionalNotes.trim());
-  const hasEvidencePage = (photoEvidencePages.length + textEvidencePages.length) > 0 || hasTyrePressures || hasAdditionalNotes;
+  const hasTyrePressures = !!(data.tyrePressures && Object.values(data.tyrePressures).some((val) => val.trim() !== ''));
+  const hasAdditionalNotes = !!data.additionalNotes?.trim();
+  const hasTextNotesPage = checklistNotesOnlyEvidenceItems.length > 0 || hasTyrePressures || hasAdditionalNotes;
+  const hasPhotoPages = photoEvidencePages.length > 0;
+  const hasEvidencePage = hasTextNotesPage || hasPhotoPages;
+
+  const isVehicleOrMaintenance = data.mode === 'vehicle_only' || data.mode === 'maintenance';
+  // Signatures for Full / Driver Only modes are exclusively on the Driver Readiness page.
+  const placeSigOnTextNotesPage = false;
+  const placeSigOnLastPhotoPage = false;
+  const createStandaloneSigPage = false; // Never used anymore, we use unified grid
+
+  // --- Unified Evidence Grid System (For Vehicle / Maintenance Only) ---
+  type UnifiedItem = 
+    | { kind: 'photo_checklist'; item: any; weight: number }
+    | { kind: 'text_only'; item: any; weight: number }
+    | { kind: 'tyres'; weight: number }
+    | { kind: 'additional'; weight: number }
+    | { kind: 'summary'; weight: number };
+
+  const unifiedEvidencePages = useMemo(() => {
+    if (!isVehicleOrMaintenance) return [];
+
+    const items: UnifiedItem[] = [];
+
+    // Photo items (weight 4 = half page)
+    checklistPhotoEvidenceItems.forEach(item => items.push({ kind: 'photo_checklist', item, weight: 4 }));
+    
+    // Text items (weight 1 = 1/8th of page)
+    checklistNotesOnlyEvidenceItems.forEach(item => items.push({ kind: 'text_only', item, weight: 1 }));
+
+    // Extras (weight 2 = 1/4th of page)
+    if (hasTyrePressures) items.push({ kind: 'tyres', weight: 2 });
+    if (hasAdditionalNotes) items.push({ kind: 'additional', weight: 2 });
+
+    // Summary (weight 4 = half page)
+    items.push({ kind: 'summary', weight: 4 });
+
+    const pages: UnifiedItem[][] = [];
+    let currentPage: UnifiedItem[] = [];
+    let currentWeight = 0;
+
+    items.forEach(item => {
+      if (currentWeight + item.weight > 8) {
+        pages.push(currentPage);
+        currentPage = [];
+        currentWeight = 0;
+      }
+      currentPage.push(item);
+      currentWeight += item.weight;
+    });
+
+    if (currentPage.length > 0) {
+      pages.push(currentPage);
+    }
+
+    return pages;
+  }, [isVehicleOrMaintenance, checklistPhotoEvidenceItems, checklistNotesOnlyEvidenceItems, hasTyrePressures, hasAdditionalNotes]);
+
+  const renderSignatures = () => {
+    if (!data.signatures || (!data.signatures.inspector && !data.signatures.driver)) return null;
+    return (
+      <div className="mt-4 mb-2 flex flex-row items-center justify-around border-t-2 border-dashed border-gray-300 pt-4" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+        {data.signatures.inspector && (
+          <div className="flex flex-col items-center gap-2">
+            <div className="h-16 flex items-center justify-center">
+              <img src={data.signatures.inspector} alt="Inspector Signature" className="max-h-full max-w-[150px] object-contain mix-blend-multiply" />
+            </div>
+            <div className="w-40 border-t border-gray-400 text-center pt-1">
+              <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">
+                {isRTL ? 'توقيع الفاحص' : 'Inspector Signature'}
+              </span>
+            </div>
+          </div>
+        )}
+        {data.signatures.driver && (
+          <div className="flex flex-col items-center gap-2">
+            <div className="h-16 flex items-center justify-center">
+              <img src={data.signatures.driver} alt="Driver Signature" className="max-h-full max-w-[150px] object-contain mix-blend-multiply" />
+            </div>
+            <div className="w-40 border-t border-gray-400 text-center pt-1">
+              <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">
+                {isRTL ? 'توقيع السائق' : 'Driver Signature'}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderSummaryAndSignatures = () => {
+    return (
+      <div className="mt-4 mb-2 space-y-4" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+        {/* Digital Summary */}
+        <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 shadow-sm">
+          <h4 className="text-[12px] font-black text-gray-800 mb-3 border-b border-gray-200 pb-2 v-center-cairo">
+            {isRTL ? 'ملخص الفحص' : 'Inspection Summary'}
+          </h4>
+          <div className="grid grid-cols-4 gap-4 text-center">
+            <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+              <div className="text-2xl font-black text-blue-600">{checklistStats.total}</div>
+              <div className="text-[10px] font-bold text-gray-500 uppercase">{isRTL ? 'الإجمالي' : 'Total'}</div>
+            </div>
+            <div className="bg-white p-3 rounded-lg border border-green-100 shadow-sm">
+              <div className="text-2xl font-black text-green-600">{checklistStats.pass}</div>
+              <div className="text-[10px] font-bold text-gray-500 uppercase">{isRTL ? 'سليم' : 'Pass'}</div>
+            </div>
+            <div className="bg-white p-3 rounded-lg border border-amber-100 shadow-sm">
+              <div className="text-2xl font-black text-amber-500">{checklistStats.warning}</div>
+              <div className="text-[10px] font-bold text-gray-500 uppercase">{isRTL ? 'تنبيه' : 'Warning'}</div>
+            </div>
+            <div className="bg-white p-3 rounded-lg border border-red-100 shadow-sm">
+              <div className="text-2xl font-black text-red-600">{checklistStats.fail}</div>
+              <div className="text-[10px] font-bold text-gray-500 uppercase">{isRTL ? 'معيب' : 'Fail'}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Signatures */}
+        {renderSignatures()}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-10 pb-20">
@@ -395,19 +528,23 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
          </div>
        )}
 
-       {/* Alerts Banner */}
-       {uiAlert.show && (
-         <div
-           className={`p-3 rounded-xl border font-black text-sm v-center-cairo no-print ${
-             uiAlert.type === 'fail'
-               ? 'bg-red-50 text-red-700 border-red-200'
-               : uiAlert.type === 'warning'
-               ? 'bg-amber-50 text-amber-800 border-amber-200'
-               : 'bg-blue-50 text-blue-800 border-blue-200'
-           }`}
-         >
-           {uiAlert.message}
-         </div>
+       {/* Alerts Banner (Fixed Toast via Portal) */}
+       {uiAlert.show && typeof document !== 'undefined' && createPortal(
+         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[300] w-11/12 max-w-md pointer-events-none no-print animate-fade-in-down">
+           <div
+             className={`p-4 rounded-2xl border shadow-2xl font-black text-sm flex items-center gap-3 ${
+               uiAlert.type === 'fail'
+                 ? 'bg-red-50 text-red-800 border-red-300 shadow-red-200'
+                 : uiAlert.type === 'warning'
+                 ? 'bg-amber-50 text-amber-900 border-amber-300 shadow-amber-200'
+                 : 'bg-blue-50 text-blue-900 border-blue-300 shadow-blue-200'
+             }`}
+           >
+             <AlertTriangle className={`w-6 h-6 flex-shrink-0 ${uiAlert.type === 'fail' ? 'text-red-600' : uiAlert.type === 'warning' ? 'text-amber-600' : 'text-blue-600'}`} />
+             <span className="v-center-cairo leading-tight">{uiAlert.message}</span>
+           </div>
+         </div>,
+         document.body
        )}
 
        {/* Title Header */}
@@ -423,16 +560,16 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
           {/* Page 1: Vehicle Checklist and Body Map */}
           {(data.mode === 'full' || data.mode === 'vehicle_only' || data.mode === 'maintenance') && (
             <ScaledPreview>
-              <div className="ui-preview-card h-full">
+              <div className="ui-preview-card h-fit">
                 <div className="a4-preview-wrapper font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
                   <CompactReportHeader titleSuffix={data.mode === 'maintenance' ? (isRTL ? "تقرير فحص الصيانة" : "Maintenance Inspection Report") : (isRTL ? "فحص المركبة" : "Vehicle Inspection")} lang={lang} />
                   <CompactInfoGrid data={data} t={t} lang={lang} />
                   <div className="flex-1 flex flex-col gap-0">
                     <div className="mb-1">
                         <div className="grid grid-cols-4 gap-x-2 gap-y-1.5">
-                          {data.checklist.map((item) => {
+                          {data.checklist.slice(0, data.mode === 'maintenance' && data.checklist.length > 36 ? 36 : data.checklist.length).map((item) => {
                             const itemDef = activeChecklistDef.find(c => c.key === item.key);
-                            const statusLabels = CHECKLIST_STATUS_LABELS[item.key] || CHECKLIST_STATUS_LABELS['battery'];
+                            const statusLabels = CHECKLIST_STATUS_LABELS[item.key] || CHECKLIST_STATUS_LABELS['body_damage'];
                             const displayLabel = item.status === 'pass' 
                               ? statusLabels.pass[lang as keyof typeof statusLabels.pass] 
                               : item.status === 'fail' 
@@ -460,7 +597,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                     className="text-[10px] font-black text-gray-800 leading-[1.1] flex-1 v-center-cairo justify-start break-words overflow-hidden" 
                                     style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
                                   >
-                                    {t[item.key as keyof typeof t]}
+                                    {t[item.key as keyof typeof t] || item.key}
                                   </span>
                                 </div>
                                 
@@ -473,13 +610,32 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                     ? 'bg-red-600' 
                                     : 'bg-gray-100 text-gray-400'
                                 }`}>
-                                  <span>
-                                    {item.status === 'unchecked' ? '-' : (
-                                      (item.key === 'fire_ext' || item.key === 'safety_kit') && item.expiryDate
-                                        ? <>{displayLabel} · {isRTL ? 'الانتهاء' : 'Expiry'}: <span dir="ltr" style={{ unicodeBidi: 'embed' }}>{formatDisplayDate(item.expiryDate, lang)}</span></>
-                                        : displayLabel
-                                    )}
-                                  </span>
+                                  <div className="w-full flex items-center justify-center h-full">
+                                    {item.status === 'unchecked' ? '-' : (() => {
+                                      const isDateRequired = ['fire_ext', 'safety_kit', 'aed_device', 'tyres_condition'].includes(item.key);
+                                      const isPast = isDateRequired && item.expiryDate && new Date(item.expiryDate) <= new Date();
+                                      
+                                      if (isDateRequired && item.expiryDate) {
+                                        return (
+                                          <div className="flex items-center justify-center gap-1.5 w-full">
+                                            <span>{displayLabel}</span>
+                                            <span 
+                                              dir="ltr" 
+                                              className={`px-1.5 rounded-sm text-[8px] font-mono tracking-widest v-center-cairo ${
+                                                isPast 
+                                                  ? "bg-white/20 text-white shadow-inner border border-white/30" 
+                                                  : "bg-black/15 text-white/95"
+                                              }`}
+                                              style={{ paddingTop: '1px', paddingBottom: '1px' }}
+                                            >
+                                              {formatDisplayDate(item.expiryDate, lang)}
+                                            </span>
+                                          </div>
+                                        );
+                                      }
+                                      return <span>{displayLabel}</span>;
+                                    })()}
+                                  </div>
                                 </div>
                               </div>
                             )
@@ -487,7 +643,143 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                         </div>
                     </div>
                     
-                    {/* Vehicle Damage points section */}
+                    {/* Vehicle Damage points section (Only on Page 1 if not maintenance OR length <= 36) */}
+                    {!(data.mode === 'maintenance' && data.checklist.length > 36) && (
+                      <div className="mt-auto border-2 rounded-xl bg-gray-50/40 p-3 border-primary-50 shadow-sm flex-shrink-0 flex flex-col gap-2">
+                          <div className="flex items-center gap-2 border-b-2 border-primary-100 pb-1 mb-0.5">
+                              <MapIcon size={16} className="text-primary-600" />
+                              <h2 className="text-[14px] font-black text-primary-900 v-center-cairo">
+                                {isRTL ? "خريطة الأضرار بهيكل المركبة" : "Vehicle Body Damage Diagram"}
+                              </h2>
+                          </div>
+                          <div className="flex flex-col gap-2 items-center">
+                              <div className="flex-shrink-0 bg-white rounded-lg border border-gray-300 p-0.5 w-full max-w-[500px] shadow-inner">
+                                <VehicleBodyMap 
+                                  points={bodyDamagePoints} 
+                                  readOnly 
+                                  type={data.driverInfo.vehicleType} 
+                                  compact 
+                                  isRTL={isRTL} 
+                                />
+                              </div>
+                              
+                              {bodyDamagePoints.length > 0 && (
+                                <div className="w-full grid grid-cols-2 gap-x-6 gap-y-1.5 mt-0.5 border-t border-primary-100 pt-2">
+                                  {bodyDamagePoints.slice(0, 8).map((pt, idx) => (
+                                    <div key={idx} className="flex items-start gap-2 min-w-0">
+                                      <div className={`w-4 h-4 flex-shrink-0 text-white rounded flex items-center justify-center text-[9px] font-black font-mono shadow-sm ${
+                                        pt.severity === 'warning' ? 'bg-amber-500' : 'bg-red-600'
+                                      }`}>
+                                        {idx + 1}
+                                      </div>
+                                      <span className="text-[10px] font-semibold text-gray-800 justify-start leading-snug whitespace-normal break-words min-w-0">
+                                        <span className={`font-black text-[9px] px-1 rounded-sm mr-1 ${
+                                          pt.severity === 'warning' ? 'text-amber-700 bg-amber-50' : 'text-red-700 bg-red-50'
+                                        }`}>
+                                          {pt.severity === 'warning' ? (isRTL ? 'تنبيه' : 'Warning') : (isRTL ? 'ضرر' : 'Fail')}
+                                        </span>
+                                        {pt.note || (isRTL ? 'بدون ملاحظة' : 'No note')}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                          </div>
+                      </div>
+                    )}
+                  </div>
+                  <ReportPageFooter isRTL={isRTL} lang={lang} pageNumber={1} />
+                </div>
+              </div>
+            </ScaledPreview>
+          )}
+
+          {/* Page 2: Remaining Checklist Items and Body Map (If Maintenance mode and length > 36) */}
+          {(data.mode === 'maintenance' && data.checklist.length > 36) && (
+            <ScaledPreview>
+              <div className="ui-preview-card h-fit">
+                <div className="a4-preview-wrapper font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
+                  <CompactReportHeader titleSuffix={data.mode === 'maintenance' ? (isRTL ? "تقرير فحص الصيانة - تكملة" : "Maintenance Inspection - Continued") : ""} lang={lang} />
+                  <div className="flex-1 flex flex-col gap-0 mt-2">
+                    <div className="mb-1">
+                        <div className="grid grid-cols-4 gap-x-2 gap-y-1.5">
+                          {data.checklist.slice(36).map((item) => {
+                            const itemDef = activeChecklistDef.find(c => c.key === item.key);
+                            const statusLabels = CHECKLIST_STATUS_LABELS[item.key] || CHECKLIST_STATUS_LABELS['body_damage'];
+                            const displayLabel = item.status === 'pass' 
+                              ? statusLabels.pass[lang as keyof typeof statusLabels.pass] 
+                              : item.status === 'fail' 
+                              ? statusLabels.fail[lang as keyof typeof statusLabels.fail] 
+                              : t[item.status as keyof typeof t];
+
+                            return (
+                              <div 
+                                key={item.key} 
+                                className={`p-1.5 border rounded-xl flex flex-col gap-0.5 shadow-xs h-[92px] justify-between ${
+                                  item.status === 'fail' 
+                                    ? 'bg-red-50 border-red-100' 
+                                    : item.status === 'warning' 
+                                    ? 'bg-amber-50 border-amber-100' 
+                                    : 'bg-white border-gray-300'
+                                }`}
+                              >
+                                <div className="flex items-center gap-1">
+                                  <div className={`p-0.5 rounded bg-gray-50 text-primary-600 border border-gray-300 flex-shrink-0 ${
+                                    item.status === 'fail' ? 'bg-red-100 text-red-600 border-red-200' : ''
+                                  }`}>
+                                    {itemDef && <itemDef.icon size={22} />}
+                                  </div>
+                                  <span 
+                                    className="text-[10px] font-black text-gray-800 leading-[1.1] flex-1 v-center-cairo justify-start break-words overflow-hidden" 
+                                    style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
+                                  >
+                                    {t[item.key as keyof typeof t] || item.key}
+                                  </span>
+                                </div>
+                                
+                                <div className={`w-full rounded text-[8.5px] text-white font-black h-[22px] v-center-cairo shadow-sm ${
+                                  item.status === 'pass' 
+                                    ? 'bg-green-600' 
+                                    : item.status === 'warning' 
+                                    ? 'bg-amber-500' 
+                                    : item.status === 'fail' 
+                                    ? 'bg-red-600' 
+                                    : 'bg-gray-100 text-gray-400'
+                                }`}>
+                                  <div className="w-full flex items-center justify-center h-full">
+                                    {item.status === 'unchecked' ? '-' : (() => {
+                                      const isDateRequired = ['fire_ext', 'safety_kit', 'aed_device', 'tyres_condition'].includes(item.key);
+                                      const isPast = isDateRequired && item.expiryDate && new Date(item.expiryDate) <= new Date();
+                                      
+                                      if (isDateRequired && item.expiryDate) {
+                                        return (
+                                          <div className="flex items-center justify-center gap-1.5 w-full">
+                                            <span>{displayLabel}</span>
+                                            <span 
+                                              dir="ltr" 
+                                              className={`px-1.5 rounded-sm text-[8px] font-mono tracking-widest v-center-cairo ${
+                                                isPast 
+                                                  ? "bg-white/20 text-white shadow-inner border border-white/30" 
+                                                  : "bg-black/15 text-white/95"
+                                              }`}
+                                              style={{ paddingTop: '1px', paddingBottom: '1px' }}
+                                            >
+                                              {formatDisplayDate(item.expiryDate, lang)}
+                                            </span>
+                                          </div>
+                                        );
+                                      }
+                                      return <span>{displayLabel}</span>;
+                                    })()}
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                    </div>
+                    
+                    {/* Vehicle Damage points section (On Page 2 for maintenance mode) */}
                     <div className="mt-auto border-2 rounded-xl bg-gray-50/40 p-3 border-primary-50 shadow-sm flex-shrink-0 flex flex-col gap-2">
                         <div className="flex items-center gap-2 border-b-2 border-primary-100 pb-1 mb-0.5">
                             <MapIcon size={16} className="text-primary-600" />
@@ -510,11 +802,18 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                               <div className="w-full grid grid-cols-2 gap-x-6 gap-y-1.5 mt-0.5 border-t border-primary-100 pt-2">
                                 {bodyDamagePoints.slice(0, 8).map((pt, idx) => (
                                   <div key={idx} className="flex items-start gap-2 min-w-0">
-                                    <div className="w-4 h-4 flex-shrink-0 bg-red-600 text-white rounded flex items-center justify-center text-[9px] font-black font-mono shadow-sm">
+                                    <div className={`w-4 h-4 flex-shrink-0 text-white rounded flex items-center justify-center text-[9px] font-black font-mono shadow-sm ${
+                                      pt.severity === 'warning' ? 'bg-amber-500' : 'bg-red-600'
+                                    }`}>
                                       {idx + 1}
                                     </div>
                                     <span className="text-[10px] font-semibold text-gray-800 justify-start leading-snug whitespace-normal break-words min-w-0">
-                                      {pt.note}
+                                      <span className={`font-black text-[9px] px-1 rounded-sm mr-1 ${
+                                        pt.severity === 'warning' ? 'text-amber-700 bg-amber-50' : 'text-red-700 bg-red-50'
+                                      }`}>
+                                        {pt.severity === 'warning' ? (isRTL ? 'تنبيه' : 'Warning') : (isRTL ? 'ضرر' : 'Fail')}
+                                      </span>
+                                      {pt.note || (isRTL ? 'بدون ملاحظة' : 'No note')}
                                     </span>
                                   </div>
                                 ))}
@@ -529,13 +828,140 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
             </ScaledPreview>
           )}
 
-          {/* Page 2: Photo and Text Evidence */}
-          {(data.mode === 'full' || data.mode === 'vehicle_only' || data.mode === 'maintenance') && hasEvidencePage && (
+          {/* Unified Evidence Grid Pages (Vehicle/Maintenance Only) */}
+          {isVehicleOrMaintenance && unifiedEvidencePages.map((page, pageIndex) => (
+            <ScaledPreview key={`unified-page-${pageIndex}`}>
+              <div className="ui-preview-card h-fit">
+                <div className="a4-preview-wrapper fixed-a4-height font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
+                  <CompactReportHeader
+                    titleSuffix={isRTL ? `الملاحظات والملخص (${pageIndex + 1}/${unifiedEvidencePages.length})` : `Evidence & Summary (${pageIndex + 1}/${unifiedEvidencePages.length})`}
+                    lang={lang}
+                  />
+                  <CompactInfoGrid data={data} t={t} lang={lang} />
+                  
+                  <div className="flex-1 min-h-0 h-full mt-4 grid gap-3 pb-4" style={{ gridTemplateRows: 'repeat(8, minmax(0, 1fr))' }}>
+                    {page.map((uItem, slotIdx) => {
+                      const rowSpanClass = uItem.weight === 4 ? 'row-span-4' : uItem.weight === 2 ? 'row-span-2' : 'row-span-1';
+
+                      if (uItem.kind === 'photo_checklist') {
+                        const item = uItem.item;
+                        const itemPhotos = item.photos && item.photos.length > 0 ? item.photos : (item.photo ? [item.photo] : []);
+                        const noteText = (() => {
+                          const n = (item.notes || '').trim();
+                          if (n) return n;
+                          if (item.status === 'warning' || item.status === 'fail') {
+                            return isRTL ? 'صورة توضيحية.' : 'Illustrative image.';
+                          }
+                          return null;
+                        })();
+
+                        return (
+                          <div key={`u-photo-${pageIndex}-${slotIdx}`} className={`${rowSpanClass} min-h-0 flex flex-col`}>
+                            <div className="relative h-full min-h-0 bg-gray-50 rounded-2xl border border-gray-300 overflow-hidden shadow-sm flex flex-col">
+                              <div className={`absolute top-0 bottom-0 ${isRTL ? 'right-0' : 'left-0'} w-[6px] ${item.status === 'fail' ? 'bg-red-600' : item.status === 'warning' ? 'bg-amber-400' : 'bg-green-500'}`} />
+                              <div className="p-3 pb-1 flex-shrink-0">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-1 bg-primary-100 text-primary-700 rounded text-[10px]">
+                                    {(() => { const def = activeChecklistDef.find((c) => c.key === item.key); return def && <def.icon size={14} />; })()}
+                                  </div>
+                                  <p className="text-[11px] font-black text-primary-900 truncate">{t[item.key as keyof typeof t]}</p>
+                                </div>
+                              </div>
+                              {noteText && (
+                                <div className="px-3 pb-1 flex-shrink-0">
+                                  <div className="bg-white/80 p-2 rounded border border-gray-200">
+                                    <p className="text-[9px] font-bold text-gray-700 leading-tight line-clamp-1">{noteText}</p>
+                                  </div>
+                                </div>
+                              )}
+                              <div className="px-3 pb-3 flex-1 min-h-0">
+                                <div className={`h-full min-h-0 grid gap-2 ${itemPhotos.length === 3 ? 'grid-cols-3' : itemPhotos.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                                  {itemPhotos.map((photoUrl: string, pIdx: number) => (
+                                    <div key={pIdx} className="relative bg-white rounded-lg border border-gray-200 overflow-hidden">
+                                      <div className="absolute inset-0 flex items-center justify-center">
+                                        <img src={photoUrl} alt={`${item.key}-${pIdx}`} className="max-w-full max-h-full object-contain" />
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (uItem.kind === 'text_only') {
+                        const item = uItem.item;
+                        return (
+                          <div key={`u-txt-${pageIndex}-${slotIdx}`} className={`${rowSpanClass} min-h-0 flex flex-col`}>
+                            <div className="relative h-full min-h-0 bg-gray-50 rounded-2xl border border-gray-300 overflow-hidden shadow-sm flex flex-col p-2.5">
+                              <div className={`absolute top-0 bottom-0 ${isRTL ? 'right-0' : 'left-0'} w-[6px] ${item.status === 'fail' ? 'bg-red-600' : item.status === 'warning' ? 'bg-amber-400' : 'bg-green-500'}`} />
+                              <div className="flex items-center gap-3">
+                                <div className="p-1 bg-primary-100 text-primary-700 rounded text-[9px]">
+                                  {(() => { const def = activeChecklistDef.find((c) => c.key === item.key); return def && <def.icon size={12} />; })()}
+                                </div>
+                                <p className="text-[10px] font-black text-primary-900 truncate flex-shrink-0 max-w-[30%]">{t[item.key as keyof typeof t]}</p>
+                                <div className="flex-1 overflow-hidden">
+                                  <p className="text-[9px] font-bold text-gray-700 whitespace-nowrap overflow-hidden text-ellipsis">{item.notes}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (uItem.kind === 'tyres') {
+                        return (
+                          <div key={`u-tyres`} className={`${rowSpanClass} min-h-0 bg-gray-50 rounded-2xl border border-gray-300 p-3 shadow-sm flex flex-col`}>
+                            <h3 className="text-[10px] font-black text-primary-900 uppercase tracking-widest mb-2 pb-1 border-b border-gray-300">{isRTL ? 'قياسات ضغط الإطارات' : 'Tyre Pressures'}</h3>
+                            <div className="grid grid-cols-4 gap-2 flex-1 min-h-0">
+                              {Object.entries(data.tyrePressures || {}).filter(([_, v]) => v.trim() !== '').slice(0, 4).map(([key, val]) => (
+                                <div key={key} className="bg-white rounded-lg border border-gray-200 p-1 flex flex-col items-center justify-center">
+                                  <span className="text-[8px] font-black text-gray-400 uppercase">{key}</span>
+                                  <span className="text-sm font-black text-primary-900">{val}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (uItem.kind === 'additional') {
+                        return (
+                          <div key={`u-addl`} className={`${rowSpanClass} min-h-0 bg-gray-50 rounded-2xl border border-gray-300 p-3 shadow-sm flex flex-col`}>
+                            <h3 className="text-[10px] font-black text-primary-900 uppercase tracking-widest mb-2 pb-1 border-b border-gray-300">{isRTL ? 'ملاحظات إضافية' : 'Additional Notes'}</h3>
+                            <div className="flex-1 overflow-hidden bg-white rounded-lg border border-gray-200 p-2">
+                              <p className="text-[10px] font-bold text-gray-700 whitespace-pre-wrap leading-tight line-clamp-3">{data.additionalNotes}</p>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (uItem.kind === 'summary') {
+                        return (
+                          <div key={`u-sum`} className={`${rowSpanClass} flex flex-col justify-center min-h-0`}>
+                            {renderSummaryAndSignatures()}
+                          </div>
+                        );
+                      }
+
+                      return null;
+                    })}
+                  </div>
+                  
+                  <ReportPageFooter />
+                </div>
+              </div>
+            </ScaledPreview>
+          ))}
+
+          {/* Page 2: Photo and Text Evidence (For Full / Driver Only modes) */}
+          {(data.mode === 'full' || data.mode === 'driver_only') && hasEvidencePage && (
             <>
               {/* Photo Evidence Pages */}
               {photoEvidencePages.map((page, pageIndex) => (
                 <ScaledPreview key={`photo-notes-${pageIndex}`}>
-                  <div className="ui-preview-card h-full">
+                  <div className="ui-preview-card h-fit">
                     <div className="a4-preview-wrapper font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
                       <CompactReportHeader
                         titleSuffix={
@@ -551,7 +977,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                       <div className="flex-1 min-h-0 mt-4 grid grid-rows-2 gap-4">
                         {[0, 1].map((slotIdx) => {
                           const wrap = page.photos[slotIdx];
-                          if (!wrap) return <div key={`slot-empty-${pageIndex}-${slotIdx}`} className="min-h-0" />;
+                          if (!wrap) return <div key={`slot-empty-${pageIndex}-${slotIdx}`} className="min-h-0 border-2 border-dashed border-gray-100 rounded-2xl flex items-center justify-center opacity-50"><span className="text-gray-300 font-black tracking-widest text-[10px] uppercase">Empty Slot</span></div>;
 
                           if (wrap.kind === 'photo_checklist') {
                             const item = wrap.item;
@@ -617,8 +1043,10 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                   <div className="px-4 pb-4 flex-1 min-h-0">
                                     <div className={`h-full min-h-0 grid gap-2 ${itemPhotos.length === 3 ? 'grid-cols-3' : itemPhotos.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                                       {itemPhotos.map((photoUrl: string, pIdx: number) => (
-                                        <div key={pIdx} className="bg-white rounded-xl border border-gray-300 overflow-hidden shadow-inner flex items-center justify-center">
-                                          <img src={photoUrl} alt={`${item.key}-${pIdx}`} className="max-w-full max-h-full object-contain bg-white" />
+                                        <div key={pIdx} className="relative bg-white rounded-xl border border-gray-300 overflow-hidden shadow-inner">
+                                          <div className="absolute inset-0 flex items-center justify-center">
+                                            <img src={photoUrl} alt={`${item.key}-${pIdx}`} className="max-w-full max-h-full object-contain bg-white" />
+                                          </div>
                                         </div>
                                       ))}
                                     </div>
@@ -631,6 +1059,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                         })}
                       </div>
 
+                      {placeSigOnLastPhotoPage && pageIndex === photoEvidencePages.length - 1 && renderSummaryAndSignatures()}
                       <ReportPageFooter />
                     </div>
                   </div>
@@ -647,7 +1076,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
 
                 return (
                   <ScaledPreview>
-                    <div className="ui-preview-card h-full">
+                    <div className="ui-preview-card h-fit">
                       <div className="a4-preview-wrapper font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
                         <CompactReportHeader
                           titleSuffix={isRTL ? 'الملاحظات والبيانات الإضافية' : 'Notes & Additional Data'}
@@ -658,10 +1087,6 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                         <div className="flex-1 min-h-0 mt-4 space-y-3">
                           {/* Text-only notes */}
                           {hasTextNotes && (
-                            <div>
-                              <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 border-b pb-1">
-                                {isRTL ? 'الملاحظات النصية' : 'Text Notes'}
-                              </h3>
                               <div className="grid grid-cols-1 gap-2">
                                 {allTextItems.map((item, idx) => {
                                   const noteText = (() => {
@@ -742,7 +1167,6 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                   );
                                 })}
                               </div>
-                            </div>
                           )}
 
                           {/* Tyre Pressure Table */}
@@ -783,7 +1207,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
 
                           {/* Additional Notes */}
                           {hasAdditionalNotes && (
-                            <div className="border border-gray-300 rounded-xl p-4 bg-gray-50/50 shadow-sm">
+                            <div className="border border-gray-300 rounded-xl p-4 bg-gray-50/50 shadow-sm mt-4">
                               <h3 className="text-[12px] font-black text-primary-900 uppercase tracking-widest mb-3 pb-1.5 border-b border-gray-300 v-center-cairo justify-start">
                                 {isRTL ? 'ملاحظات إضافية' : 'Additional Notes'}
                               </h3>
@@ -794,7 +1218,10 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                               </div>
                             </div>
                           )}
+
                         </div>
+
+                        {placeSigOnTextNotesPage && renderSummaryAndSignatures()}
 
                         <ReportPageFooter />
                       </div>
@@ -808,7 +1235,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
           {/* Page 3: Driver Readiness Checklist */}
           {(data.mode === 'full' || data.mode === 'driver_only') && (
             <ScaledPreview>
-              <div className="ui-preview-card h-full">
+              <div className="ui-preview-card h-fit">
                 <div className="a4-preview-wrapper font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
                   <CompactReportHeader titleSuffix={isRTL ? "جاهزية السائق" : "Driver Readiness"} lang={lang} />
                   <CompactInfoGrid data={data} t={t} lang={lang} />
@@ -820,7 +1247,9 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                           return (
                             <div key={q.id} className="flex items-center justify-between p-3 bg-gray-50/50 rounded-xl border border-gray-300 shadow-xs h-[52px]">
                               <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <div className="p-2 rounded-lg bg-white text-primary-600 shadow-sm border border-gray-300 flex-shrink-0"><q.icon size={22} /></div>
+                                <div className="p-2 rounded-lg bg-white text-primary-600 shadow-sm border border-gray-300 flex-shrink-0">
+                                  {(() => { const Icon = q.icon as React.ElementType; return <Icon size={22} />; })()}
+                                </div>
                                 <span className="text-[12px] font-black text-gray-700 v-center-cairo justify-start leading-tight">{t[q.key as keyof typeof t]}</span>
                               </div>
                               <div className={`px-5 rounded-lg text-[10px] font-black h-[26px] min-w-[60px] v-center-cairo shadow-sm flex-shrink-0 ms-2 ${answer === true ? 'bg-green-600 text-white' : answer === false ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
@@ -830,17 +1259,40 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                           );
                         })}
                       </div>
+                      
+                      {/* TBT Summary block */}
+                      {data.readiness.tbtTopic && (
+                        <div className="mt-2 p-2 bg-primary-50/40 rounded-lg border border-primary-200 shadow-xs flex items-center justify-between">
+                           <div className="flex items-center gap-2">
+                              <ShieldCheck size={16} className="text-primary-600" />
+                              <span className="text-[10px] font-bold text-primary-900">
+                                <span className="font-black">{t.tbt_section_title || (isRTL ? 'موضوع التوعية اليومي (TBT)' : 'Daily Toolbox Talk (TBT)')}:</span> {t[data.readiness.tbtTopic.titleKey as keyof typeof t] || data.readiness.tbtTopic.titleKey}
+                              </span>
+                           </div>
+                           <div className="flex items-center gap-2">
+                              <span className="text-[9px] font-bold text-gray-600">
+                                {t.tbt_acknowledge || (isRTL ? 'تم الإطلاع' : 'Understood')}
+                              </span>
+                              <div className={`px-2 py-0.5 rounded text-[9px] font-black v-center-cairo shadow-sm ${data.readiness.tbtAcknowledge ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                                {data.readiness.tbtAcknowledge ? (isRTL ? "نعم" : "Yes") : (isRTL ? "لا" : "No")}
+                              </div>
+                           </div>
+                        </div>
+                      )}
                   </div>
                   
                   {/* Final Readiness Status indicator */}
-                  <div className="mt-auto pb-10 pt-6 text-center flex-shrink-0">
-                     <div className={`flex items-center justify-center gap-5 p-5 rounded-2xl border shadow-sm ${data.readiness.status === 'ready' ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
-                       {data.readiness.status === 'ready' ? <ShieldCheck size={32} className="text-green-600" /> : <ShieldAlert size={32} className="text-red-600" />}
-                       <span className={`text-[20px] font-black v-center-cairo ${data.readiness.status === 'ready' ? 'text-green-900' : 'text-red-900'}`}>
+                  <div className="mt-2 mb-2 flex-shrink-0">
+                     <div className={`flex items-center justify-center gap-3 p-3 rounded-xl border shadow-sm ${data.readiness.status === 'ready' ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
+                       {data.readiness.status === 'ready' ? <ShieldCheck size={24} className="text-green-600" /> : <ShieldAlert size={24} className="text-red-600" />}
+                       <span className={`text-[16px] font-black v-center-cairo ${data.readiness.status === 'ready' ? 'text-green-900' : 'text-red-900'}`}>
                          {t.final_result_label}: {data.readiness.status === 'ready' ? t.ready_for_trip : t.not_ready_label}
                        </span>
                      </div>
                   </div>
+
+                  {(data.mode === 'full' || data.mode === 'driver_only') && renderSignatures()}
+
                   <ReportPageFooter />
                 </div>
               </div>

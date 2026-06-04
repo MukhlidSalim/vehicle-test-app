@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, AlertTriangle, Eraser, Trash2, Check, X, Images } from 'lucide-react';
+import { Camera, AlertTriangle, Eraser, Trash2, Check, X, Images, CheckCircle } from 'lucide-react';
 import { InspectionData, CheckStatus } from '../../types';
 import { 
   GENERIC_CHECKLIST, 
@@ -11,6 +11,7 @@ import {
   AMBULANCE_TOOLTIPS,
   ELECTRIC_TOOLTIPS
 } from '../../constants';
+import { getChecklistDefForType } from '../../utils/inspectionHelpers';
 import { VehicleBodyMap } from '../../components/VehicleBodyMap';
 import { compressImage } from '../../utils/imageCompressor';
 
@@ -35,29 +36,74 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
   setData,
   attemptedStep4,
 }) => {
-  // Local state for photo selector bottom sheet/modal
-  const [photoMenu, setPhotoMenu] = useState<{ isOpen: boolean; itemId: number | null }>({ 
-    isOpen: false, 
-    itemId: null 
-  });
+
+  const [photoMenu, setPhotoMenu] = useState<{ isOpen: boolean; itemId: number | null; damageIdx?: number }>({ isOpen: false, itemId: null });
+  const [dateWarning, setDateWarning] = React.useState<{ show: boolean; msg: string }>({ show: false, msg: '' });
+
+  const showDateWarning = (msg: string) => {
+    setDateWarning({ show: true, msg });
+    setTimeout(() => setDateWarning({ show: false, msg: '' }), 4000);
+  };
 
   // Tyre pressure toggle — hidden by default until explicitly opened
   const [showTyrePressure, setShowTyrePressure] = useState(false);
 
   const vType = data.driverInfo.vehicleType;
-  const activeChecklistDef = vType === 'heavy_bus' ? HEAVY_BUS_CHECKLIST : vType === 'electric_vehicle' ? ELECTRIC_CHECKLIST : GENERIC_CHECKLIST;
+  const activeChecklistDef = getChecklistDefForType(vType, data.mode);
   const activeTooltips = 
     vType === 'heavy_bus' ? HEAVY_BUS_TOOLTIPS : 
     vType === 'electric_vehicle' ? ELECTRIC_TOOLTIPS :
     vType === 'ambulance' ? AMBULANCE_TOOLTIPS : 
     CHECKLIST_TOOLTIPS;
 
+  // --- Smart Auto-Scroll Helper ---
+  const autoScrollToNextUnchecked = (itemId: number, nextChecklist: any[]) => {
+    let nextUncheckedKey: string | null = null;
+    const currentIndex = nextChecklist.findIndex(item => item.id === itemId);
+    
+    for (let i = currentIndex + 1; i < nextChecklist.length; i++) {
+      if (nextChecklist[i].status === 'unchecked' && nextChecklist[i].key !== 'body_damage') {
+        nextUncheckedKey = nextChecklist[i].key;
+        break;
+      }
+    }
+    if (!nextUncheckedKey) {
+      for (let i = 0; i < currentIndex; i++) {
+        if (nextChecklist[i].status === 'unchecked' && nextChecklist[i].key !== 'body_damage') {
+          nextUncheckedKey = nextChecklist[i].key;
+          break;
+        }
+      }
+    }
+
+    if (nextUncheckedKey) {
+      setTimeout(() => {
+        const element = document.getElementById(`check-item-${nextUncheckedKey}`);
+        if (element) {
+          const headerOffset = 120; // Ensure we scroll past sticky headers
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+          window.scrollTo({
+             top: offsetPosition,
+             behavior: "smooth"
+          });
+        }
+      }, 250);
+    }
+  };
+
   // --- Core Checklist Item Actions ---
   const updateItemStatus = (itemId: number, status: CheckStatus) => {
-    setData((p) => ({
-      ...p,
-      checklist: p.checklist.map((item) => item.id === itemId ? { ...item, status } : item)
-    }));
+    const nextChecklist = data.checklist.map((item) => item.id === itemId ? { ...item, status } : item);
+    
+    const targetItem = data.checklist.find(item => item.id === itemId);
+    const noAutoScrollKeys = ['fire_ext', 'safety_kit', 'tyre_pressure'];
+    
+    if (targetItem && !noAutoScrollKeys.includes(targetItem.key) && status !== 'warning' && status !== 'fail') {
+      autoScrollToNextUnchecked(itemId, nextChecklist);
+    }
+
+    setData((p) => ({ ...p, checklist: nextChecklist }));
   };
 
   const updateItemNote = (itemId: number, notes: string) => {
@@ -67,7 +113,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
     }));
   };
 
-  const handlePhotoCapture = async (itemId: number, mode: 'camera' | 'gallery') => {
+  const handlePhotoCapture = async (itemId: number, mode: 'camera' | 'gallery', damageIdx?: number) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -86,14 +132,26 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
             ...p,
             checklist: p.checklist.map((item) => {
               if (item.id === itemId) {
-                let currentPhotos = item.photos || [];
-                if (currentPhotos.length === 0 && item.photo) {
-                  currentPhotos = [item.photo];
+                if (damageIdx !== undefined) {
+                  const pts = item.damagePoints || [];
+                  const nextPts = pts.map((pt, i) => {
+                    if (i === damageIdx) {
+                      const cp = pt.photos || [];
+                      if (cp.length < 3) return { ...pt, photos: [...cp, compressed] };
+                    }
+                    return pt;
+                  });
+                  return { ...item, damagePoints: nextPts };
+                } else {
+                  let currentPhotos = item.photos || [];
+                  if (currentPhotos.length === 0 && item.photo) {
+                    currentPhotos = [item.photo];
+                  }
+                  if (currentPhotos.length < 3) {
+                    return { ...item, photos: [...currentPhotos, compressed], photo: undefined };
+                  }
+                  return item;
                 }
-                if (currentPhotos.length < 3) {
-                  return { ...item, photos: [...currentPhotos, compressed], photo: undefined };
-                }
-                return item;
               }
               return item;
             })
@@ -120,17 +178,29 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
     input.click();
   };
 
-  const handleRemovePhoto = (itemId: number, indexToRemove: number = 0) => {
+  const handleRemovePhoto = (itemId: number, indexToRemove: number = 0, damageIdx?: number) => {
     setData((p) => ({
       ...p,
       checklist: p.checklist.map((item) => {
         if (item.id === itemId) {
-          let currentPhotos = item.photos || [];
-          if (currentPhotos.length === 0 && item.photo) {
-            currentPhotos = [item.photo];
+          if (damageIdx !== undefined) {
+            const pts = item.damagePoints || [];
+            const nextPts = pts.map((pt, i) => {
+              if (i === damageIdx) {
+                const cp = pt.photos || [];
+                return { ...pt, photos: cp.filter((_, idx) => idx !== indexToRemove) };
+              }
+              return pt;
+            });
+            return { ...item, damagePoints: nextPts };
+          } else {
+            let currentPhotos = item.photos || [];
+            if (currentPhotos.length === 0 && item.photo) {
+              currentPhotos = [item.photo];
+            }
+            const nextPhotos = currentPhotos.filter((_, idx) => idx !== indexToRemove);
+            return { ...item, photos: nextPhotos, photo: undefined };
           }
-          const nextPhotos = currentPhotos.filter((_, idx) => idx !== indexToRemove);
-          return { ...item, photos: nextPhotos, photo: undefined };
         }
         return item;
       })
@@ -139,6 +209,13 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
   };
 
   // --- Body Damage Specific Handlers ---
+  const computeBodyDamageStatus = (points: any[]): CheckStatus => {
+    if (!points || points.length === 0) return 'pass';
+    if (points.some(p => p.severity === 'fail')) return 'fail';
+    if (points.some(p => p.severity === 'warning')) return 'warning';
+    return 'pass'; // default if they don't have severity set yet
+  };
+
   const handleBodyDamageAdd = (pt: { x: number; y: number }) => {
     const newId = `bd_${Date.now()}_${Math.random().toString(16).slice(2)}`;
     setData((p) => ({
@@ -146,13 +223,11 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
       checklist: p.checklist.map((item) => {
         if (item.key !== 'body_damage') return item;
         const currentPoints = item.damagePoints || [];
-        const nextPoints = [...currentPoints, { id: newId, ...pt, note: '' }];
-        // Automatically mark status as WARNING if it was PASS or UNCHECKED
-        const nextStatus: CheckStatus = (item.status === 'pass' || item.status === 'unchecked') ? 'warning' : item.status;
+        const nextPoints = [...currentPoints, { id: newId, ...pt, note: '', severity: 'warning' as const }];
         return {
           ...item,
           damagePoints: nextPoints,
-          status: nextStatus
+          status: computeBodyDamageStatus(nextPoints)
         };
       })
     }));
@@ -170,14 +245,26 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
     }));
   };
 
-  const updateBodyDamageNote = (idx: number, note: string) => {
+  const updateBodyDamageNote = (idx: number, newNote: string) => {
     setData((p) => ({
       ...p,
       checklist: p.checklist.map((item) => {
         if (item.key !== 'body_damage') return item;
-        const pts = item.damagePoints || [];
-        const next = pts.map((pt, i) => i === idx ? { ...pt, note } : pt);
-        return { ...item, damagePoints: next };
+        const currentPoints = item.damagePoints || [];
+        const nextPoints = currentPoints.map((pt, i) => i === idx ? { ...pt, note: newNote } : pt);
+        return { ...item, damagePoints: nextPoints };
+      })
+    }));
+  };
+
+  const updateBodyDamageSeverity = (idx: number, severity: 'warning' | 'fail') => {
+    setData((p) => ({
+      ...p,
+      checklist: p.checklist.map((item) => {
+        if (item.key !== 'body_damage') return item;
+        const currentPoints = item.damagePoints || [];
+        const nextPoints = currentPoints.map((pt, i) => i === idx ? { ...pt, severity } : pt);
+        return { ...item, damagePoints: nextPoints, status: computeBodyDamageStatus(nextPoints) };
       })
     }));
   };
@@ -187,10 +274,13 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
       ...p,
       checklist: p.checklist.map((item) => {
         if (item.key !== 'body_damage') return item;
-        const pts = item.damagePoints || [];
-        const next = pts.filter((_, i) => i !== idx);
-        const nextStatus: CheckStatus = next.length > 0 ? 'warning' : 'pass';
-        return { ...item, damagePoints: next, status: nextStatus };
+        const currentPoints = item.damagePoints || [];
+        const nextPoints = currentPoints.filter((_, i) => i !== idx);
+        return {
+          ...item,
+          damagePoints: nextPoints,
+          status: computeBodyDamageStatus(nextPoints)
+        };
       })
     }));
   };
@@ -205,8 +295,46 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
     }));
   };
 
+  const handleDateChange = (itemId: number, value: string) => {
+    const isFuture = value && new Date(value) > new Date();
+    const isPast = value && new Date(value) <= new Date();
+
+    const nextChecklist = data.checklist.map((item) => {
+      if (item.id === itemId) {
+        if (isFuture) {
+          return { ...item, expiryDate: value, status: 'pass' as CheckStatus, notes: '' };
+        } else if (isPast) {
+          showDateWarning(isRTL ? 'تنبيه: التاريخ المدخل منتهي الصلاحية!' : 'Warning: The entered date is expired!');
+          const isFire = item.key === 'fire_ext';
+          const isFirstAid = item.key === 'safety_kit';
+          let newStatus: 'pass' | 'warning' | 'fail' | 'unchecked' = item.status;
+          if (isFire) newStatus = 'fail';
+          else if (isFirstAid) newStatus = 'warning';
+          else newStatus = 'warning';
+
+          return { ...item, expiryDate: value, status: newStatus as CheckStatus };
+        }
+        return { ...item, expiryDate: value };
+      }
+      return item;
+    });
+
+    if (isFuture || isPast) {
+      autoScrollToNextUnchecked(itemId, nextChecklist);
+    }
+
+    setData((p) => ({ ...p, checklist: nextChecklist }));
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+       {dateWarning.show && (
+         <div className="fixed top-20 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-red-100 text-red-800 px-6 py-4 rounded-2xl shadow-2xl z-50 animate-in slide-in-from-top flex items-center gap-3 border border-red-300">
+           <AlertTriangle size={24} className="text-red-600 animate-pulse flex-shrink-0" />
+           <span className="font-black text-sm v-center-cairo">{dateWarning.msg}</span>
+         </div>
+       )}
+
        <div className="flex justify-between items-center border-b border-gray-400 pb-3">
          <h2 className="text-lg font-black text-gray-800 flex items-center gap-3 v-center-cairo">
            {t.checklist}
@@ -226,13 +354,15 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
              const isBody = item.key === 'body_damage';
              const isFireExt = item.key === 'fire_ext';
              const isSafetyKit = item.key === 'safety_kit';
-             const statusLabels = CHECKLIST_STATUS_LABELS[item.key] || CHECKLIST_STATUS_LABELS['battery'];
+             const isAed = item.key === 'aed_device';
+             const isTyresCond = item.key === 'tyres_condition';
+             const statusLabels = CHECKLIST_STATUS_LABELS[item.key] || CHECKLIST_STATUS_LABELS['body_damage'];
              const isWF = item.status === 'warning' || item.status === 'fail';
              const notesMissing = isBody
                ? (isWF && (((item.damagePoints || []).length === 0) || (item.damagePoints || []).some((p) => !p?.note || String(p.note).trim().length === 0)))
                : (isWF && (!item.notes || String(item.notes).trim().length === 0));
-             // fire_ext and safety_kit expiry is mandatory whenever the item has been checked (any status except unchecked)
-             const expiryMissing = (isFireExt || isSafetyKit) && item.status !== 'unchecked' && !item.expiryDate;
+             // fire_ext, safety_kit, aed_device, tyres_condition expiry is mandatory whenever the item has been checked
+             const expiryMissing = (isFireExt || isSafetyKit || isAed || isTyresCond) && item.status !== 'unchecked' && !item.expiryDate;
              const needsNotes = attemptedStep4 && notesMissing;
              const needsExpiry = attemptedStep4 && expiryMissing;
              const tooltip = activeTooltips[item.key];
@@ -352,74 +482,48 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                    {/* Body Damage Marking Panel */}
                    {isBody && (
                      <div className="mt-4 p-4 md:p-6 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 space-y-6">
-                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 px-1">
-                          <span className="text-xs font-black text-gray-400 uppercase tracking-widest">
-                            {isRTL ? "مخطط هيكل المركبة" : "Vehicle Body Damage Diagram"}
-                          </span>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {(item.damagePoints && item.damagePoints.length > 0) && (
-                              <button
-                                type="button"
-                                onClick={handleClearBodyDamage}
-                                className="flex items-center gap-2 text-red-600 hover:text-red-700 text-[11px] font-black transition-colors px-3 py-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 active:scale-95"
-                              >
-                                <Eraser size={14} />
-                                <span className="v-center-cairo">{t.clear_markers}</span>
-                              </button>
-                            )}
-                          </div>
-                       </div>
-
-                       <div className="grid grid-cols-4 gap-3">
-                         <button
-                           type="button"
-                           onClick={() => setBodyDamageStatus('pass')}
-                           className={`h-[64px] rounded-xl border font-black text-sm v-center-cairo transition-all ${
-                             item.status === 'pass' 
-                               ? 'bg-green-600 text-white border-green-700 shadow-md' 
-                               : 'bg-gray-50 text-gray-400 hover:bg-green-50'
-                           } leading-none`}
-                         >
-                           {statusLabels.pass[lang as keyof typeof statusLabels.pass]}
-                         </button>
-
-                         <button
-                           type="button"
-                           onClick={() => setBodyDamageStatus('warning')}
-                           className={`h-[64px] rounded-xl border font-black text-sm v-center-cairo transition-all ${
-                             item.status === 'warning' 
-                               ? 'bg-amber-500 text-white border-amber-600 shadow-md' 
-                               : 'bg-gray-50 text-gray-400 hover:bg-amber-50'
-                           } leading-none`}
-                         >
-                           {t.warning}
-                         </button>
-
-                         <button
-                           type="button"
-                           onClick={() => setBodyDamageStatus('fail')}
-                           className={`h-[64px] rounded-xl border font-black text-sm v-center-cairo transition-all ${
-                             item.status === 'fail' 
-                               ? 'bg-red-600 text-white border-red-700 shadow-md' 
-                               : 'bg-gray-50 text-gray-400 hover:bg-red-50'
-                           } leading-none`}
-                         >
-                           {statusLabels.fail[lang as keyof typeof statusLabels.fail]}
-                         </button>
-
-                         <div className="flex flex-col gap-1.5 h-[64px]">
-                            <button
-                              type="button"
-                              onClick={() => setPhotoMenu({ isOpen: true, itemId: item.id })}
-                              disabled={(item.photos?.length || (item.photo ? 1 : 0)) >= 3}
-                              className={`flex-1 rounded-xl border font-black flex flex-col items-center justify-center transition-all ${
-                                (item.photos?.length || (item.photo ? 1 : 0)) > 0 ? 'bg-primary-50 text-primary-600 border-primary-200 hover:bg-primary-100' : 'bg-gray-50 text-gray-400 hover:text-primary-500 hover:bg-gray-100'
-                              } disabled:opacity-50 disabled:cursor-not-allowed`}
-                            >
-                              <Camera size={20} />
-                              <span className="text-[9px] mt-1">{(item.photos?.length || (item.photo ? 1 : 0))}/3</span>
-                            </button>
+                       <div className="flex flex-col gap-5 px-1 no-print">
+                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                           <span className="text-xs font-black text-gray-400 uppercase tracking-widest">
+                             {isRTL ? "مخطط هيكل المركبة" : "Vehicle Body Damage Diagram"}
+                           </span>
+                           <div className="flex items-center gap-2 flex-wrap">
+                             {(item.damagePoints && item.damagePoints.length > 0) && (
+                               <button
+                                 type="button"
+                                 onClick={handleClearBodyDamage}
+                                 className="flex items-center gap-2 text-red-600 hover:text-red-700 text-[11px] font-black transition-colors px-3 py-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 active:scale-95"
+                               >
+                                 <Eraser size={14} />
+                                 <span className="v-center-cairo">{t.clear_markers}</span>
+                               </button>
+                             )}
+                           </div>
                          </div>
+
+                         {/* Large Prominent Pass Button */}
+                         <button
+                           type="button"
+                           onClick={() => {
+                             setData((p) => ({
+                               ...p,
+                               checklist: p.checklist.map(ci => {
+                                 if (ci.key !== 'body_damage') return ci;
+                                 return { ...ci, status: 'pass', damagePoints: [] };
+                               })
+                             }));
+                           }}
+                           className={`w-full py-4 rounded-2xl border-2 transition-all duration-300 flex items-center justify-center gap-3 ${
+                             item.status === 'pass' && (!item.damagePoints || item.damagePoints.length === 0)
+                               ? 'bg-green-600 text-white border-green-700 shadow-xl shadow-green-600/30 scale-[1.01]' 
+                               : 'bg-white text-gray-500 border-gray-300 hover:border-green-500 hover:text-green-600 hover:bg-green-50'
+                           }`}
+                         >
+                           <CheckCircle size={26} className={item.status === 'pass' && (!item.damagePoints || item.damagePoints.length === 0) ? "animate-bounce" : ""} />
+                           <span className="font-black text-lg pt-1 v-center-cairo">
+                             {statusLabels.pass[lang as keyof typeof statusLabels.pass]}
+                           </span>
+                         </button>
                        </div>
 
                        {/* Thumbnails Gallery for Body Damage */}
@@ -465,24 +569,63 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                            <div className="space-y-3">
                              {item.damagePoints.map((pt, i) => (
                                <div key={pt.id || i} className="p-3 rounded-2xl border border-gray-300 bg-gray-50">
-                                 <div className="flex items-center justify-between gap-3">
-                                   <div className="flex items-center gap-2">
-                                     <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xs font-black font-mono shadow-sm">
-                                       {i + 1}
-                                     </div>
-                                     <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                                       {isRTL ? 'وصف الضرر' : 'Description'}
-                                     </span>
-                                   </div>
-                                   <button
-                                     type="button"
-                                     onClick={() => removeBodyDamageAt(i)}
-                                     className="p-2 rounded-xl border border-red-100 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all active:scale-95"
-                                     title={isRTL ? 'حذف الضرر' : 'Delete damage'}
-                                   >
-                                     <Trash2 size={16} />
-                                   </button>
-                                 </div>
+                                  <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 w-full">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xs font-black font-mono shadow-sm">
+                                        {i + 1}
+                                      </div>
+                                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                                        {isRTL ? 'مستوى ووصف الضرر' : 'Damage Level & Description'}
+                                      </span>
+                                    </div>
+                                    
+                                    <div className="flex flex-row items-center gap-2 bg-white p-1.5 rounded-xl border border-gray-300 w-full lg:w-auto shadow-sm">
+                                      <button
+                                        type="button"
+                                        onClick={() => updateBodyDamageSeverity(i, 'warning')}
+                                        className={`flex-1 lg:flex-none px-6 py-2.5 rounded-lg text-sm font-black transition-all duration-300 flex justify-center items-center gap-1.5 ${
+                                          pt.severity === 'warning' ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30 scale-105' : 'text-gray-500 hover:bg-gray-100'
+                                        }`}
+                                      >
+                                        <AlertTriangle size={16} className={pt.severity === 'warning' ? "text-white" : "text-amber-500"} />
+                                        {t.warning}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => updateBodyDamageSeverity(i, 'fail')}
+                                        className={`flex-1 lg:flex-none px-6 py-2.5 rounded-lg text-sm font-black transition-all duration-300 flex justify-center items-center gap-1.5 ${
+                                          pt.severity === 'fail' ? 'bg-red-600 text-white shadow-md shadow-red-600/30 scale-105' : 'text-gray-500 hover:bg-gray-100'
+                                        }`}
+                                      >
+                                        <X size={16} className={pt.severity === 'fail' ? "text-white" : "text-red-500"} />
+                                        {statusLabels.fail[lang as keyof typeof statusLabels.fail]}
+                                      </button>
+                                    </div>
+
+                                    <div className="flex justify-end gap-2 w-full lg:w-auto">
+                                      <button
+                                        type="button"
+                                        onClick={() => setPhotoMenu({ isOpen: true, itemId: item.id, damageIdx: i })}
+                                        disabled={(pt.photos?.length || 0) >= 3}
+                                        className={`px-3 py-2.5 rounded-xl border flex items-center justify-center gap-1 transition-all ${
+                                          (pt.photos?.length || 0) > 0 ? 'bg-primary-50 text-primary-600 border-primary-200 hover:bg-primary-100' : 'bg-gray-50 text-gray-400 border-gray-200 hover:text-primary-500 hover:bg-gray-100'
+                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                        title={isRTL ? 'إضافة صورة' : 'Add photo'}
+                                      >
+                                        <Camera size={18} />
+                                        <span className="text-[10px] font-bold">{(pt.photos?.length || 0)}/3</span>
+                                      </button>
+                                      
+                                      <button
+                                        type="button"
+                                        onClick={() => removeBodyDamageAt(i)}
+                                        className="p-2.5 rounded-xl border border-red-100 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all active:scale-95 flex items-center justify-center"
+                                        title={isRTL ? 'حذف الضرر' : 'Delete damage'}
+                                      >
+                                        <Trash2 size={18} />
+                                      </button>
+                                    </div>
+                                  </div>
 
                                  <textarea
                                    id={`body-damage-note-${pt.id || i}`}
@@ -497,6 +640,24 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                                    style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', whiteSpace: 'normal' }}
                                    rows={3}
                                  />
+                                 
+                                 {/* Thumbnails Gallery for individual damage point */}
+                                 {(pt.photos && pt.photos.length > 0) && (
+                                   <div className="flex gap-2 mt-3 overflow-x-auto pb-1 no-scrollbar">
+                                     {pt.photos.map((img, idx) => (
+                                       <div key={idx} className="relative w-16 h-16 rounded-lg border border-gray-300 overflow-hidden flex-shrink-0 shadow-sm">
+                                         <img src={img} alt={`Damage photo ${idx + 1}`} className="w-full h-full object-cover" />
+                                         <button
+                                           type="button"
+                                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemovePhoto(item.id, idx, i); }}
+                                           className="absolute top-1 right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-all"
+                                         >
+                                           <Trash2 size={10} />
+                                         </button>
+                                       </div>
+                                     ))}
+                                   </div>
+                                 )}
                                </div>
                              ))}
                            </div>
@@ -505,40 +666,10 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                      </div>
                    )}
 
-                    {/* Fire Extinguisher Expiry Date — always visible for fire_ext, mandatory */}
-                    {isFireExt && !isBody && (
-                      <div
-                        id="fire-ext-expiry"
-                        data-error={needsExpiry ? 'true' : undefined}
-                        className={`flex flex-col gap-1.5 p-4 rounded-xl border ${
-                          needsExpiry ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-gray-50'
-                        }`}
-                      >
-                        <label className={`text-[11px] font-black uppercase tracking-widest ${
-                          needsExpiry ? 'text-red-600' : 'text-gray-400'
-                        }`}>
-                          {isRTL ? 'تاريخ انتهاء صلاحية طفاية الحريق *' : 'Fire Extinguisher Expiry Date *'}
-                        </label>
-                        <input
-                          type="date"
-                          value={item.expiryDate || ''}
-                          onChange={e => setData(p => ({
-                            ...p,
-                            checklist: p.checklist.map(ci =>
-                              ci.id === item.id ? { ...ci, expiryDate: e.target.value } : ci
-                            )
-                          }))}
-                          className={`w-full p-3 border rounded-xl font-bold text-base outline-none transition-all focus:bg-white ${
-                            needsExpiry ? 'border-red-400 bg-red-50 focus:border-red-500' : 'border-gray-300 bg-white focus:border-primary-500'
-                          }`}
-                        />
-                    </div>
-                  )}
-
-                  {/* First Aid Kit Expiry Date — same pattern as fire_ext, mandatory */}
-                  {isSafetyKit && !isBody && (
+                  {/* Date fields for Safety/Expiry/Manufacturing */}
+                  {(isFireExt || isSafetyKit || isAed || isTyresCond) && !isBody && (
                     <div
-                      id="safety-kit-expiry"
+                      id={`${item.key}-expiry`}
                       data-error={needsExpiry ? 'true' : undefined}
                       className={`flex flex-col gap-1.5 p-4 rounded-xl border ${
                         needsExpiry ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-gray-50'
@@ -547,17 +678,15 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                       <label className={`text-[11px] font-black uppercase tracking-widest ${
                         needsExpiry ? 'text-red-600' : 'text-gray-400'
                       }`}>
-                        {isRTL ? 'تاريخ انتهاء صلاحية حقيبة الإسعافات الأولية *' : 'First Aid Kit Expiry Date *'}
+                        {isRTL 
+                          ? (isTyresCond ? 'تاريخ تصنيع الإطارات *' : (isAed ? 'تاريخ انتهاء صلاحية جهاز الإنعاش *' : (isFireExt ? 'تاريخ انتهاء صلاحية طفاية الحريق *' : 'تاريخ انتهاء صلاحية حقيبة الإسعافات الأولية *')))
+                          : (isTyresCond ? 'Tyre Manufacturing Date *' : (isAed ? 'AED Device Expiry Date *' : (isFireExt ? 'Fire Extinguisher Expiry Date *' : 'First Aid Kit Expiry Date *')))
+                        }
                       </label>
                       <input
                         type="date"
                         value={item.expiryDate || ''}
-                        onChange={e => setData(p => ({
-                          ...p,
-                          checklist: p.checklist.map(ci =>
-                            ci.id === item.id ? { ...ci, expiryDate: e.target.value } : ci
-                          )
-                        }))}
+                        onChange={e => handleDateChange(item.id, e.target.value)}
                         className={`w-full p-3 border rounded-xl font-bold text-base outline-none transition-all focus:bg-white ${
                           needsExpiry ? 'border-red-400 bg-red-50 focus:border-red-500' : 'border-gray-300 bg-white focus:border-primary-500'
                         }`}
@@ -703,7 +832,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                </div>
                <div className="grid grid-cols-2 gap-6">
                   <button 
-                    onClick={() => photoMenu.itemId && handlePhotoCapture(photoMenu.itemId, 'camera')} 
+                    onClick={() => photoMenu.itemId && handlePhotoCapture(photoMenu.itemId, 'camera', photoMenu.damageIdx)} 
                     className="flex flex-col items-center gap-4 p-8 bg-primary-50 hover:bg-primary-600 group transition-all rounded-[2rem] border-2 border-primary-100"
                   >
                      <div className="p-4 bg-white text-primary-600 rounded-2xl shadow-xl shadow-primary-200 group-hover:scale-110 group-hover:rotate-3 transition-transform">
@@ -714,7 +843,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                      </span>
                   </button>
                   <button 
-                    onClick={() => photoMenu.itemId && handlePhotoCapture(photoMenu.itemId, 'gallery')} 
+                    onClick={() => photoMenu.itemId && handlePhotoCapture(photoMenu.itemId, 'gallery', photoMenu.damageIdx)} 
                     className="flex flex-col items-center gap-4 p-8 bg-gray-50 hover:bg-primary-600 group transition-all rounded-[2rem] border-2 border-gray-300"
                   >
                      <div className="p-4 bg-white text-primary-600 rounded-2xl shadow-xl shadow-gray-200 group-hover:scale-110 group-hover:-rotate-3 transition-transform">
