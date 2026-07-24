@@ -212,34 +212,37 @@ export const PassengerLogReport: React.FC<Props> = ({ dayInfo, trips, isRTL }) =
     setIsGenerating(true);
     try {
       const buffer = await generateExcelBuffer();
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const file = new File([blob], `passenger_log_${dayInfo.vehiclePlate}_${dayInfo.date}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      
-      const fallbackDownload = async () => {
-        const { saveAs } = (await import('file-saver')).default;
-        saveAs(blob, `passenger_log_${dayInfo.vehiclePlate}_${dayInfo.date}.xlsx`);
-        alert(t('تعذرت المشاركة المباشرة، تم تحميل الملف بدلاً من ذلك.', 'Direct sharing failed, file downloaded instead.'));
-      };
+      const fileName = `passenger_log_${dayInfo.vehiclePlate}_${dayInfo.date}.xlsx`;
+      const mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      const blob = new Blob([buffer], { type: mimeType });
+      const file = new File([blob], fileName, { type: mimeType, lastModified: Date.now() });
 
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      let shared = false;
+
+      // Try native share (works on Android Chrome, iOS Safari, etc.)
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
             files: [file],
-            title: t('تقرير تسجيل الركاب', 'Passenger Registration Report')
+            title: t('تقرير تسجيل الركاب', 'Passenger Log Report'),
           });
+          shared = true;
         } catch (shareErr: any) {
-          // If the user didn't just close the share sheet, fallback to download
-          if (shareErr.name !== 'AbortError') {
-            await fallbackDownload();
+          // User cancelled — do nothing
+          if (shareErr.name === 'AbortError') {
+            shared = true;
           }
         }
-      } else {
-        // Sharing completely unsupported
-        await fallbackDownload();
+      }
+
+      if (!shared) {
+        // Fallback: download the Excel file directly
+        const { saveAs } = (await import('file-saver')).default;
+        saveAs(blob, fileName);
       }
     } catch (err: any) {
-      console.error('File generation failed', err);
-      alert(t('حدث خطأ أثناء تجهيز الملف', 'Failed to prepare file'));
+      console.error('Share failed:', err);
+      alert(t('حدث خطأ أثناء المشاركة', 'Failed to share'));
     }
     setIsGenerating(false);
   };
