@@ -1,7 +1,7 @@
 import { VehicleType, ChecklistItem, CheckStatus, InspectionMode } from "../types";
 import { 
   GENERIC_CHECKLIST, HEAVY_BUS_CHECKLIST, ELECTRIC_CHECKLIST,
-  MAINTENANCE_HEAVY_BUS_CHECKLIST, MAINTENANCE_SMALL_BUS_CHECKLIST,
+  MAINTENANCE_HEAVY_BUS_CHECKLIST, MAINTENANCE_LIGHT_BUS_CHECKLIST,
   MAINTENANCE_AMBULANCE_CHECKLIST, MAINTENANCE_LIGHT_VEHICLE_CHECKLIST,
   MAINTENANCE_PICKUP_CHECKLIST, MAINTENANCE_ELECTRIC_CHECKLIST
 } from "../constants";
@@ -13,7 +13,7 @@ export const getChecklistDefForType = (type: VehicleType, mode?: InspectionMode)
   if (mode === 'maintenance') {
     switch (type) {
       case 'heavy_bus': return MAINTENANCE_HEAVY_BUS_CHECKLIST;
-      case 'small_bus': return MAINTENANCE_SMALL_BUS_CHECKLIST;
+      case 'light_bus': return MAINTENANCE_LIGHT_BUS_CHECKLIST;
       case 'ambulance': return MAINTENANCE_AMBULANCE_CHECKLIST;
       case 'pickup': return MAINTENANCE_PICKUP_CHECKLIST;
       case 'electric_vehicle': return MAINTENANCE_ELECTRIC_CHECKLIST;

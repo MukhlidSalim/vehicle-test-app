@@ -95,7 +95,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                     id="phone-number" 
                     type="tel" 
                     data-error={attemptedStep2 && !data.driverInfo.phoneNumber ? 'true' : undefined} 
-                    className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${getInputStateClass(data.driverInfo.phoneNumber, attemptedStep2 && !data.driverInfo.phoneNumber)}`}
+                    className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${isRTL ? 'text-right' : 'text-left'} ${getInputStateClass(data.driverInfo.phoneNumber, attemptedStep2 && !data.driverInfo.phoneNumber)}`}
                     value={data.driverInfo.phoneNumber} 
                     onChange={e => {
                       const val = e.target.value.replace(/\D/g, '');
@@ -131,7 +131,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                   </label>
                   <input 
                     type="tel"
-                    className="w-full p-3.5 border border-gray-300 rounded-xl bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white outline-none font-bold text-base transition-all duration-300" 
+                    className={`w-full p-3.5 border border-gray-300 rounded-xl bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white outline-none font-bold text-base transition-all duration-300 ${isRTL ? 'text-right' : 'text-left'}`}
                     value={data.driverInfo.assistantPhone || ''} 
                     onChange={e => {
                       const val = e.target.value.replace(/\D/g, '');
@@ -248,7 +248,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                     type="number" 
                     data-error={attemptedStep2 && !data.driverInfo.currentOdometer ? 'true' : undefined} 
                     className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base font-mono transition-all duration-300 ${getInputStateClass(data.driverInfo.currentOdometer, attemptedStep2 && !data.driverInfo.currentOdometer)} ${
-                      isOdoInvalid && data.driverInfo.currentOdometer ? '!border-red-500 !bg-red-50 !text-red-900 focus:ring-red-500/20' : ''
+                      isOdoInvalid && data.driverInfo.currentOdometer ? '!border-orange-500 !bg-orange-50 !text-orange-900 focus:ring-orange-500/20' : ''
                     }`} 
                     value={data.driverInfo.currentOdometer || ''} 
                     onChange={e => setData((p) => ({ ...p, driverInfo: { ...p.driverInfo, currentOdometer: e.target.value } }))} 
@@ -272,9 +272,9 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                   <input 
                     id="odometer" 
                     type="number" 
-                    data-error={(attemptedStep2 && !data.driverInfo.odometer) || isOdoInvalid ? 'true' : undefined} 
+                    data-error={(attemptedStep2 && !data.driverInfo.odometer) ? 'true' : undefined} 
                     className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base font-mono transition-all duration-300 ${getInputStateClass(data.driverInfo.odometer, attemptedStep2 && !data.driverInfo.odometer)} ${
-                      isOdoInvalid && data.driverInfo.odometer ? '!border-red-500 !bg-red-50 !text-red-900 focus:ring-red-500/20' : ''
+                      isOdoInvalid && data.driverInfo.odometer ? '!border-orange-500 !bg-orange-50 !text-orange-900 focus:ring-orange-500/20' : ''
                     }`} 
                     value={data.driverInfo.odometer || ''} 
                     onChange={e => setData((p) => ({ 

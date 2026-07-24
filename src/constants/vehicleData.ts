@@ -16,7 +16,7 @@ export const VEHICLE_IMAGES: Record<VehicleType, string> = {
   small_bus: "/assest/vehicles/coster.png",
   ambulance: "/assest/vehicles/ambulance.png",
   pickup: "/assest/vehicles/pickup.png",
-  electric_vehicle: "/assest/vehicles/landcruser.png",
+  electric_vehicle: "/assest/vehicles/BYD4D.png",
 };
 
 export const VEHICLE_SELECTION_IMAGES: Record<VehicleType, string> = {
@@ -26,5 +26,5 @@ export const VEHICLE_SELECTION_IMAGES: Record<VehicleType, string> = {
   small_bus: "/assets/vehicles_new/48691406-Copy.jpg",
   ambulance: "/assets/vehicles_new/Ambulance-Copy.png",
   pickup: "/assets/vehicles_new/toyota-hilux.jpg",
-  electric_vehicle: "/assets/vehicles_new/Land-Cruser-Copy.png",
+  electric_vehicle: "/assets/vehicles_new/BYD.png",
 };

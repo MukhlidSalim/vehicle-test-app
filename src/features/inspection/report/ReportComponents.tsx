@@ -78,7 +78,20 @@ export const CompactInfoGrid: React.FC<{ data: InspectionData; t: any; lang: Lan
              { label: t.vehicle_expiry_date, value: data.driverInfo.vehicleExpiryDate ? formatDisplayDate(data.driverInfo.vehicleExpiryDate, lang) : '-' },
           ]),
           { label: (lang === 'ar' ? 'قراءة العداد الحالية (كم)' : 'Current Odometer (KM)'), value: data.driverInfo.currentOdometer || '-', mono: true },
-          { label: (lang === 'ar' ? 'عداد الصيانة القادمة (كم)' : 'Next Maintenance (KM)'), value: data.driverInfo.odometer || '-', mono: true },
+          { 
+            label: (lang === 'ar' ? 'عداد الصيانة القادمة (كم)' : 'Next Maintenance (KM)'), 
+            value: (
+              <div className="flex items-center gap-1 flex-wrap">
+                <span>{data.driverInfo.odometer || '-'}</span>
+                {(data.driverInfo.currentOdometer && data.driverInfo.odometer && Number(data.driverInfo.currentOdometer) >= Number(data.driverInfo.odometer)) && (
+                  <span className="text-[9px] text-orange-600 bg-orange-50 px-1 py-0.5 rounded border border-orange-200 font-bold whitespace-nowrap leading-none">
+                    {lang === 'ar' ? '( تحتاج الى صيانة )' : '( Needs maintenance )'}
+                  </span>
+                )}
+              </div>
+            ), 
+            mono: true 
+          },
         ].map((info, idx) => (
           <div key={idx} className="flex flex-col border-b border-gray-400/50 pb-1.5 overflow-hidden">
              <span className="text-[7.5px] font-black text-gray-400 uppercase leading-none mb-1 v-center-cairo justify-start">{info.label}</span>

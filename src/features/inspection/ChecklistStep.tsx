@@ -56,40 +56,9 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
     vType === 'ambulance' ? AMBULANCE_TOOLTIPS : 
     CHECKLIST_TOOLTIPS;
 
-  // --- Smart Auto-Scroll Helper ---
+  // --- Smart Auto-Scroll Helper Disabled ---
   const autoScrollToNextUnchecked = (itemId: number, nextChecklist: any[]) => {
-    let nextUncheckedKey: string | null = null;
-    const currentIndex = nextChecklist.findIndex(item => item.id === itemId);
-    
-    for (let i = currentIndex + 1; i < nextChecklist.length; i++) {
-      if (nextChecklist[i].status === 'unchecked' && nextChecklist[i].key !== 'body_damage') {
-        nextUncheckedKey = nextChecklist[i].key;
-        break;
-      }
-    }
-    if (!nextUncheckedKey) {
-      for (let i = 0; i < currentIndex; i++) {
-        if (nextChecklist[i].status === 'unchecked' && nextChecklist[i].key !== 'body_damage') {
-          nextUncheckedKey = nextChecklist[i].key;
-          break;
-        }
-      }
-    }
-
-    if (nextUncheckedKey) {
-      setTimeout(() => {
-        const element = document.getElementById(`check-item-${nextUncheckedKey}`);
-        if (element) {
-          const headerOffset = 120; // Ensure we scroll past sticky headers
-          const elementPosition = element.getBoundingClientRect().top;
-          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-          window.scrollTo({
-             top: offsetPosition,
-             behavior: "smooth"
-          });
-        }
-      }, 250);
-    }
+    // Disabled as per user request
   };
 
   // --- Core Checklist Item Actions ---

@@ -14,7 +14,9 @@ export type View =
   | "vehicle_safety"
   | "inspection_process"
   | "emergency_procedures"
-  | "pre_trip_tips";
+  | "pre_trip_tips"
+  | "bus_handover"
+  | "passenger_log";
 
 export type VehicleType =
   | "light_vehicle"

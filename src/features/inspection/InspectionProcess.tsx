@@ -40,6 +40,21 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
   const [attemptedStep3, setAttemptedStep3] = useState<boolean>(false);
   const [attemptedStep4, setAttemptedStep4] = useState<boolean>(false);
   const [attemptedSignature, setAttemptedSignature] = useState<boolean>(false);
+  const [showOdoWarning, setShowOdoWarning] = useState<boolean>(false);
+
+  const handleConfirmOdo = () => {
+    setShowOdoWarning(false);
+    if (currentStepIndex === totalSteps - 2) {
+      const sigRequired = data.mode === 'maintenance' ? data.signatures?.inspector : data.signatures?.driver;
+      if (!sigRequired) {
+        setAttemptedSignature(true);
+        showUiAlert(isRTL ? "التوقيع إلزامي قبل عرض التقرير النهائي." : "Signature is mandatory before viewing the summary.", 'warning');
+        scrollToFirstErrorInDOM();
+        return;
+      }
+    }
+    setStep(currentModeSteps[currentStepIndex + 1]);
+  };
 
   const [uiAlert, setUiAlert] = useState<{ show: boolean; message: string; type: 'warning' | 'fail' | 'info' }>({
     show: false,
@@ -246,13 +261,7 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
                       return;
                     }
                     if (Number(currentOdometer) >= Number(odometer)) {
-                      showUiAlert(
-                        isRTL 
-                          ? 'قراءة العداد الحالية يجب أن تكون أقل من قراءة العداد عند موعد الصيانة القادمة.' 
-                          : 'Current odometer must be less than the next maintenance odometer.', 
-                        'warning'
-                      );
-                      scrollToFirstErrorInDOM();
+                      setShowOdoWarning(true);
                       return;
                     }
 
@@ -370,6 +379,41 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
           </div>
         </div>
        )}
+
+      {showOdoWarning && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] p-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center text-orange-500 mb-2">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-xl font-black text-gray-800">
+                {isRTL ? 'تنبيه الصيانة' : 'Maintenance Warning'}
+              </h3>
+              <p className="text-gray-500 text-sm font-bold leading-relaxed">
+                {isRTL 
+                  ? 'قراءة العداد الحالية تتجاوز (أو تساوي) قراءة موعد الصيانة القادمة. هل أنت متأكد من صحة القراءات وترغب في إكمال الفحص؟' 
+                  : 'Current odometer is greater than or equal to the next maintenance odometer. Are you sure the readings are correct and you want to proceed?'}
+              </p>
+              <div className="flex gap-3 w-full pt-4">
+                <button 
+                  onClick={() => setShowOdoWarning(false)}
+                  className="flex-1 py-3.5 rounded-xl font-black text-gray-700 bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all"
+                >
+                  {isRTL ? 'تعديل الرقم' : 'Edit Number'}
+                </button>
+                <button 
+                  onClick={handleConfirmOdo}
+                  className="flex-1 py-3.5 rounded-xl font-black text-white bg-orange-500 hover:bg-orange-600 active:scale-95 transition-all"
+                >
+                  {isRTL ? 'نعم، إكمال الفحص' : 'Yes, Proceed'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

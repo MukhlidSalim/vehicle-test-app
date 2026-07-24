@@ -52,33 +52,88 @@ export const OdometerScanner: React.FC<OdometerScannerProps> = ({ onScan, onClos
     
     ctx.drawImage(video, 0, 0, cw, ch);
     
-    // Crop middle 80% width, 20% height
-    const cropW = cw * 0.8;
-    const cropH = ch * 0.2;
+    // Larger crop area: 85% width, 35% height for better capture
+    const cropW = cw * 0.85;
+    const cropH = ch * 0.35;
     const cropX = (cw - cropW) / 2;
     const cropY = (ch - cropH) / 2;
     
     const imageData = ctx.getImageData(cropX, cropY, cropW, cropH);
     const data = imageData.data;
     
-    // Grayscale & high contrast
+    // Step 1: Convert to grayscale
+    const gray: number[] = [];
     for (let i = 0; i < data.length; i += 4) {
-      const avg = (data[i] + data[i+1] + data[i+2]) / 3;
-      const color = avg > 110 ? 255 : 0; 
-      data[i] = color;
-      data[i+1] = color;
-      data[i+2] = color;
+      const g = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+      gray.push(g);
     }
     
+    // Step 2: Calculate adaptive threshold using Otsu's method
+    const histogram = new Array(256).fill(0);
+    gray.forEach(v => histogram[Math.round(v)]++);
+    const total = gray.length;
+    
+    let sum = 0;
+    for (let i = 0; i < 256; i++) sum += i * histogram[i];
+    
+    let sumB = 0, wB = 0, wF = 0, maxVar = 0, threshold = 128;
+    for (let i = 0; i < 256; i++) {
+      wB += histogram[i];
+      if (wB === 0) continue;
+      wF = total - wB;
+      if (wF === 0) break;
+      sumB += i * histogram[i];
+      const mB = sumB / wB;
+      const mF = (sum - sumB) / wF;
+      const variance = wB * wF * (mB - mF) * (mB - mF);
+      if (variance > maxVar) {
+        maxVar = variance;
+        threshold = i;
+      }
+    }
+    
+    // Step 3: Apply threshold - ensure dark text on white background
+    let darkPixels = 0;
+    for (let i = 0; i < gray.length; i++) {
+      const color = gray[i] > threshold ? 255 : 0;
+      if (color === 0) darkPixels++;
+      data[i * 4] = color;
+      data[i * 4 + 1] = color;
+      data[i * 4 + 2] = color;
+    }
+    
+    // If most pixels are dark, invert (white text on dark background → dark on white)
+    if (darkPixels > gray.length * 0.5) {
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = 255 - data[i];
+        data[i+1] = 255 - data[i+1];
+        data[i+2] = 255 - data[i+2];
+      }
+    }
+    
+    // Step 4: Scale up 2x for better OCR recognition
+    const scaleW = cropW * 2;
+    const scaleH = cropH * 2;
     const cropCanvas = document.createElement('canvas');
-    cropCanvas.width = cropW;
-    cropCanvas.height = cropH;
+    cropCanvas.width = scaleW;
+    cropCanvas.height = scaleH;
     const cropCtx = cropCanvas.getContext('2d');
     if (cropCtx) {
-      cropCtx.putImageData(imageData, 0, 0);
+      // First draw processed data to temp canvas at original size
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = cropW;
+      tempCanvas.height = cropH;
+      const tempCtx = tempCanvas.getContext('2d');
+      if (tempCtx) {
+        tempCtx.putImageData(imageData, 0, 0);
+        // Scale up with smooth interpolation
+        cropCtx.imageSmoothingEnabled = true;
+        cropCtx.imageSmoothingQuality = 'high';
+        cropCtx.drawImage(tempCanvas, 0, 0, scaleW, scaleH);
+      }
     }
     
-    return cropCanvas.toDataURL('image/jpeg');
+    return cropCanvas.toDataURL('image/png');
   };
 
   const handleScan = async () => {
@@ -101,6 +156,7 @@ export const OdometerScanner: React.FC<OdometerScannerProps> = ({ onScan, onClos
       
       await worker.setParameters({
         tessedit_char_whitelist: '0123456789',
+        tessedit_pageseg_mode: '7', // Treat as single line of text
       });
       
       const { data: { text } } = await worker.recognize(imgData);
@@ -108,13 +164,16 @@ export const OdometerScanner: React.FC<OdometerScannerProps> = ({ onScan, onClos
       
       const numbersOnly = text.replace(/[^0-9]/g, '');
       
-      if (numbersOnly.length > 0) {
+      if (numbersOnly.length >= 3) {
+        // Valid odometer reading (at least 3 digits)
         setSuccess(true);
         setTimeout(() => {
           onScan(numbersOnly);
         }, 1500);
       } else {
-        setErrorMsg(isRTL ? 'لم يتم العثور على أرقام واضحة' : 'No clear numbers found');
+        setErrorMsg(isRTL 
+          ? 'لم يتم العثور على أرقام واضحة. تأكد من وضع العداد في الإطار وأن الإضاءة جيدة.' 
+          : 'No clear numbers found. Make sure odometer is in frame and lighting is good.');
         setIsScanning(false);
       }
     } catch (err) {
@@ -155,7 +214,7 @@ export const OdometerScanner: React.FC<OdometerScannerProps> = ({ onScan, onClos
               
               {/* Overlay Frame */}
               <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                <div className="w-[80%] h-[20%] border-4 border-primary-500 rounded-xl shadow-[0_0_0_9999px_rgba(0,0,0,0.6)] relative transition-all overflow-hidden">
+                <div className="w-[85%] h-[35%] border-4 border-primary-500 rounded-xl shadow-[0_0_0_9999px_rgba(0,0,0,0.6)] relative transition-all overflow-hidden">
                    {isScanning && (
                      <div className="absolute inset-0 bg-primary-500/20 animate-pulse" />
                    )}

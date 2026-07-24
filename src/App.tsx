@@ -15,6 +15,8 @@ import { VehicleGuideView } from './features/guides/VehicleGuideView';
 import { EmergencyProcView } from './features/guides/EmergencyProcView';
 import { PreTripTipsView } from './features/guides/PreTripTipsView';
 import { InspectionProcess } from './features/inspection/InspectionProcess';
+import { HandoverForm } from './features/handover/HandoverForm';
+import { PassengerLogForm } from './features/passenger-log/PassengerLogForm';
 
 export default function App() {
   const navigate = useNavigate();
@@ -128,6 +130,22 @@ export default function App() {
                 setData={setData} 
                 onExit={resetApp} 
                 saveStatus={saveStatus} 
+              />
+            } />
+            
+            <Route path="/bus_handover" element={
+              <HandoverForm 
+                lang={lang}
+                isRTL={isRTL}
+                onExit={resetApp}
+              />
+            } />
+            
+            <Route path="/passenger_log" element={
+              <PassengerLogForm 
+                lang={lang}
+                isRTL={isRTL}
+                onExit={resetApp}
               />
             } />
             

@@ -27,6 +27,7 @@ import { ReportPageFooter } from '../../components/ReportPageFooter';
 import { getChecklistDefForType } from '../../utils/inspectionHelpers';
 import { VehicleBodyMap } from '../../components/VehicleBodyMap';
 import { generatePdfReport } from '../../utils/pdfGenerator';
+import { VEHICLE_TYPES } from '../../constants/vehicleData';
 
 
 import { formatDisplayDate, CompactReportHeader, CompactInfoGrid } from './report/ReportComponents';
@@ -228,6 +229,8 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
 
   // --- Helpers for formatting report layout ---
   const vType = data.driverInfo.vehicleType;
+  const vTypeLabel = VEHICLE_TYPES.find(v => v.value === vType)?.[isRTL ? 'labelAr' : 'labelEn'] || vType;
+  
   const activeChecklistDef = getChecklistDefForType(vType, data.mode);
   const bodyDamageItem = data.checklist.find((i) => i.key === 'body_damage');
   const bodyDamagePoints = bodyDamageItem?.damagePoints || [];
@@ -249,6 +252,28 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
     return !hasPhoto && (i.status === "warning" || i.status === "fail" || ((i.notes || "").trim().length > 0));
   });
 
+  const bodyDamageEntries = (bodyDamagePoints || [])
+    .map((p, i) => ({
+      key: 'body_damage',
+      status: 'fail',
+      notes: p.note,
+      photos: p.photos && p.photos.length > 0 ? p.photos : (p.photo ? [p.photo] : [])
+    }))
+    .filter(p => p.photos.length > 0);
+
+  const bodyDamageNotesEntries = (bodyDamagePoints || [])
+    .map((p, i) => ({
+      key: 'body_damage',
+      status: 'fail',
+      notes: p.note,
+      photos: []
+    }))
+    .filter(p => !p.notes && (!p.photos || p.photos.length === 0)); // wait, if they have notes but no photo
+
+  // Do not duplicate body damage notes into the general notes section
+  // since they are already displayed right below the Vehicle Damage Map.
+  const textNotesWithBody = [...checklistNotesOnlyEvidenceItems];
+
   const chunkBy = (arr: any[], size: number) => {
     const out: any[][] = [];
     for (let i = 0; i < (arr || []).length; i += size) out.push(arr.slice(i, i + size));
@@ -266,12 +291,12 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
     const pages: EvidenceEntry[][] = [];
 
     while (chk.length >= 2) pages.push(chk.splice(0, 2).map(i => ({ kind: "photo_checklist" as const, item: i })));
-    while (bd.length >= 2) pages.push(bd.splice(0, 2).map(d => ({ kind: "photo_body" as const, item: d })));
+    while (bd.length >= 2) pages.push(bd.splice(0, 2).map(d => ({ kind: "photo_checklist" as const, item: d })));
 
     if (chk.length + bd.length > 0) {
       const remaining: EvidenceEntry[] = [
         ...chk.map(i => ({ kind: "photo_checklist" as const, item: i })),
-        ...bd.map(d => ({ kind: "photo_body" as const, item: d }))
+        ...bd.map(d => ({ kind: "photo_checklist" as const, item: d }))
       ];
       pages.push(remaining);
     }
@@ -292,8 +317,8 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
     return { total: pass + fail + warning, pass, fail, warning };
   }, [data.checklist]);
 
-  const photoEvidencePages = buildSmartPhotoPages(checklistPhotoEvidenceItems, []).map(p => ({ photos: p }));
-  const textEvidencePages = chunkBy([...checklistNotesOnlyEvidenceItems], 5).map(np => ({
+  const photoEvidencePages = buildSmartPhotoPages(checklistPhotoEvidenceItems, bodyDamageEntries).map(p => ({ photos: p }));
+  const textEvidencePages = chunkBy([...textNotesWithBody], 5).map(np => ({
     notesOnly: np.map(n => ({ kind: "note_only" as const, item: n }))
   }));
 
@@ -324,9 +349,10 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
 
     // Photo items (weight 4 = half page)
     checklistPhotoEvidenceItems.forEach(item => items.push({ kind: 'photo_checklist', item, weight: 4 }));
+    bodyDamageEntries.forEach(item => items.push({ kind: 'photo_checklist', item, weight: 4 }));
     
     // Text items (weight 1 = 1/8th of page)
-    checklistNotesOnlyEvidenceItems.forEach(item => items.push({ kind: 'text_only', item, weight: 1 }));
+    textNotesWithBody.forEach(item => items.push({ kind: 'text_only', item, weight: 1 }));
 
     // Extras (weight 2 = 1/4th of page)
     if (hasTyrePressures) items.push({ kind: 'tyres', weight: 2 });
@@ -562,7 +588,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
             <ScaledPreview>
               <div className="ui-preview-card h-fit">
                 <div className="a4-preview-wrapper font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
-                  <CompactReportHeader titleSuffix={data.mode === 'maintenance' ? (isRTL ? "تقرير فحص الصيانة" : "Maintenance Inspection Report") : (isRTL ? "فحص المركبة" : "Vehicle Inspection")} lang={lang} />
+                  <CompactReportHeader titleSuffix={data.mode === 'maintenance' ? (isRTL ? `تقرير قسم الصيانة - ${vTypeLabel}` : `Maintenance Inspection Report - ${vTypeLabel}`) : (isRTL ? `فحص المركبة - ${vTypeLabel}` : `Vehicle Inspection - ${vTypeLabel}`)} lang={lang} />
                   <CompactInfoGrid data={data} t={t} lang={lang} />
                   <div className="flex-1 flex flex-col gap-0">
                     <div className="mb-1">
@@ -617,19 +643,24 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                       
                                       if (isDateRequired && item.expiryDate) {
                                         return (
-                                          <div className="flex items-center justify-center gap-1.5 w-full">
-                                            <span>{displayLabel}</span>
-                                            <span 
-                                              dir="ltr" 
-                                              className={`px-1.5 rounded-sm text-[8px] font-mono tracking-widest v-center-cairo ${
+                                          <div className="flex items-center justify-center gap-1.5 w-full px-0.5">
+                                            <span className="truncate">{displayLabel}</span>
+                                            <div 
+                                              dir={isRTL ? "rtl" : "ltr"} 
+                                              className={`flex items-center gap-1 px-1.5 rounded-[3px] shadow-[inset_0_1px_1px_rgba(0,0,0,0.05)] border ${
                                                 isPast 
-                                                  ? "bg-white/20 text-white shadow-inner border border-white/30" 
-                                                  : "bg-black/15 text-white/95"
+                                                  ? "bg-white/25 text-white border-white/30" 
+                                                  : "bg-black/20 text-white border-transparent"
                                               }`}
-                                              style={{ paddingTop: '1px', paddingBottom: '1px' }}
+                                              style={{ paddingTop: '1.5px', paddingBottom: '1.5px' }}
                                             >
-                                              {formatDisplayDate(item.expiryDate, lang)}
-                                            </span>
+                                              <span className="text-[7.5px] font-semibold opacity-90 mt-[1px] tracking-wide v-center-cairo">
+                                                {isRTL ? 'الانتهاء:' : 'Exp:'}
+                                              </span>
+                                              <span dir="ltr" className="text-[8px] font-mono tracking-widest font-bold v-center-cairo mt-[1px]">
+                                                {formatDisplayDate(item.expiryDate, lang)}
+                                              </span>
+                                            </div>
                                           </div>
                                         );
                                       }
@@ -753,19 +784,24 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                       
                                       if (isDateRequired && item.expiryDate) {
                                         return (
-                                          <div className="flex items-center justify-center gap-1.5 w-full">
-                                            <span>{displayLabel}</span>
-                                            <span 
-                                              dir="ltr" 
-                                              className={`px-1.5 rounded-sm text-[8px] font-mono tracking-widest v-center-cairo ${
+                                          <div className="flex items-center justify-center gap-1.5 w-full px-0.5">
+                                            <span className="truncate">{displayLabel}</span>
+                                            <div 
+                                              dir={isRTL ? "rtl" : "ltr"} 
+                                              className={`flex items-center gap-1 px-1.5 rounded-[3px] shadow-[inset_0_1px_1px_rgba(0,0,0,0.05)] border ${
                                                 isPast 
-                                                  ? "bg-white/20 text-white shadow-inner border border-white/30" 
-                                                  : "bg-black/15 text-white/95"
+                                                  ? "bg-white/25 text-white border-white/30" 
+                                                  : "bg-black/20 text-white border-transparent"
                                               }`}
-                                              style={{ paddingTop: '1px', paddingBottom: '1px' }}
+                                              style={{ paddingTop: '1.5px', paddingBottom: '1.5px' }}
                                             >
-                                              {formatDisplayDate(item.expiryDate, lang)}
-                                            </span>
+                                              <span className="text-[7.5px] font-semibold opacity-90 mt-[1px] tracking-wide v-center-cairo">
+                                                {isRTL ? 'الانتهاء:' : 'Exp:'}
+                                              </span>
+                                              <span dir="ltr" className="text-[8px] font-mono tracking-widest font-bold v-center-cairo mt-[1px]">
+                                                {formatDisplayDate(item.expiryDate, lang)}
+                                              </span>
+                                            </div>
                                           </div>
                                         );
                                       }
@@ -892,17 +928,60 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
 
                       if (uItem.kind === 'text_only') {
                         const item = uItem.item;
+                        
+                        const statusLabels = CHECKLIST_STATUS_LABELS[item.key] || CHECKLIST_STATUS_LABELS['battery'];
+                        const statusPill = (() => {
+                          if (item.status === 'fail') {
+                            return {
+                              text: statusLabels.fail[lang as keyof typeof statusLabels.fail],
+                              cls: 'text-red-700 border-red-300 bg-transparent',
+                              icon: <XCircle size={14} className="text-red-600" strokeWidth={2.5} />,
+                              bar: 'bg-red-500'
+                            };
+                          }
+                          if (item.status === 'warning') {
+                            return {
+                              text: isRTL ? 'تنبيه' : 'Warning',
+                              cls: 'text-amber-600 border-amber-300 bg-transparent',
+                              icon: <AlertTriangle size={14} className="text-amber-500" strokeWidth={2.5} />,
+                              bar: 'bg-amber-400'
+                            };
+                          }
+                          return {
+                            text: isRTL ? 'غير محدد' : 'Unchecked',
+                            cls: 'text-gray-500 border-gray-300 bg-transparent',
+                            icon: <HelpCircle size={14} className="text-gray-400" strokeWidth={2.5} />,
+                            bar: 'bg-gray-400'
+                          };
+                        })();
+
+                        const cardTone = (() => {
+                          if (item.status === 'fail') return 'bg-red-50/40 border-red-200';
+                          if (item.status === 'warning') return 'bg-[#FFFDF0] border-[#FDE68A]';
+                          return 'bg-white border-gray-200';
+                        })();
+
                         return (
                           <div key={`u-txt-${pageIndex}-${slotIdx}`} className={`${rowSpanClass} min-h-0 flex flex-col`}>
-                            <div className="relative h-full min-h-0 bg-gray-50 rounded-2xl border border-gray-300 overflow-hidden shadow-sm flex flex-col p-2.5">
-                              <div className={`absolute top-0 bottom-0 ${isRTL ? 'right-0' : 'left-0'} w-[6px] ${item.status === 'fail' ? 'bg-red-600' : item.status === 'warning' ? 'bg-amber-400' : 'bg-green-500'}`} />
-                              <div className="flex items-center gap-3">
-                                <div className="p-1 bg-primary-100 text-primary-700 rounded text-[9px]">
-                                  {(() => { const def = activeChecklistDef.find((c) => c.key === item.key); return def && <def.icon size={12} />; })()}
+                            <div className={`relative h-full min-h-0 rounded-xl border shadow-sm flex flex-col ${cardTone}`}>
+                              <div className={`absolute top-0 bottom-0 ${isRTL ? 'right-0' : 'left-0'} w-[6px] z-10 ${statusPill.bar} rounded-r-xl`} />
+                              
+                              <div className={`flex flex-col h-full p-2.5 ${isRTL ? 'pr-4' : 'pl-4'}`}>
+                                <div className="flex items-center justify-between gap-3 mb-2 shrink-0">
+                                  <div className="min-w-0">
+                                    <p className="text-[13px] font-black text-slate-800 v-center-cairo justify-start truncate">
+                                      {t[item.key as keyof typeof t] || item.label}
+                                    </p>
+                                  </div>
+                                  <div className={`flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black border flex-shrink-0 ${statusPill.cls}`}>
+                                    {statusPill.icon}
+                                    <span className="v-center-cairo leading-none mt-0.5">{statusPill.text}</span>
+                                  </div>
                                 </div>
-                                <p className="text-[10px] font-black text-primary-900 truncate flex-shrink-0 max-w-[30%]">{t[item.key as keyof typeof t]}</p>
-                                <div className="flex-1 overflow-hidden">
-                                  <p className="text-[9px] font-bold text-gray-700 whitespace-nowrap overflow-hidden text-ellipsis">{item.notes}</p>
+                                <div className="flex-1 bg-white p-2.5 rounded-xl border border-gray-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.02)] min-h-0 overflow-hidden">
+                                  <p className={`text-[12px] font-bold text-gray-700 leading-relaxed whitespace-pre-wrap break-words line-clamp-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                    {item.notes}
+                                  </p>
                                 </div>
                               </div>
                             </div>
@@ -1104,59 +1183,55 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                     if (item.status === 'fail') {
                                       return {
                                         text: statusLabels.fail[lang as keyof typeof statusLabels.fail],
-                                        cls: 'bg-red-50 text-red-700 border-red-200',
-                                        icon: <XCircle size={12} className="text-red-600" />,
-                                        bar: 'bg-red-600'
+                                        cls: 'text-red-700 border-red-300 bg-transparent',
+                                        icon: <XCircle size={14} className="text-red-600" strokeWidth={2.5} />,
+                                        bar: 'bg-red-500'
                                       };
                                     }
                                     if (item.status === 'warning') {
                                       return {
                                         text: isRTL ? 'تنبيه' : 'Warning',
-                                        cls: 'bg-amber-50 text-amber-800 border-amber-200',
-                                        icon: <AlertTriangle size={12} className="text-amber-600" />,
+                                        cls: 'text-amber-600 border-amber-300 bg-transparent',
+                                        icon: <AlertTriangle size={14} className="text-amber-500" strokeWidth={2.5} />,
                                         bar: 'bg-amber-400'
                                       };
                                     }
                                     return {
                                       text: isRTL ? 'غير محدد' : 'Unchecked',
-                                      cls: 'bg-gray-50 text-gray-500 border-gray-200',
-                                      icon: <HelpCircle size={12} className="text-gray-400" />,
-                                      bar: 'bg-gray-300'
+                                      cls: 'text-gray-500 border-gray-300 bg-transparent',
+                                      icon: <HelpCircle size={14} className="text-gray-400" strokeWidth={2.5} />,
+                                      bar: 'bg-gray-400'
                                     };
                                   })();
 
                                   const cardTone = (() => {
-                                    if (item.status === 'fail') return 'bg-red-50 border-red-200';
-                                    if (item.status === 'warning') return 'bg-amber-50 border-amber-200';
-                                    return 'bg-white border-gray-300';
+                                    if (item.status === 'fail') return 'bg-red-50/40 border-red-200';
+                                    if (item.status === 'warning') return 'bg-[#FFFDF0] border-[#FDE68A]'; // amber-200
+                                    return 'bg-white border-gray-200';
                                   })();
 
                                   return (
-                                    <div key={`unified-tn-${idx}-${item.key}`} className={`relative rounded-xl border overflow-hidden shadow-sm ${cardTone}`}>
-                                      <div className={`absolute top-0 bottom-0 ${isRTL ? 'right-0' : 'left-0'} w-[6px] ${statusPill.bar}`} />
-                                      <div className="p-3">
-                                        <div className="flex items-start justify-between gap-3">
+                                    <div key={`unified-tn-${idx}-${item.key || item.id}`} className={`relative rounded-xl border shadow-sm ${cardTone}`}>
+                                      <div className={`absolute top-0 bottom-0 ${isRTL ? 'right-0' : 'left-0'} w-[6px] ${statusPill.bar} rounded-r-xl`} />
+                                      <div className={`p-3 ${isRTL ? 'pr-5' : 'pl-5'}`}>
+                                        <div className="flex items-center justify-between gap-3 mb-2.5">
                                           <div className="min-w-0">
-                                            <p className="text-[11px] font-black text-primary-900 v-center-cairo justify-start truncate">
-                                              {t[item.key as keyof typeof t]}
+                                            <p className="text-[13px] font-black text-slate-800 v-center-cairo justify-start truncate">
+                                              {t[item.key as keyof typeof t] || item.label}
                                             </p>
                                           </div>
-                                          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black border flex-shrink-0 ${statusPill.cls}`}>
+                                          <div className={`flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black border flex-shrink-0 ${statusPill.cls}`}>
                                             {statusPill.icon}
-                                            <span className="v-center-cairo leading-none">{statusPill.text}</span>
+                                            <span className="v-center-cairo leading-none mt-0.5">{statusPill.text}</span>
                                           </div>
                                         </div>
-                                        <div className="mt-2 bg-gray-50/60 p-2.5 rounded-lg border border-gray-200">
+                                        <div className="bg-white p-3 rounded-xl border border-gray-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                                           <p
-                                            className={`text-[11px] font-bold text-gray-700 leading-relaxed whitespace-pre-wrap break-words ${isRTL ? 'text-right' : 'text-left'}`}
+                                            className={`text-[12px] font-bold text-gray-700 leading-relaxed whitespace-pre-wrap break-words ${isRTL ? 'text-right' : 'text-left'}`}
                                             style={{
                                               overflowWrap: 'anywhere',
                                               wordBreak: 'break-word',
                                               whiteSpace: 'normal',
-                                              display: '-webkit-box',
-                                              WebkitLineClamp: '4',
-                                              WebkitBoxOrient: 'vertical',
-                                              overflow: 'hidden'
                                             }}
                                           >
                                             {noteText}
