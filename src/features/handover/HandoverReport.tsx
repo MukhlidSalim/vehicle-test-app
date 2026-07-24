@@ -89,12 +89,11 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
   return (
     <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* ===== REPORT CONTENT ===== */}
-      <div className="flex justify-center overflow-x-auto pb-4">
+      <div className="flex justify-center w-full pb-4">
         <div
           ref={reportRef}
-          className="bg-white relative overflow-hidden"
+          className="bg-white relative overflow-hidden w-full max-w-[794px]"
           style={{
-            width: '794px',
             minHeight: '1123px',
             fontFamily: 'Cairo, sans-serif',
             direction: isRTL ? 'rtl' : 'ltr',
@@ -106,7 +105,7 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
             <h1 className="text-7xl font-black mt-10">{isRTL ? config.formTitleAr : config.formTitleEn}</h1>
           </div>
 
-          <div className="p-8 space-y-6 relative z-10">
+          <div className="p-4 sm:p-8 space-y-6 relative z-10">
             {/* Header */}
             <div className="bg-gradient-to-r from-gray-800 to-gray-700 p-6 rounded-2xl text-center text-white shadow-lg">
               <div className="flex items-center justify-center gap-3 mb-2">
