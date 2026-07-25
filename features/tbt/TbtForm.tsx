@@ -1,0 +1,360 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  ClipboardCheck, MapPin, Users, Clock, 
+  Calendar, FileText, CheckCircle2,
+  ArrowRight, ArrowLeft, Trash2, Plus, PenTool, ArrowLeftRight
+} from 'lucide-react';
+import { TBT_TOPICS } from './tbtConfig';
+import { SignaturePad } from '../../components/SignaturePad';
+import { TbtReport } from './TbtReport';
+
+export interface DriverInfo {
+  id: string;
+  name: string;
+  signature: string;
+}
+
+export interface TbtData {
+  date: string;
+  time: string;
+  type: 'face_to_face' | 'remote';
+  managerName: string;
+  routeFrom: string;
+  routeTo: string;
+  drivers: DriverInfo[];
+  selectedTopicId: string;
+  notes: string;
+  managerSignature: string;
+}
+
+interface Props {
+  isRTL: boolean;
+  lang: string;
+  onExit: () => void;
+}
+
+export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
+  const [showReport, setShowReport] = useState(false);
+  const [data, setData] = useState<TbtData>(() => {
+    const now = new Date();
+    return {
+      date: now.toISOString().split('T')[0],
+      time: now.toTimeString().slice(0, 5),
+      type: 'face_to_face',
+      managerName: '',
+      routeFrom: '',
+      routeTo: '',
+      drivers: [{ id: Date.now().toString(), name: '', signature: '' }],
+      selectedTopicId: '',
+      notes: '',
+      managerSignature: ''
+    };
+  });
+
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
+
+  const t = (ar: string, en: string) => isRTL ? ar : en;
+
+  // Auto-update time on load if not set
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (!attemptedSubmit && !showReport && data.managerName === '') {
+        const now = new Date();
+        setData(prev => ({ ...prev, time: now.toTimeString().slice(0, 5) }));
+      }
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [attemptedSubmit, showReport, data.managerName]);
+
+  const addDriver = () => {
+    setData(prev => ({
+      ...prev,
+      drivers: [...prev.drivers, { id: Date.now().toString(), name: '', signature: '' }]
+    }));
+  };
+
+  const removeDriver = (id: string) => {
+    setData(prev => ({
+      ...prev,
+      drivers: prev.drivers.filter(d => d.id !== id)
+    }));
+  };
+
+  const updateDriver = (id: string, field: keyof DriverInfo, value: string) => {
+    setData(prev => ({
+      ...prev,
+      drivers: prev.drivers.map(d => d.id === id ? { ...d, [field]: value } : d)
+    }));
+  };
+
+  const showAlert = (msg: string) => {
+    setAlertMsg(msg);
+    setTimeout(() => setAlertMsg(''), 4000);
+  };
+
+  const validateForm = () => {
+    setAttemptedSubmit(true);
+    
+    if (!data.managerName.trim()) {
+      showAlert(t('الرجاء إدخال اسم مسؤول الرحلة.', 'Please enter Journey Manager name.'));
+      return false;
+    }
+    if (!data.routeFrom.trim() || !data.routeTo.trim()) {
+      showAlert(t('الرجاء إدخال مسار الرحلة كاملاً.', 'Please enter the complete journey route.'));
+      return false;
+    }
+    
+    // Validate drivers
+    if (data.drivers.length === 0) {
+      showAlert(t('يجب إضافة سائق واحد على الأقل.', 'At least one driver is required.'));
+      return false;
+    }
+    for (let i = 0; i < data.drivers.length; i++) {
+      if (!data.drivers[i].name.trim()) {
+        showAlert(t(`الرجاء إدخال اسم السائق رقم ${i + 1}.`, `Please enter name for driver #${i + 1}.`));
+        return false;
+      }
+      if (data.type === 'face_to_face' && (!data.drivers[i].signature || data.drivers[i].signature.length < 500)) {
+        showAlert(t(`الرجاء توقيع السائق: ${data.drivers[i].name}`, `Please provide signature for: ${data.drivers[i].name}`));
+        return false;
+      }
+    }
+
+    if (!data.selectedTopicId) {
+      showAlert(t('الرجاء اختيار موضوع TBT.', 'Please select a TBT topic.'));
+      return false;
+    }
+    
+    if (!data.managerSignature || data.managerSignature.length < 500) {
+      showAlert(t('الرجاء توقيع مسؤول الرحلة.', 'Journey Manager signature is required.'));
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleGenerateReport = () => {
+    if (validateForm()) {
+      setShowReport(true);
+    }
+  };
+
+  if (showReport) {
+    return (
+      <TbtReport 
+        data={data}
+        isRTL={isRTL}
+        onEdit={() => setShowReport(false)}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-6 relative pb-20 animate-fade-in" dir={isRTL ? 'rtl' : 'ltr'}>
+      {/* Header */}
+      <div className="bg-white/80 backdrop-blur rounded-2xl border border-gray-200 p-4 shadow-lg">
+        <div className="flex items-center justify-between">
+          <button onClick={onExit} className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-red-500 transition-colors">
+            <ArrowLeft size={16} className={isRTL ? 'rotate-180' : ''} />
+            {isRTL ? 'العودة للرئيسية' : 'Back to Home'}
+          </button>
+          <div className="flex items-center gap-2">
+            <ClipboardCheck size={18} className="text-primary-600" />
+            <span className="text-sm font-black text-gray-800">
+              {t('استمارة TBT', 'TBT Form')}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {alertMsg && (
+        <div className="bg-red-50 border border-red-200 text-red-600 px-6 py-4 rounded-2xl font-bold text-sm shadow-sm flex items-center gap-3 animate-fade-in">
+          <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></div>
+          {alertMsg}
+        </div>
+      )}
+
+      {/* Main Form */}
+      <div className="space-y-8">
+        
+        {/* Section 1: Basic Info */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start px-2">
+            {t('البيانات الأساسية', 'Basic Information')}
+          </h2>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('التاريخ', 'Date')}</label>
+              <input type="date" value={data.date} onChange={e => setData({...data, date: e.target.value})} className="w-full p-3.5 border border-gray-300 rounded-xl outline-none font-bold text-base transition-all duration-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white" />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('الوقت', 'Time')}</label>
+              <input type="time" value={data.time} onChange={e => setData({...data, time: e.target.value})} className="w-full p-3.5 border border-gray-300 rounded-xl outline-none font-bold text-base transition-all duration-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white" />
+            </div>
+            
+            <div className="space-y-2 md:col-span-2">
+              <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('نوع الاجتماع', 'TBT Type')}</label>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button type="button" onClick={() => setData({...data, type: 'face_to_face'})} className={`flex-1 p-3.5 rounded-xl border-2 font-black transition-all flex items-center justify-center gap-2 ${data.type === 'face_to_face' ? 'border-primary-600 bg-primary-50 text-primary-700' : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'}`}>
+                  <Users size={20} />
+                  {t('وجهًا لوجه', 'Face to Face')}
+                </button>
+                <button type="button" onClick={() => setData({...data, type: 'remote'})} className={`flex-1 p-3.5 rounded-xl border-2 font-black transition-all flex items-center justify-center gap-2 ${data.type === 'remote' ? 'border-primary-600 bg-primary-50 text-primary-700' : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'}`}>
+                  <MapPin size={20} />
+                  {t('عن بُعد', 'Remote')}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('اسم مسؤول الرحلة (JM)', 'Journey Manager Name')}</label>
+              <input type="text" placeholder={t('اكتب اسم المسؤول...', 'Enter manager name...')} value={data.managerName} onChange={e => setData({...data, managerName: e.target.value})} className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !data.managerName ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('مسار الرحلة', 'Journey Route')}</label>
+              <div className="flex flex-col md:flex-row gap-4 items-center">
+                <input type="text" placeholder={t('من (نقطة الانطلاق)', 'From (Starting Point)')} value={data.routeFrom} onChange={e => setData({...data, routeFrom: e.target.value})} className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !data.routeFrom ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
+                <ArrowLeftRight size={20} className="text-gray-400 hidden md:block" />
+                <input type="text" placeholder={t('إلى (الوجهة)', 'To (Destination)')} value={data.routeTo} onChange={e => setData({...data, routeTo: e.target.value})} className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !data.routeTo ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
+              </div>
+            </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 2: Drivers */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between px-2">
+            <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start">{t('أسماء السائقين', 'Drivers')}</h2>
+            <button onClick={addDriver} className="px-4 py-2 bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
+              <Plus size={16} /> {t('إضافة سائق', 'Add Driver')}
+            </button>
+          </div>
+          
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300 space-y-4">
+            {data.drivers.map((driver, idx) => (
+              <div key={driver.id} className="p-5 bg-gray-50 border border-gray-200 rounded-2xl space-y-4 relative">
+                {data.drivers.length > 1 && (
+                  <button onClick={() => removeDriver(driver.id)} className="absolute top-4 rtl:left-4 ltr:right-4 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                    <Trash2 size={18} />
+                  </button>
+                )}
+                
+                <div className="space-y-2 max-w-md">
+                  <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t(`السائق رقم ${idx + 1}`, `Driver #${idx + 1}`)}</label>
+                  <input type="text" placeholder={t('اسم السائق', 'Driver Name')} value={driver.name} onChange={e => updateDriver(driver.id, 'name', e.target.value)} className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !driver.name ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
+                </div>
+
+                {data.type === 'face_to_face' && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <SignaturePad
+                      label={t(`توقيع ${driver.name || 'السائق'} *`, `Signature of ${driver.name || 'Driver'} *`)}
+                      onSave={(sig) => updateDriver(driver.id, 'signature', sig)}
+                      onClear={() => updateDriver(driver.id, 'signature', '')}
+                      error={attemptedSubmit && !driver.signature}
+                      isRTL={isRTL}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+            
+            {data.type === 'remote' && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-xl flex items-start gap-3 text-sm font-bold">
+                <div className="mt-0.5"><MapPin size={18} /></div>
+                <p>{t('بما أن الاجتماع تم عن بُعد، لا يُشترط أخذ تواقيع السائقين في هذا النموذج.', 'Since the meeting is remote, physical driver signatures are not required.')}</p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Section 3: Topic Selection */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start px-2">
+            {t('موضوع النقاش (TBT Topic)', 'Discussion Topic')}
+          </h2>
+          
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300 space-y-4">
+            <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('اختر الموضوع *', 'Select Topic *')}</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {TBT_TOPICS.map(topic => (
+                <button
+                  key={topic.id}
+                  onClick={() => setData({...data, selectedTopicId: topic.id})}
+                  className={`p-4 rounded-xl border-2 text-start font-black transition-all flex items-center justify-between group ${data.selectedTopicId === topic.id ? 'border-primary-600 bg-primary-50 text-primary-800' : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-white hover:border-primary-300'}`}
+                >
+                  <span className="text-sm">{isRTL ? topic.categoryAr : topic.categoryEn}</span>
+                  {data.selectedTopicId === topic.id && <CheckCircle2 size={18} className="text-primary-600" />}
+                </button>
+              ))}
+            </div>
+            {attemptedSubmit && !data.selectedTopicId && (
+               <p className="text-red-500 text-xs font-bold mt-2">{t('يجب اختيار موضوع واحد على الأقل.', 'You must select at least one topic.')}</p>
+            )}
+
+            {/* Topic Details Preview */}
+            {data.selectedTopicId && (
+              <div className="mt-6 bg-gray-800 text-white p-6 rounded-2xl animate-fade-in border border-gray-700 shadow-sm">
+                <h3 className="text-lg font-black mb-4 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-primary-400"></div>
+                  {t('النقاط الرئيسية للمناقشة:', 'Key points to discuss:')}
+                </h3>
+                <ul className="space-y-3">
+                  {TBT_TOPICS.find(t => t.id === data.selectedTopicId)?.[isRTL ? 'pointsAr' : 'pointsEn'].map((point, idx) => (
+                    <li key={idx} className="flex gap-3 text-sm font-bold text-gray-300">
+                      <span className="text-primary-400 mt-1">•</span>
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Section 4: Notes & JM Signature */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start px-2">
+            {t('الملاحظات واعتماد المسؤول', 'Notes & Approval')}
+          </h2>
+          
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300 space-y-6">
+            <div className="space-y-2">
+              <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('ملاحظات إضافية (اختياري)', 'Additional Notes (Optional)')}</label>
+              <textarea 
+                value={data.notes}
+                onChange={e => setData({...data, notes: e.target.value})}
+                placeholder={t('اكتب أي ملاحظات أو تعليمات إضافية هنا...', 'Type any additional notes or instructions here...')}
+                className="w-full p-3.5 border border-gray-300 bg-gray-50 rounded-xl font-bold focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 transition-all outline-none min-h-[120px] resize-y"
+              />
+            </div>
+
+            <div className="pt-4 border-t border-gray-100">
+              <SignaturePad
+              label={t('توقيع مسؤول الرحلة (JM) *', 'Journey Manager Signature *')}
+              onSave={(sig) => setData({...data, managerSignature: sig})}
+              onClear={() => setData({...data, managerSignature: ''})}
+              error={attemptedSubmit && !data.managerSignature}
+              isRTL={isRTL}
+            />
+          </div>
+          </div>
+        </section>
+      </div>
+
+      {/* Action Area */}
+      <div className="pt-6">
+        <button 
+          onClick={handleGenerateReport}
+          className="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-black text-lg transition-all flex items-center justify-center gap-3"
+        >
+          {t('اعتماد وإنشاء التقرير', 'Approve & Generate Report')}
+        </button>
+      </div>
+
+    </div>
+  );
+};
