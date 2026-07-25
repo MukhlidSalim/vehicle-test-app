@@ -638,7 +638,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                 }`}>
                                   <div className="w-full flex items-center justify-center h-full">
                                     {item.status === 'unchecked' ? '-' : (() => {
-                                      const isDateRequired = ['fire_ext', 'safety_kit', 'aed_device', 'tyres_condition'].includes(item.key);
+                                      const isDateRequired = ['fire_ext', 'fire_ext_1', 'fire_ext_2', 'safety_kit', 'aed_device', 'tyres_condition', 'spare_tire'].includes(item.key);
                                       const isPast = isDateRequired && item.expiryDate && new Date(item.expiryDate) <= new Date();
                                       
                                       if (isDateRequired && item.expiryDate) {
@@ -779,7 +779,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                 }`}>
                                   <div className="w-full flex items-center justify-center h-full">
                                     {item.status === 'unchecked' ? '-' : (() => {
-                                      const isDateRequired = ['fire_ext', 'safety_kit', 'aed_device', 'tyres_condition'].includes(item.key);
+                                      const isDateRequired = ['fire_ext', 'fire_ext_1', 'fire_ext_2', 'safety_kit', 'aed_device', 'tyres_condition', 'spare_tire'].includes(item.key);
                                       const isPast = isDateRequired && item.expiryDate && new Date(item.expiryDate) <= new Date();
                                       
                                       if (isDateRequired && item.expiryDate) {
@@ -990,14 +990,40 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                       }
 
                       if (uItem.kind === 'tyres') {
+                        const is6Tyre = ['heavy_bus', 'light_bus', 'ambulance'].includes(data.driverInfo.vehicleType);
+                        const baseTyreItems = is6Tyre
+                          ? [
+                              { key: 'FL', value: data.tyrePressures?.fl },
+                              { key: 'FR', value: data.tyrePressures?.fr },
+                              { key: 'RLO', value: data.tyrePressures?.rlo },
+                              { key: 'RLI', value: data.tyrePressures?.rli },
+                              { key: 'RRO', value: data.tyrePressures?.rro },
+                              { key: 'RRI', value: data.tyrePressures?.rri },
+                            ]
+                          : [
+                              { key: 'FL', value: data.tyrePressures?.fl },
+                              { key: 'FR', value: data.tyrePressures?.fr },
+                              { key: 'RL', value: data.tyrePressures?.rl },
+                              { key: 'RR', value: data.tyrePressures?.rr },
+                            ];
+                        const tyreItems = (data.mode === 'maintenance' && data.driverInfo.vehicleType !== 'electric_vehicle') 
+                          ? [
+                              ...baseTyreItems,
+                              { key: 'ST1', value: data.tyrePressures?.st1 },
+                              { key: 'ST2', value: data.tyrePressures?.st2 },
+                            ]
+                          : baseTyreItems;
+                        
+                        const activeTyres = tyreItems.filter(t => t.value && String(t.value).trim() !== '');
+
                         return (
                           <div key={`u-tyres`} className={`${rowSpanClass} min-h-0 bg-gray-50 rounded-2xl border border-gray-300 p-3 shadow-sm flex flex-col`}>
                             <h3 className="text-[10px] font-black text-primary-900 uppercase tracking-widest mb-2 pb-1 border-b border-gray-300">{isRTL ? 'قياسات ضغط الإطارات' : 'Tyre Pressures'}</h3>
-                            <div className="grid grid-cols-4 gap-2 flex-1 min-h-0">
-                              {Object.entries(data.tyrePressures || {}).filter(([_, v]) => typeof v === 'string' && v.trim() !== '').slice(0, 4).map(([key, val]) => (
-                                <div key={key} className="bg-white rounded-lg border border-gray-200 p-1 flex flex-col items-center justify-center">
-                                  <span className="text-[8px] font-black text-gray-400 uppercase">{key}</span>
-                                  <span className="text-sm font-black text-primary-900">{val}</span>
+                            <div className={`grid ${activeTyres.length === 6 ? 'grid-cols-3' : 'grid-cols-4'} gap-2 flex-1 min-h-0`}>
+                              {activeTyres.map((tyre) => (
+                                <div key={tyre.key} className="bg-white rounded-lg border border-gray-200 p-1 flex flex-col items-center justify-center">
+                                  <span className="text-[8px] font-black text-gray-400 uppercase">{tyre.key}</span>
+                                  <span className="text-sm font-black text-primary-900">{tyre.value}</span>
                                 </div>
                               ))}
                             </div>
@@ -1247,7 +1273,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                           {/* Tyre Pressure Table */}
                           {hasTyrePressures && (() => {
                             const is6Tyre = ['heavy_bus', 'light_bus', 'ambulance'].includes(data.driverInfo.vehicleType);
-                            const tyreItems = is6Tyre
+                            const baseTyreItems = is6Tyre
                               ? [
                                   { label: isRTL ? 'أمامي يسار' : 'Front Left', value: data.tyrePressures?.fl },
                                   { label: isRTL ? 'أمامي يمين' : 'Front Right', value: data.tyrePressures?.fr },
@@ -1262,13 +1288,20 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                   { label: isRTL ? 'خلفي يسار' : 'Rear Left', value: data.tyrePressures?.rl },
                                   { label: isRTL ? 'خلفي يمين' : 'Rear Right', value: data.tyrePressures?.rr },
                                 ];
+                            const tyreItems = (data.mode === 'maintenance' && data.driverInfo.vehicleType !== 'electric_vehicle') 
+                              ? [
+                                  ...baseTyreItems,
+                                  { label: isRTL ? 'ضغط إطار احتياطي 1' : 'Spare Tyre 1 Pressure', value: data.tyrePressures?.st1 },
+                                  { label: isRTL ? 'ضغط إطار احتياطي 2' : 'Spare Tyre 2 Pressure', value: data.tyrePressures?.st2 },
+                                ]
+                              : baseTyreItems;
 
                             return (
                               <div className="border border-gray-300 rounded-xl p-4 bg-gray-50/50 shadow-sm">
                                 <h3 className="text-[12px] font-black text-primary-900 uppercase tracking-widest mb-3 pb-1.5 border-b border-gray-300 v-center-cairo justify-start">
                                   {isRTL ? `ضغط الإطارات (PSI) — ${is6Tyre ? '6 إطارات' : '4 إطارات'}` : `Tyre Pressure (PSI) — ${is6Tyre ? '6 Tyres' : '4 Tyres'}`}
                                 </h3>
-                                <div className={`grid ${is6Tyre ? 'grid-cols-3' : 'grid-cols-4'} gap-3`}>
+                                <div className={`grid ${tyreItems.length % 4 === 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-3`}>
                                   {tyreItems.map((tyre, idx) => (
                                     <div key={idx} className="flex flex-col items-center p-3 bg-white rounded-lg border border-gray-300 shadow-xs">
                                       <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 text-center">{tyre.label}</span>
@@ -1335,25 +1368,6 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                         })}
                       </div>
                       
-                      {/* TBT Summary block */}
-                      {data.readiness.tbtTopic && (
-                        <div className="mt-2 p-2 bg-primary-50/40 rounded-lg border border-primary-200 shadow-xs flex items-center justify-between">
-                           <div className="flex items-center gap-2">
-                              <ShieldCheck size={16} className="text-primary-600" />
-                              <span className="text-[10px] font-bold text-primary-900">
-                                <span className="font-black">{t.tbt_section_title || (isRTL ? 'موضوع التوعية اليومي (TBT)' : 'Daily Toolbox Talk (TBT)')}:</span> {t[data.readiness.tbtTopic.titleKey as keyof typeof t] || data.readiness.tbtTopic.titleKey}
-                              </span>
-                           </div>
-                           <div className="flex items-center gap-2">
-                              <span className="text-[9px] font-bold text-gray-600">
-                                {t.tbt_acknowledge || (isRTL ? 'تم الإطلاع' : 'Understood')}
-                              </span>
-                              <div className={`px-2 py-0.5 rounded text-[9px] font-black v-center-cairo shadow-sm ${data.readiness.tbtAcknowledge ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
-                                {data.readiness.tbtAcknowledge ? (isRTL ? "نعم" : "Yes") : (isRTL ? "لا" : "No")}
-                              </div>
-                           </div>
-                        </div>
-                      )}
                   </div>
                   
                   {/* Final Readiness Status indicator */}

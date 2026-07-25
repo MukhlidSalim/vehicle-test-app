@@ -66,7 +66,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
     const nextChecklist = data.checklist.map((item) => item.id === itemId ? { ...item, status } : item);
     
     const targetItem = data.checklist.find(item => item.id === itemId);
-    const noAutoScrollKeys = ['fire_ext', 'safety_kit', 'tyre_pressure'];
+    const noAutoScrollKeys = ['fire_ext', 'fire_ext_1', 'safety_kit', 'tyre_pressure'];
     
     if (targetItem && !noAutoScrollKeys.includes(targetItem.key) && status !== 'warning' && status !== 'fail') {
       autoScrollToNextUnchecked(itemId, nextChecklist);
@@ -274,7 +274,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
           return { ...item, expiryDate: value, status: 'pass' as CheckStatus, notes: '' };
         } else if (isPast) {
           showDateWarning(isRTL ? 'تنبيه: التاريخ المدخل منتهي الصلاحية!' : 'Warning: The entered date is expired!');
-          const isFire = item.key === 'fire_ext';
+          const isFire = item.key === 'fire_ext' || item.key === 'fire_ext_1';
           const isFirstAid = item.key === 'safety_kit';
           let newStatus: 'pass' | 'warning' | 'fail' | 'unchecked' = item.status;
           if (isFire) newStatus = 'fail';
@@ -321,17 +321,19 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
           ].map((item) => {
              const def = activeChecklistDef.find(c => c.key === item.key);
              const isBody = item.key === 'body_damage';
-             const isFireExt = item.key === 'fire_ext';
+             const isFireExt = item.key === 'fire_ext' || item.key === 'fire_ext_1';
+             const isFireExt2 = item.key === 'fire_ext_2';
              const isSafetyKit = item.key === 'safety_kit';
              const isAed = item.key === 'aed_device';
              const isTyresCond = item.key === 'tyres_condition';
+             const isSpareTyreCond = item.key === 'spare_tire' && data.mode === 'maintenance' && data.driverInfo.vehicleType !== 'electric_vehicle';
              const statusLabels = CHECKLIST_STATUS_LABELS[item.key] || CHECKLIST_STATUS_LABELS['body_damage'];
              const isWF = item.status === 'warning' || item.status === 'fail';
              const notesMissing = isBody
                ? (isWF && (((item.damagePoints || []).length === 0) || (item.damagePoints || []).some((p) => !p?.note || String(p.note).trim().length === 0)))
                : (isWF && (!item.notes || String(item.notes).trim().length === 0));
              // fire_ext, safety_kit, aed_device, tyres_condition expiry is mandatory whenever the item has been checked
-             const expiryMissing = (isFireExt || isSafetyKit || isAed || isTyresCond) && item.status !== 'unchecked' && !item.expiryDate;
+             const expiryMissing = (isFireExt || isFireExt2 || isSafetyKit || isAed || isTyresCond || isSpareTyreCond) && item.status !== 'unchecked' && !item.expiryDate;
              const needsNotes = attemptedStep4 && notesMissing;
              const needsExpiry = attemptedStep4 && expiryMissing;
              const tooltip = activeTooltips[item.key];
@@ -636,7 +638,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                    )}
 
                   {/* Date fields for Safety/Expiry/Manufacturing */}
-                  {(isFireExt || isSafetyKit || isAed || isTyresCond) && !isBody && (
+                  {(isFireExt || isFireExt2 || isSafetyKit || isAed || isTyresCond || isSpareTyreCond) && !isBody && (
                     <div
                       id={`${item.key}-expiry`}
                       data-error={needsExpiry ? 'true' : undefined}
@@ -648,18 +650,49 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                         needsExpiry ? 'text-red-600' : 'text-gray-400'
                       }`}>
                         {isRTL 
-                          ? (isTyresCond ? 'تاريخ تصنيع الإطارات *' : (isAed ? 'تاريخ انتهاء صلاحية جهاز الإنعاش *' : (isFireExt ? 'تاريخ انتهاء صلاحية طفاية الحريق *' : 'تاريخ انتهاء صلاحية حقيبة الإسعافات الأولية *')))
-                          : (isTyresCond ? 'Tyre Manufacturing Date *' : (isAed ? 'AED Device Expiry Date *' : (isFireExt ? 'Fire Extinguisher Expiry Date *' : 'First Aid Kit Expiry Date *')))
+                          ? (isTyresCond || isSpareTyreCond ? 'تاريخ تصنيع الإطارات (شهر/سنة) *' : (isAed ? 'تاريخ انتهاء صلاحية جهاز الإنعاش *' : (isFireExt || isFireExt2 ? 'تاريخ انتهاء صلاحية طفاية الحريق *' : 'تاريخ انتهاء صلاحية حقيبة الإسعافات الأولية *')))
+                          : (isTyresCond || isSpareTyreCond ? 'Tyre Manufacturing Date (MM/YYYY) *' : (isAed ? 'AED Device Expiry Date *' : (isFireExt || isFireExt2 ? 'Fire Extinguisher Expiry Date *' : 'First Aid Kit Expiry Date *')))
                         }
                       </label>
-                      <input
-                        type="date"
-                        value={item.expiryDate || ''}
-                        onChange={e => handleDateChange(item.id, e.target.value)}
-                        className={`w-full p-3 border rounded-xl font-bold text-base outline-none transition-all focus:bg-white ${
-                          needsExpiry ? 'border-red-400 bg-red-50 focus:border-red-500' : 'border-gray-300 bg-white focus:border-primary-500'
-                        }`}
-                      />
+                      {(isTyresCond || isSpareTyreCond) ? (
+                        <div className="flex items-center gap-3">
+                          <select
+                            className={`w-1/2 p-3 border rounded-xl font-bold text-base outline-none transition-all focus:bg-white appearance-none text-center ${needsExpiry ? 'border-red-400 bg-red-50 focus:border-red-500 text-red-900' : 'border-gray-300 bg-white focus:border-primary-500 text-gray-900'}`}
+                            value={item.expiryDate?.split('-')[1] || ''}
+                            onChange={e => {
+                              const y = item.expiryDate?.split('-')[0] || String(new Date().getFullYear());
+                              handleDateChange(item.id, `${y}-${e.target.value}`);
+                            }}
+                          >
+                            <option value="" disabled>{isRTL ? 'الشهر' : 'Month'}</option>
+                            {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map(m => (
+                              <option key={m} value={m}>{m}</option>
+                            ))}
+                          </select>
+                          <select
+                            className={`w-1/2 p-3 border rounded-xl font-bold text-base outline-none transition-all focus:bg-white appearance-none text-center ${needsExpiry ? 'border-red-400 bg-red-50 focus:border-red-500 text-red-900' : 'border-gray-300 bg-white focus:border-primary-500 text-gray-900'}`}
+                            value={item.expiryDate?.split('-')[0] || ''}
+                            onChange={e => {
+                              const m = item.expiryDate?.split('-')[1] || '01';
+                              handleDateChange(item.id, `${e.target.value}-${m}`);
+                            }}
+                          >
+                            <option value="" disabled>{isRTL ? 'السنة' : 'Year'}</option>
+                            {Array.from({ length: 15 }, (_, i) => new Date().getFullYear() - 10 + i).map(y => (
+                              <option key={y} value={y}>{y}</option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <input
+                          type="date"
+                          value={item.expiryDate || ''}
+                          onChange={e => handleDateChange(item.id, e.target.value)}
+                          className={`w-full p-3 border rounded-xl font-bold text-base outline-none transition-all focus:bg-white ${
+                            needsExpiry ? 'border-red-400 bg-red-50 focus:border-red-500' : 'border-gray-300 bg-white focus:border-primary-500'
+                          }`}
+                        />
+                      )}
                     </div>
                   )}
 
@@ -678,7 +711,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                       ) : (() => {
                         const is6Tyre = ['heavy_bus', 'light_bus', 'ambulance'].includes(vType);
                         const emptyTP = { fl: '', fr: '', rl: '', rr: '', rlo: '', rli: '', rro: '', rri: '' };
-                        const tyreFields = is6Tyre
+                        const baseTyreFields = is6Tyre
                           ? [
                               { key: 'fl' as const, ar: 'أمامي يسار', en: 'Front Left' },
                               { key: 'fr' as const, ar: 'أمامي يمين', en: 'Front Right' },
@@ -693,6 +726,14 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                               { key: 'rl' as const, ar: 'خلفي يسار', en: 'Rear Left' },
                               { key: 'rr' as const, ar: 'خلفي يمين', en: 'Rear Right' },
                             ];
+                        
+                        const tyreFields = (data.mode === 'maintenance' && data.driverInfo.vehicleType !== 'electric_vehicle') 
+                          ? [
+                              ...baseTyreFields,
+                              { key: 'st1' as const, ar: 'ضغط احتياطي 1', en: 'Spare Tyre 1 Pressure' },
+                              { key: 'st2' as const, ar: 'ضغط احتياطي 2', en: 'Spare Tyre 2 Pressure' }
+                            ]
+                          : baseTyreFields;
 
                         return (
                           <div className="p-4 rounded-xl border border-gray-300 bg-gray-50">
@@ -708,7 +749,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                                 {isRTL ? 'إخفاء' : 'Hide'}
                               </button>
                             </div>
-                            <div className={`grid ${is6Tyre ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2'} gap-3`}>
+                            <div className={`grid ${tyreFields.length > 6 ? 'grid-cols-2 sm:grid-cols-4' : (tyreFields.length > 4 ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2')} gap-3`}>
                               {tyreFields.map(tyre => (
                                 <div key={tyre.key} className="space-y-1">
                                   <span className="block text-[10px] font-bold text-gray-500">

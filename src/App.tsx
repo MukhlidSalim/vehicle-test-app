@@ -17,6 +17,7 @@ import { PreTripTipsView } from './features/guides/PreTripTipsView';
 import { InspectionProcess } from './features/inspection/InspectionProcess';
 import { HandoverForm } from './features/handover/HandoverForm';
 import { PassengerLogForm } from './features/passenger-log/PassengerLogForm';
+import { TbtForm } from './features/tbt/TbtForm';
 
 export default function App() {
   const navigate = useNavigate();
@@ -143,6 +144,14 @@ export default function App() {
             
             <Route path="/passenger_log" element={
               <PassengerLogForm 
+                lang={lang}
+                isRTL={isRTL}
+                onExit={resetApp}
+              />
+            } />
+            
+            <Route path="/tbt_form" element={
+              <TbtForm 
                 lang={lang}
                 isRTL={isRTL}
                 onExit={resetApp}

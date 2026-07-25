@@ -6,7 +6,16 @@ const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct',
 
 export const formatDisplayDate = (dateStr: string, lang: Language): string => {
   if (!dateStr) return '';
-  const [year, month, day] = dateStr.split('-');
+  const parts = dateStr.split('-');
+  if (parts.length === 2) {
+    const [year, month] = parts;
+    if (lang === 'ar') {
+      return `${month}-${year}`;
+    }
+    const monthIdx = parseInt(month, 10) - 1;
+    return `${MONTH_ABBR[monthIdx] ?? month}-${year}`;
+  }
+  const [year, month, day] = parts;
   if (lang === 'ar') {
     return `${day}-${month}-${year}`;
   }
@@ -46,13 +55,11 @@ export const CompactReportHeader: React.FC<{ titleSuffix: string; lang: Language
 
 export const CompactInfoGrid: React.FC<{ data: InspectionData; t: any; lang: Language }> = ({ data, t, lang }) => (
   <div className="mb-2 border border-gray-300 rounded-xl p-3 bg-gray-50 flex-shrink-0 shadow-sm">
-     <div className={`grid gap-y-2.5 gap-x-3 ${
-         (data.mode === 'full' || data.mode === 'driver_only') && data.mode !== 'maintenance' 
+      <div className={`grid gap-y-2.5 gap-x-3 ${
+         (data.mode === 'full' || data.mode === 'driver_only' || data.mode === 'maintenance') 
            ? 'grid-cols-4' 
-           : (data.mode === 'maintenance' || data.mode === 'vehicle_only')
-             ? 'grid-cols-3' 
-             : 'grid-cols-4'
-     }`}>
+           : 'grid-cols-3'
+      }`}>
         {[
           // Row 1: Driver/Inspector → phone → (Assistant → Assistant phone)
           { label: data.mode === 'maintenance' ? (lang === 'ar' ? 'اسم الفاحص' : 'Inspector Name') : t.driver_name, value: data.driverInfo.name || '-' },
@@ -92,6 +99,10 @@ export const CompactInfoGrid: React.FC<{ data: InspectionData; t: any; lang: Lan
             ), 
             mono: true 
           },
+          ...(data.mode === 'maintenance' ? [
+             { label: lang === 'ar' ? 'انتهاء تصريح أوبال' : 'OPAL Expiry Date', value: data.driverInfo.opalExpiryDate ? formatDisplayDate(data.driverInfo.opalExpiryDate, lang) : '-' },
+             { label: lang === 'ar' ? 'انتهاء تصريح VOC' : 'VOC Expiry Date', value: data.driverInfo.vocExpiryDate ? formatDisplayDate(data.driverInfo.vocExpiryDate, lang) : '-' },
+          ] : []),
         ].map((info, idx) => (
           <div key={idx} className="flex flex-col border-b border-gray-400/50 pb-1.5 overflow-hidden">
              <span className="text-[7.5px] font-black text-gray-400 uppercase leading-none mb-1 v-center-cairo justify-start">{info.label}</span>

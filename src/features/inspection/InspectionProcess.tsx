@@ -8,6 +8,7 @@ import { DriverReadinessStep } from './DriverReadinessStep';
 import { ChecklistStep } from './ChecklistStep';
 import { ReportSummaryStep } from './ReportSummaryStep';
 import { SignaturePad } from '../../components/SignaturePad';
+import { validateBasicInfo, validateChecklist, validateDriverReadiness } from '../../utils/validation';
 
 interface InspectionProcessProps {
   t: any;
@@ -243,24 +244,14 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
                onClick={() => { 
                   if (step === 2) {
                     setAttemptedStep2(true);
-                    const { name, plateNumber, phoneNumber, currentOdometer, odometer, vehicleType, departure, destination, vehicleExpiryDate } = data.driverInfo;
+                    const { isValid, messageKey } = validateBasicInfo(data);
                     
-                    // Common required fields
-                    let isValid = name && phoneNumber && plateNumber && currentOdometer && odometer && vehicleType;
-                    
-                    // Mode specific required fields
-                    if (data.mode === 'full' || data.mode === 'driver_only') {
-                      if (!departure || !destination) isValid = false;
-                    } else {
-                      if (!vehicleExpiryDate) isValid = false;
-                    }
-
                     if (!isValid) {
-                      showUiAlert(t.required, 'warning');
+                      showUiAlert(t[messageKey] || t.required || messageKey, 'warning');
                       scrollToFirstErrorInDOM();
                       return;
                     }
-                    if (Number(currentOdometer) >= Number(odometer)) {
+                    if (Number(data.driverInfo.currentOdometer) >= Number(data.driverInfo.odometer)) {
                       setShowOdoWarning(true);
                       return;
                     }
@@ -279,18 +270,14 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
                   } 
                   else if (step === 3) { 
                     setAttemptedStep3(true);
-                    const allAnswered = Object.keys(data.readiness.answers).length >= READINESS_QUESTIONS.length;
+                    const { isValid, messageKey } = validateDriverReadiness(data, isRTL);
                     
-                    if (!allAnswered) {
-                       showUiAlert(isRTL ? "يرجى الإجابة على جميع بنود الجاهزية بنعم أو لا." : "Please answer all readiness items with Yes or No.", 'warning');
+                    if (!isValid) {
+                       showUiAlert(messageKey, 'warning');
                        scrollToFirstErrorInDOM();
                        return;
                     }
-                    if (!data.readiness.tbtAcknowledge) {
-                       showUiAlert(isRTL ? "يرجى تأكيد الاطلاع على موضوع التوعية (TBT)." : "Please acknowledge the TBT topic.", 'warning');
-                       scrollToFirstErrorInDOM();
-                       return;
-                    }
+
                     // If we are about to proceed to the summary, ensure signature is captured
                     if (currentStepIndex === totalSteps - 2) {
                       const sigRequired = data.mode === 'maintenance' ? data.signatures?.inspector : data.signatures?.driver;
@@ -305,47 +292,10 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
                   } 
                   else if (step === 4) {
                     setAttemptedStep4(true);
-                    const uncheckedItems = data.checklist.filter((i) => i.status === 'unchecked');
-                    
-                    // Notes are mandatory for Warning/Fail statuses
-                    const bodyItem = data.checklist.find((i) => i.key === 'body_damage');
-                    const bdPts = bodyItem?.damagePoints || [];
-                    const missingBody = (bdPts.length === 0) || bdPts.some((p) => !p?.note || String(p.note).trim().length === 0);
-                    
-                    const missingNotesItems = data.checklist.filter((i) => {
-                      if (i.key === 'body_damage') return (i.status === 'warning' || i.status === 'fail') ? missingBody : false;
-                      const wf = i.status === 'warning' || i.status === 'fail';
-                      if (!wf) return false;
-                      return !i.notes || String(i.notes).trim().length === 0;
-                    });
+                    const { isValid, messageKey } = validateChecklist(data, isRTL);
 
-                    // Fire extinguisher expiry date is mandatory once the item is checked
-                    const fireExtItem = data.checklist.find((i) => i.key === 'fire_ext');
-                    const missingFireExpiry = fireExtItem && fireExtItem.status !== 'unchecked' && !fireExtItem.expiryDate;
-
-                    // First aid kit expiry date is mandatory once the item is checked
-                    const safetyKitItem = data.checklist.find((i) => i.key === 'safety_kit');
-                    const missingSafetyExpiry = safetyKitItem && safetyKitItem.status !== 'unchecked' && !safetyKitItem.expiryDate;
-
-                    if (uncheckedItems.length > 0) {
-                      showUiAlert(isRTL ? 'يرجى فحص جميع العناصر المطلوبة قبل المتابعة.' : 'Please inspect all required items before proceeding.', 'warning');
-                      scrollToFirstErrorInDOM();
-                      return;
-                    }
-                    if (missingFireExpiry || missingSafetyExpiry) {
-                      showUiAlert(
-                        isRTL ? 'يرجى إدخال تاريخ انتهاء الصلاحية لجميع العناصر المطلوبة قبل المتابعة.' : 'Please enter all required expiry dates before proceeding.',
-                        'warning'
-                      );
-                      scrollToFirstErrorInDOM();
-                      return;
-                    }
-                    if (missingNotesItems.length > 0) {
-                      showUiAlert(
-                        isRTL ? 'يرجى كتابة الملاحظات لجميع عناصر (تنبيه/ضرر) وإضافة نقطة واحدة على الأقل مع وصف لكل ضرر في هيكل المركبة.'
-                             : 'Please add notes for all Warning/Fail items and add at least one body-damage point with a description for each point.',
-                        'warning'
-                      );
+                    if (!isValid) {
+                      showUiAlert(messageKey, 'warning');
                       scrollToFirstErrorInDOM();
                       return;
                     }

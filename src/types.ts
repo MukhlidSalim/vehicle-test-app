@@ -16,7 +16,8 @@ export type View =
   | "emergency_procedures"
   | "pre_trip_tips"
   | "bus_handover"
-  | "passenger_log";
+  | "passenger_log"
+  | "tbt_form";
 
 export type VehicleType =
   | "light_vehicle"
@@ -64,6 +65,9 @@ export interface DriverInfo {
 
   /** Vehicle registration / license expiry date */
   vehicleExpiryDate?: DateString;
+
+  opalExpiryDate?: DateString;
+  vocExpiryDate?: DateString;
 
   /** Trip Route */
   departure?: string;
@@ -167,6 +171,7 @@ export interface InspectionData {
     fl?: string; fr?: string;
     rl?: string; rr?: string;
     rlo?: string; rli?: string; rro?: string; rri?: string;
+    st1?: string; st2?: string;
   };
 
   /**

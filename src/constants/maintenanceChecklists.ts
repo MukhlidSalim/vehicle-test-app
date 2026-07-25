@@ -2,7 +2,8 @@ import {
   VehicleBodyIcon, WheelIcon, TyrePressureIcon, LeakIcon, LampIcon, SignalIcon, MirrorIcon, WiperIcon, BatteryIcon, FluidsIcon, FuelIcon, HornIcon, BrakesIcon, ACIcon, IVMSIcon, SeatBeltIcon, FireExtIcon, FirstAidIcon, EmergencyToolsIcon, CommToolsIcon, LuggageIcon, DocumentsIcon, BatteryCharging, Zap, PlugZap, SteeringIcon,
   CustomBeltsIcon, CustomBonnetIcon, CustomBrakeFluidIcon, CustomBrakeLightsIcon, CustomBumpersIcon, CustomCoolantIcon, CustomCurtainsIcon, CustomDashboardIcon, CustomDrinkingWaterIcon, CustomExternalMirrorsIcon, CustomGearLeverIcon, CustomHosesIcon, CustomInteriorLightsIcon, CustomInternalMirrorsIcon, CustomLooseFittingsIcon, CustomPassengerSeatBeltsIcon, CustomPassengerSeatsIcon, CustomReflectorsIcon, CustomSafetyEquipmentIcon, CustomSafetySignageIcon, CustomSteeringFluidIcon, CustomToiletIcon, CustomTyresCondIcon, CustomGaugesIcon, CustomWasherFluidIcon, CustomWindowOpIcon, CustomWindowsCondIcon,
   EVMotorIcon, EVThermalIcon, EVInsulationIcon, EVUndercarriageIcon, EV12VIcon, EVDriveModesIcon, EVOnboardChargerIcon, EVFrunkIcon, EVRegenBrakingIcon, EVTireRepairIcon, EVChargingCableIcon, EVBMSIcon,
-  EVReverseAlarmIcon, EVBonnetIcon, EVHosesIcon, EVSunVisorsIcon, EVParkingBrakeIcon, EVGearSelectorIcon, EVSafetyEquipmentIcon, EVWarningTriangleIcon, EVSafetySignageIcon, EVDoorIcon
+  EVReverseAlarmIcon, EVBonnetIcon, EVHosesIcon, EVSunVisorsIcon, EVParkingBrakeIcon, EVGearSelectorIcon, EVSafetyEquipmentIcon, EVWarningTriangleIcon, EVSafetySignageIcon, EVDoorIcon,
+  ElectronicGearIcon, RefrigeratorsIcon, ElectricSwitchesIcon, ExhaustSystemIcon, SuspensionSystemIcon, HandBrakeIcon, DoorsStepsIcon
 } from './icons';
 import { 
   ShieldCheck, ArrowLeftRight, Cctv, Settings, ShieldAlert, Thermometer, BriefcaseMedical, Wrench, Siren, LogOut, DoorOpen, Radio, AlertTriangle, Monitor, Droplets, Plug, Camera, Video, Navigation, Music, Truck, Anchor, PanelLeft, AppWindow, AlertOctagon, RefreshCw, ThermometerSnowflake, Waves, Torus, CarFront, Tag, ArrowLeftToLine, Volume2, Lock, FlaskConical, SprayCan, Link, Cable, Armchair, Baseline, LayoutDashboard, GaugeCircle, Lamp, Blinds, Joystick, HardHat, Hammer, Signpost, GlassWater, Sticker, Nut, ToggleLeft
@@ -16,7 +17,7 @@ const BASE_MAINTENANCE_CHECKLIST = [
   { id: 5, key: 'tyre_pressure', icon: TyrePressureIcon },
   { id: 6, key: 'spare_tire', icon: WheelIcon },
   { id: 7, key: 'external_mirrors', icon: CustomExternalMirrorsIcon },
-  { id: 8, key: 'doors_steps', icon: DoorOpen },
+  { id: 8, key: 'doors_steps', icon: DoorsStepsIcon },
   { id: 9, key: 'emergency_exits', icon: LogOut },
   { id: 10, key: 'bumpers', icon: CustomBumpersIcon },
   { id: 11, key: 'reflectors', icon: CustomReflectorsIcon },
@@ -34,7 +35,7 @@ const BASE_MAINTENANCE_CHECKLIST = [
   { id: 23, key: 'steering_fluid', icon: CustomSteeringFluidIcon },
   { id: 24, key: 'coolant_level', icon: CustomCoolantIcon },
   { id: 25, key: 'washer_fluid', icon: CustomWasherFluidIcon },
-  { id: 26, key: 'belts_condition', icon: CustomBeltsIcon },
+  { id: 26, key: 'belts_bearings', icon: CustomBeltsIcon },
   { id: 27, key: 'wiring_condition', icon: Plug },
   { id: 28, key: 'hoses_condition', icon: CustomHosesIcon },
   { id: 29, key: 'tools', icon: EmergencyToolsIcon },
@@ -50,7 +51,7 @@ const BASE_MAINTENANCE_CHECKLIST = [
   { id: 39, key: 'ac', icon: ACIcon },
   { id: 40, key: 'window_operation', icon: CustomWindowOpIcon },
   { id: 41, key: 'curtains', icon: CustomCurtainsIcon },
-  { id: 42, key: 'hand_brake', icon: BrakesIcon },
+  { id: 42, key: 'hand_brake', icon: HandBrakeIcon },
   { id: 43, key: 'gear_lever', icon: CustomGearLeverIcon },
   { id: 44, key: 'safety_kit', icon: FirstAidIcon },
   { id: 45, key: 'fire_ext', icon: FireExtIcon },
@@ -62,42 +63,62 @@ const BASE_MAINTENANCE_CHECKLIST = [
   { id: 51, key: 'aed_device', icon: BriefcaseMedical },
   { id: 52, key: 'wifi_system', icon: Radio },
   { id: 53, key: 'tv_system', icon: Video },
-  { id: 54, key: 'refrigerators', icon: ThermometerSnowflake },
+  { id: 54, key: 'refrigerators', icon: RefrigeratorsIcon },
   { id: 55, key: 'drinking_water', icon: CustomDrinkingWaterIcon },
   { id: 56, key: 'toilet_condition', icon: CustomToiletIcon },
 ];
 
-export const MAINTENANCE_HEAVY_BUS_CHECKLIST = BASE_MAINTENANCE_CHECKLIST.map(item => {
-  if (item.key === 'window_operation') return { ...item, key: 'heavy_electric_switches', icon: ToggleLeft };
-  if (item.key === 'gear_lever') return { ...item, key: 'heavy_electronic_gear', icon: AppWindow };
-  return item;
-});
+function insertAfter(list: any[], targetKey: string, newItems: any[]) {
+  const result = [...list];
+  const idx = result.findIndex(i => i.key === targetKey);
+  if (idx !== -1) {
+    result.splice(idx + 1, 0, ...newItems);
+  } else {
+    console.error(`insertAfter: Target key "${targetKey}" not found. Appending to the end.`);
+    result.push(...newItems);
+  }
+  return result;
+}
 
-export const MAINTENANCE_LIGHT_BUS_CHECKLIST = [
-  ...BASE_MAINTENANCE_CHECKLIST.slice(0, 8),
-  { id: 9, key: 'general_interior', icon: ShieldCheck },
-  ...BASE_MAINTENANCE_CHECKLIST.slice(9, 40),
-  { id: 41, key: 'sun_visors', icon: ShieldCheck },
-  ...BASE_MAINTENANCE_CHECKLIST.slice(41, 46),
-  { id: 47, key: 'warning_triangle', icon: AlertTriangle },
-  ...BASE_MAINTENANCE_CHECKLIST.slice(47, 48),
-  { id: 49, key: 'suspension_system', icon: Wrench },
-  { id: 50, key: 'safety_signage', icon: ShieldAlert },
-  { id: 51, key: 'exhaust_system', icon: Wrench },
-  { id: 52, key: 'load_securing', icon: LuggageIcon },
-];
+export const MAINTENANCE_HEAVY_BUS_CHECKLIST = (() => {
+  const list = BASE_MAINTENANCE_CHECKLIST.map(item => {
+    if (item.key === 'window_operation') return { ...item, key: 'heavy_electric_switches', icon: ElectricSwitchesIcon };
+    if (item.key === 'gear_lever') return { ...item, key: 'heavy_electronic_gear', icon: ElectronicGearIcon };
+    if (item.key === 'fire_ext') return { ...item, key: 'fire_ext_1' };
+    return item;
+  }).filter(item => item.key !== 'safety_signage');
+  return insertAfter(list, 'fire_ext_1', [{ id: 999, key: 'fire_ext_2', icon: FireExtIcon }]);
+})();
 
-export const MAINTENANCE_AMBULANCE_CHECKLIST = [
-  ...BASE_MAINTENANCE_CHECKLIST
-    .slice(0, 49)
-    .filter(item => !['emergency_exits', 'curtains', 'emergency_hammers'].includes(item.key)),
-  { id: 47, key: 'exhaust_system', icon: Wrench },
-  { id: 48, key: 'hazard_lights', icon: AlertTriangle },
-  { id: 49, key: 'suspension_system', icon: Wrench },
-  { id: 50, key: 'emergency_lights', icon: LampIcon },
-  { id: 51, key: 'siren_system', icon: Siren },
-  { id: 52, key: 'patient_lighting', icon: LampIcon },
-];
+export const MAINTENANCE_LIGHT_BUS_CHECKLIST = (() => {
+  const list = [
+    ...BASE_MAINTENANCE_CHECKLIST.slice(0, 8),
+    { id: 9, key: 'general_interior', icon: ShieldCheck },
+    ...BASE_MAINTENANCE_CHECKLIST.slice(9, 40),
+    { id: 41, key: 'sun_visors', icon: ShieldCheck },
+    ...BASE_MAINTENANCE_CHECKLIST.slice(41, 46),
+    { id: 47, key: 'warning_triangle', icon: AlertTriangle },
+    ...BASE_MAINTENANCE_CHECKLIST.slice(47, 48),
+    { id: 49, key: 'suspension_system', icon: SuspensionSystemIcon },
+    { id: 51, key: 'exhaust_system', icon: ExhaustSystemIcon },
+    { id: 52, key: 'load_securing', icon: LuggageIcon },
+  ].map(item => item.key === 'fire_ext' ? { ...item, key: 'fire_ext_1' } : item);
+  return insertAfter(list, 'fire_ext_1', [{ id: 999, key: 'fire_ext_2', icon: FireExtIcon }]);
+})();
+
+export const MAINTENANCE_AMBULANCE_CHECKLIST = (() => {
+  const list = [
+    ...BASE_MAINTENANCE_CHECKLIST
+      .slice(0, 49)
+      .filter(item => !['emergency_exits', 'curtains', 'emergency_hammers'].includes(item.key)),
+    { id: 47, key: 'exhaust_system', icon: ExhaustSystemIcon },
+    { id: 49, key: 'suspension_system', icon: SuspensionSystemIcon },
+    { id: 50, key: 'emergency_lights', icon: LampIcon },
+    { id: 51, key: 'siren_system', icon: Siren },
+    { id: 52, key: 'patient_lighting', icon: LampIcon },
+  ].map(item => item.key === 'fire_ext' ? { ...item, key: 'fire_ext_1' } : item);
+  return insertAfter(list, 'fire_ext_1', [{ id: 999, key: 'fire_ext_2', icon: FireExtIcon }]);
+})();
 
 export const MAINTENANCE_LIGHT_VEHICLE_CHECKLIST = [
   ...BASE_MAINTENANCE_CHECKLIST.slice(0, 8),
@@ -109,7 +130,7 @@ export const MAINTENANCE_LIGHT_VEHICLE_CHECKLIST = [
   ...BASE_MAINTENANCE_CHECKLIST.slice(47, 48),
   { id: 49, key: 'rear_camera', icon: Camera },
   { id: 50, key: 'safety_signage', icon: ShieldAlert },
-  { id: 51, key: 'suspension_system', icon: Wrench },
+  { id: 51, key: 'suspension_system', icon: SuspensionSystemIcon },
   { id: 52, key: 'load_securing', icon: LuggageIcon },
 ];
 
@@ -123,7 +144,7 @@ export const MAINTENANCE_PICKUP_CHECKLIST = [
   { id: 41, key: 'tonneau_cover', icon: ShieldCheck },
   ...BASE_MAINTENANCE_CHECKLIST.slice(41, 46),
   { id: 47, key: 'warning_triangle', icon: AlertTriangle },
-  { id: 48, key: 'suspension_system', icon: Wrench },
+  { id: 48, key: 'suspension_system', icon: SuspensionSystemIcon },
   { id: 49, key: 'rear_camera', icon: Camera },
   { id: 50, key: 'safety_signage', icon: ShieldAlert },
   { id: 51, key: 'tow_hitch', icon: Anchor },

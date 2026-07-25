@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { createWorker } from 'tesseract.js';
+import { createWorker, PSM } from 'tesseract.js';
 import { X, CheckCircle, ScanLine, Loader } from 'lucide-react';
 
 interface OdometerScannerProps {
@@ -156,7 +156,7 @@ export const OdometerScanner: React.FC<OdometerScannerProps> = ({ onScan, onClos
       
       await worker.setParameters({
         tessedit_char_whitelist: '0123456789',
-        tessedit_pageseg_mode: '7', // Treat as single line of text
+        tessedit_pageseg_mode: PSM.SINGLE_LINE, // Treat as single line of text
       });
       
       const { data: { text } } = await worker.recognize(imgData);

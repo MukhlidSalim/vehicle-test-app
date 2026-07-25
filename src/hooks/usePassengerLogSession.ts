@@ -15,6 +15,7 @@ export interface DayInfo {
   date: string;
   driverName: string;
   vehicleClass: 'A' | 'B' | 'C' | 'D' | '';
+  notes?: string;
 }
 
 export interface PassengerLogSession {
@@ -30,6 +31,7 @@ const emptyDayInfo: DayInfo = {
   date: new Date().toISOString().split('T')[0],
   driverName: '',
   vehicleClass: '',
+  notes: '',
 };
 
 export function usePassengerLogSession() {
@@ -38,13 +40,18 @@ export function usePassengerLogSession() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasExistingSession, setHasExistingSession] = useState(false);
 
-  // Load from localStorage on mount - NO expiry
+  // Load from localStorage on mount with 48h expiry
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed: PassengerLogSession = JSON.parse(raw);
-        if (parsed.dayInfo && parsed.trips) {
+        const now = Date.now();
+        const EXPIRE_TIME = 48 * 60 * 60 * 1000; // 48 Hours
+
+        if (!parsed.createdAt || (now - parsed.createdAt > EXPIRE_TIME)) {
+          localStorage.removeItem(STORAGE_KEY);
+        } else if (parsed.dayInfo && parsed.trips) {
           setDayInfo(parsed.dayInfo);
           setTrips(parsed.trips);
           setHasExistingSession(true);
@@ -61,10 +68,20 @@ export function usePassengerLogSession() {
     if (!isLoaded) return;
     // Only save if we have meaningful data
     if (dayInfo.driverName || dayInfo.vehiclePlate || trips.length > 0) {
+      // Preserve original createdAt to ensure 48h expiration works correctly from start
+      const existing = localStorage.getItem(STORAGE_KEY);
+      let originalCreatedAt = Date.now();
+      if (existing) {
+        try {
+          const parsed = JSON.parse(existing);
+          if (parsed.createdAt) originalCreatedAt = parsed.createdAt;
+        } catch(e) {}
+      }
+
       const session: PassengerLogSession = {
         dayInfo,
         trips,
-        createdAt: Date.now(),
+        createdAt: originalCreatedAt,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
     }

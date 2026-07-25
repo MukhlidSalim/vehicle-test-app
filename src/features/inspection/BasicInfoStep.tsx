@@ -3,9 +3,6 @@ import { InspectionData, VehicleType } from '../../types';
 import { VEHICLE_TYPES } from '../../constants';
 import { VehicleIllustration } from '../../components/VehicleIllustration';
 import { getChecklistForType } from '../../utils/inspectionHelpers';
-import { OdometerScanner } from '../../components/OdometerScanner';
-import { ScanLine } from 'lucide-react';
-
 interface BasicInfoStepProps {
   t: any;
   isRTL: boolean;
@@ -26,8 +23,6 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
   attemptedStep2,
 }) => {
   const [dateWarning, setDateWarning] = React.useState({ show: false, msg: '' });
-  const [scannerField, setScannerField] = React.useState<'currentOdometer' | 'odometer' | null>(null);
-
   const showDateWarning = (msg: string) => {
     setDateWarning({ show: true, msg });
     setTimeout(() => setDateWarning({ show: false, msg: '' }), 4000);
@@ -64,7 +59,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
          {data.mode === 'maintenance' ? (isRTL ? 'بيانات قسم الصيانة' : 'Maintenance Info') : t.driver_info}
        </h2>
        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-400 space-y-8">
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className={`grid ${data.mode === 'maintenance' ? 'md:grid-cols-4' : 'md:grid-cols-2'} gap-6`}>
              {/* Driver Name */}
              <div className="space-y-2">
                 <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">
@@ -232,26 +227,78 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                </div>
              )}
 
+             {/* OPAL and VOC Expire Dates for Maintenance Mode */}
+             {data.mode === 'maintenance' && (
+               <>
+                 <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">
+                      {isRTL ? 'تاريخ انتهاء تصريح أوبال' : 'OPAL Expiry Date'} *
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="date"
+                        data-error={attemptedStep2 && !data.driverInfo.opalExpiryDate ? 'true' : undefined} 
+                        className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${getInputStateClass(data.driverInfo.opalExpiryDate, attemptedStep2 && !data.driverInfo.opalExpiryDate)}`} 
+                        value={data.driverInfo.opalExpiryDate || ''} 
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (val && new Date(val) < new Date()) {
+                            showDateWarning(isRTL ? 'تنبيه: تصريح أوبال منتهي الصلاحية!' : 'Warning: OPAL permit is expired!');
+                          }
+                          setData((p) => ({ 
+                            ...p, 
+                            driverInfo: { ...p.driverInfo, opalExpiryDate: val } 
+                          }));
+                        }} 
+                      />
+                      {data.driverInfo.opalExpiryDate && data.driverInfo.opalExpiryDate.trim().length > 0 && new Date(data.driverInfo.opalExpiryDate) >= new Date() && <CheckIcon />}
+                    </div>
+                 </div>
+                 <div className="space-y-2">
+                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">
+                      {isRTL ? 'تاريخ انتهاء تصريح VOC' : 'VOC Expiry Date'} *
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="date"
+                        data-error={attemptedStep2 && !data.driverInfo.vocExpiryDate ? 'true' : undefined} 
+                        className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${getInputStateClass(data.driverInfo.vocExpiryDate, attemptedStep2 && !data.driverInfo.vocExpiryDate)}`} 
+                        value={data.driverInfo.vocExpiryDate || ''} 
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (val && new Date(val) < new Date()) {
+                            showDateWarning(isRTL ? 'تنبيه: تصريح VOC منتهي الصلاحية!' : 'Warning: VOC permit is expired!');
+                          }
+                          setData((p) => ({ 
+                            ...p, 
+                            driverInfo: { ...p.driverInfo, vocExpiryDate: val } 
+                          }));
+                        }} 
+                      />
+                      {data.driverInfo.vocExpiryDate && data.driverInfo.vocExpiryDate.trim().length > 0 && new Date(data.driverInfo.vocExpiryDate) >= new Date() && <CheckIcon />}
+                    </div>
+                 </div>
+               </>
+             )}
+
              {/* Current Odometer */}
              <div className="space-y-2 relative">
-                <div className="flex items-center justify-between">
-                  <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">
-                    {isRTL ? 'قراءة العداد الحالية (كم)' : 'Current Odometer (KM)'} *
-                  </label>
-                  <button type="button" onClick={() => setScannerField('currentOdometer')} className="flex items-center gap-1.5 text-primary-600 hover:text-primary-700 font-bold text-[10px] bg-primary-50 hover:bg-primary-100 px-2.5 py-1 rounded-full transition-colors">
-                    <ScanLine size={12} />
-                    {isRTL ? 'مسح بالكاميرا' : 'Scan'}
-                  </button>
-                </div>
+                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                  {isRTL ? 'قراءة العداد الحالية (كم)' : 'Current Odometer (KM)'} *
+                </label>
                 <div className="relative">
                   <input 
-                    type="number" 
+                    type="text" 
+                    inputMode="numeric"
                     data-error={attemptedStep2 && !data.driverInfo.currentOdometer ? 'true' : undefined} 
                     className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base font-mono transition-all duration-300 ${getInputStateClass(data.driverInfo.currentOdometer, attemptedStep2 && !data.driverInfo.currentOdometer)} ${
                       isOdoInvalid && data.driverInfo.currentOdometer ? '!border-orange-500 !bg-orange-50 !text-orange-900 focus:ring-orange-500/20' : ''
                     }`} 
-                    value={data.driverInfo.currentOdometer || ''} 
-                    onChange={e => setData((p) => ({ ...p, driverInfo: { ...p.driverInfo, currentOdometer: e.target.value } }))} 
+                    value={data.driverInfo.currentOdometer ? String(data.driverInfo.currentOdometer).replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ''} 
+                    onChange={e => {
+                      const val = e.target.value.replace(/,/g, '').replace(/\D/g, '');
+                      setData((p) => ({ ...p, driverInfo: { ...p.driverInfo, currentOdometer: val } }));
+                    }} 
                   />
                   {(data.driverInfo.currentOdometer && data.driverInfo.odometer && !isOdoInvalid) && <CheckIcon />}
                 </div>
@@ -259,28 +306,26 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
 
              {/* Odometer at Next Maintenance */}
              <div className="space-y-2 relative">
-                <div className="flex items-center justify-between">
-                  <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">
-                    {isRTL ? 'قراءة العداد عند موعد الصيانة القادمة (كم)' : 'Odometer at next maintenance (KM)'} *
-                  </label>
-                  <button type="button" onClick={() => setScannerField('odometer')} className="flex items-center gap-1.5 text-primary-600 hover:text-primary-700 font-bold text-[10px] bg-primary-50 hover:bg-primary-100 px-2.5 py-1 rounded-full transition-colors">
-                    <ScanLine size={12} />
-                    {isRTL ? 'مسح بالكاميرا' : 'Scan'}
-                  </button>
-                </div>
+                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                  {isRTL ? 'قراءة العداد عند موعد الصيانة القادمة (كم)' : 'Odometer next maintenance (KM)'} *
+                </label>
                 <div className="relative">
                   <input 
                     id="odometer" 
-                    type="number" 
+                    type="text"
+                    inputMode="numeric"
                     data-error={(attemptedStep2 && !data.driverInfo.odometer) ? 'true' : undefined} 
                     className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base font-mono transition-all duration-300 ${getInputStateClass(data.driverInfo.odometer, attemptedStep2 && !data.driverInfo.odometer)} ${
                       isOdoInvalid && data.driverInfo.odometer ? '!border-orange-500 !bg-orange-50 !text-orange-900 focus:ring-orange-500/20' : ''
                     }`} 
-                    value={data.driverInfo.odometer || ''} 
-                    onChange={e => setData((p) => ({ 
-                      ...p, 
-                      driverInfo: { ...p.driverInfo, odometer: e.target.value } 
-                    }))} 
+                    value={data.driverInfo.odometer ? String(data.driverInfo.odometer).replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ''} 
+                    onChange={e => {
+                      const val = e.target.value.replace(/,/g, '').replace(/\D/g, '');
+                      setData((p) => ({ 
+                        ...p, 
+                        driverInfo: { ...p.driverInfo, odometer: val } 
+                      }));
+                    }} 
                   />
                   {(data.driverInfo.currentOdometer && data.driverInfo.odometer && !isOdoInvalid) && <CheckIcon />}
                 </div>
@@ -328,22 +373,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
           </div>
        </div>
 
-       {scannerField && (
-         <OdometerScanner
-           isRTL={isRTL}
-           onClose={() => setScannerField(null)}
-           onScan={(value) => {
-             setData(p => ({
-               ...p,
-               driverInfo: {
-                 ...p.driverInfo,
-                 [scannerField]: value
-               }
-             }));
-             setScannerField(null);
-           }}
-         />
-       )}
+
     </div>
   );
 };
