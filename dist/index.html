@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- SAFE FIX: Force light color scheme to prevent dark-mode inversion in reports -->
+    <meta name="color-scheme" content="light" />
+    <!-- SAFE FIX: Allow proper zoom & accessibility across devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VI SYSTEM - Vehicle Inspection System</title>
+
+    <!-- Tailwind CDN (unchanged) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+              cairo: ['Cairo', 'ui-sans-serif', 'system-ui'],
+            },
+            colors: {
+              primary: {
+                50: '#f0f9ff',
+                100: '#e0f2fe',
+                500: '#0ea5e9',
+                600: '#0284c7',
+                700: '#0369a1',
+                900: '#0c4a6e',
+              }
+            },
+            animation: {
+              'bounce-slow': 'bounce 3s linear infinite',
+              'fade-in': 'fadeIn 0.5s ease-out forwards',
+              'scale-in': 'scaleIn 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) forwards',
+              'shake': 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              scaleIn: {
+                '0%': { transform: 'scale(0.9)', opacity: '0' },
+                '100%': { transform: 'scale(1)', opacity: '1' },
+              },
+              shake: {
+                '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+              }
+            }
+          },
+        },
+      }
+    </script>
+
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;900&family=Inter:wght@400;500;600;700&display=swap');
+
+      body {
+        font-family: 'Cairo', sans-serif;
+        background-color: #f3f4f6;
+        margin: 0;
+        padding: 0;
+      }
+
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+
+      /* SAFE FIX: prevent dark-mode/auto-invert from turning the report black */
+
+      html { color-scheme: light; }
+
+      @media (prefers-color-scheme: dark) {
+        body { background-color: #f3f4f6 !important; color: #111827 !important; }
+        .a4-preview-wrapper, .report-light { background: #ffffff !important; color: #111827 !important; }
+      }
+
+      [lang="ar"], .font-cairo {
+        font-family: 'Cairo', sans-serif !important;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+        font-variant-ligatures: common-ligatures;
+      }
+
+      .a4-preview-wrapper {
+        width: 210mm !important;
+        min-height: 297mm !important;
+        height: fit-content !important;
+        background: white !important;
+        padding: 10mm 12mm !important; 
+        box-sizing: border-box;
+        position: relative;
+        overflow: visible !important;
+        display: flex;
+        flex-direction: column;
+        margin: 0 !important;
+        box-shadow: none;
+        border: none;
+      }
+
+      .fixed-a4-height {
+        height: 297mm !important;
+        overflow: hidden !important;
+      }
+
+      .a4-preview-wrapper::before {
+        content: 'VIS';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-35deg);
+        font-size: 150pt;
+        font-weight: 900;
+        color: rgba(0, 0, 0, 0.02);
+        z-index: 0;
+        pointer-events: none;
+        white-space: nowrap;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-family: 'Inter', sans-serif;
+      }
+
+      .a4-preview-wrapper > * {
+        position: relative;
+        z-index: 10;
+      }
+
+      .ui-preview-card {
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        border: 1px solid #9ca3af;
+        border-radius: 4px;
+        overflow: hidden;
+        background: white;
+      }
+
+      .v-center-cairo {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        line-height: 1.3 !important;
+        padding-top: 0 !important;
+      }
+
+      .map-container-fixed {
+        width: 100%;
+        aspect-ratio: 2.8 / 1 !important;
+        position: relative !important;
+        background: white;
+        border: 1px solid #9ca3af;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      @media print {
+        @page {
+          size: A4;
+          margin: 0;
+        }
+        body { 
+          background: white !important; 
+        }
+        .no-print { 
+          display: none !important; 
+        }
+        #print-zone {
+          display: block !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          width: 210mm !important;
+        }
+        .a4-preview-wrapper {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        .ui-preview-card {
+          margin: 0 !important;
+          box-shadow: none !important;
+          border: none !important;
+        }
+      }
+    </style>
+
+
+
+      <link rel="stylesheet" href="/index.css">
+    <script type="importmap">
+    {
+      "imports": {
+        "react/": "https://esm.sh/react@^19.2.3/",
+        "react": "https://esm.sh/react@^19.2.3",
+        "lucide-react": "https://esm.sh/lucide-react@^0.561.0",
+        "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+        "html-to-image": "https://esm.sh/html-to-image@^1.11.11",
+        "jspdf": "https://esm.sh/jspdf@^2.5.1"
+      }
+    }
+    </script>
+  <script type="module" crossorigin src="/assets/index-X1FHJqqB.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/lucide-react-Dlw3BzmD.js">
+  <link rel="modulepreload" crossorigin href="/assets/react-vendor-CT8fKUPw.js">
+</head>
+  <body class="antialiased">
+    <div id="root"></div>
+  </body>
+</html>
