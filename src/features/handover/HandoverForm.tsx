@@ -276,27 +276,27 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <button 
               onClick={() => { setAction('sender'); setStep(1); }}
-              className="bg-white rounded-2xl border border-gray-200 hover:border-blue-500 hover:bg-blue-50/50 p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col sm:flex-row items-center sm:items-start gap-5 group text-center sm:text-start relative overflow-hidden"
+              className="bg-white rounded-2xl border border-gray-200 hover:border-primary-500 hover:bg-primary-50/50 p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col sm:flex-row items-center sm:items-start gap-5 group text-center sm:text-start relative overflow-hidden"
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full -z-10 group-hover:scale-125 transition-transform duration-500"></div>
-              <div className="w-16 h-16 shrink-0 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300 shadow-inner group-hover:shadow-blue-500/30">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary-500/10 to-transparent rounded-bl-full -z-10 group-hover:scale-125 transition-transform duration-500"></div>
+              <div className="w-16 h-16 shrink-0 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors duration-300 shadow-inner group-hover:shadow-primary-500/30">
                 <Truck size={30} />
               </div>
               <div className="space-y-2 pt-1">
-                <h3 className="text-lg font-black text-gray-800 group-hover:text-blue-700 transition-colors">{isRTL ? 'تسليم مركبة' : 'Handover Vehicle'}</h3>
+                <h3 className="text-lg font-black text-gray-800 group-hover:text-primary-700 transition-colors">{isRTL ? 'تسليم مركبة' : 'Handover Vehicle'}</h3>
                 <p className="text-xs font-bold text-gray-500 leading-relaxed max-w-[200px] sm:max-w-none">{isRTL ? 'توثيق الحالة العامة للمركبة والتحقق من المستندات والأدوات الأساسية قبل تسليمها.' : 'Document general vehicle condition and verify basic documents and tools before handover.'}</p>
               </div>
             </button>
             <button 
               onClick={() => { setAction('receiver'); setStep(1); }}
-              className="bg-white rounded-2xl border border-gray-200 hover:border-emerald-500 hover:bg-emerald-50/50 p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col sm:flex-row items-center sm:items-start gap-5 group text-center sm:text-start relative overflow-hidden"
+              className="bg-white rounded-2xl border border-gray-200 hover:border-primary-500 hover:bg-primary-50/50 p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col sm:flex-row items-center sm:items-start gap-5 group text-center sm:text-start relative overflow-hidden"
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-emerald-500/10 to-transparent rounded-bl-full -z-10 group-hover:scale-125 transition-transform duration-500"></div>
-              <div className="w-16 h-16 shrink-0 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-300 shadow-inner group-hover:shadow-emerald-500/30">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary-500/10 to-transparent rounded-bl-full -z-10 group-hover:scale-125 transition-transform duration-500"></div>
+              <div className="w-16 h-16 shrink-0 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors duration-300 shadow-inner group-hover:shadow-primary-500/30">
                 <FileCheck size={30} />
               </div>
               <div className="space-y-2 pt-1">
-                <h3 className="text-lg font-black text-gray-800 group-hover:text-emerald-700 transition-colors">{isRTL ? 'استلام مركبة' : 'Receive Vehicle'}</h3>
+                <h3 className="text-lg font-black text-gray-800 group-hover:text-primary-700 transition-colors">{isRTL ? 'استلام مركبة' : 'Receive Vehicle'}</h3>
                 <p className="text-xs font-bold text-gray-500 leading-relaxed max-w-[200px] sm:max-w-none">{isRTL ? 'مراجعة الحالة العامة للمركبة والتأكد من المستندات والأدوات الأساسية عند استلامها.' : 'Review general vehicle condition and verify basic documents and tools upon receiving.'}</p>
               </div>
             </button>
@@ -306,108 +306,111 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
 
       {/* ===== STEP 1: SENDER/RECEIVER FORM ===== */}
       {step === 1 && action && (
-        <div className="space-y-6">
+        <div className="space-y-8 relative">
           {/* Vehicle Info */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-lg space-y-4">
-            <h3 className="text-base font-black text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-3">
-              <Truck size={20} className="text-primary-600" />
+          <section className="space-y-4">
+            <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start px-2">
               {isRTL ? 'بيانات المركبة' : 'Vehicle Information'}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-bold text-gray-500 mb-1 block">{isRTL ? 'رقم اللوحة *' : 'Plate Number *'}</label>
+            </h2>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{isRTL ? 'رقم اللوحة *' : 'Plate Number *'}</label>
                 <div className="relative">
-                  <Hash size={16} className="absolute top-3 left-3 text-gray-400" />
+                  <Hash size={16} className="absolute top-3.5 rtl:right-3 ltr:left-3 text-gray-400" />
                   <input value={vehiclePlate} onChange={e => setVehiclePlate(e.target.value.toUpperCase())}
-                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl border bg-gray-50 text-sm font-bold focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none transition ${attemptedSubmit && !vehiclePlate.trim() ? 'border-red-400 bg-red-50/50' : 'border-gray-200'}`} />
+                    className={`w-full rtl:pr-10 ltr:pl-10 py-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !vehiclePlate.trim() ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-bold text-gray-500 mb-1 block">{isRTL ? 'نوع المركبة' : 'Vehicle Type'}</label>
+              <div className="space-y-2">
+                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{isRTL ? 'نوع المركبة' : 'Vehicle Type'}</label>
                 <select value={vehicleType} onChange={e => setVehicleType(e.target.value)}
-                  className="w-full py-2.5 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-bold focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none transition">
+                  className="w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white">
                   {CONFIG_VEHICLE_TYPES.map(vt => (
                     <option key={vt.value} value={vt.value}>{isRTL ? vt.labelAr : vt.labelEn}</option>
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="text-xs font-bold text-gray-500 mb-1 block">{isRTL ? 'عداد المسافة (كم) *' : 'Odometer (km) *'}</label>
+              <div className="space-y-2">
+                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{isRTL ? 'عداد المسافة (كم) *' : 'Odometer (km) *'}</label>
                 <div className="relative">
-                  <Gauge size={16} className="absolute top-3 left-3 text-gray-400" />
+                  <Gauge size={16} className="absolute top-3.5 rtl:right-3 ltr:left-3 text-gray-400" />
                   <input type="number" min="0" value={odometer} onChange={e => setOdometer(e.target.value)}
-                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl border bg-gray-50 text-sm font-bold focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none transition ${attemptedSubmit && !odometer.trim() ? 'border-red-400 bg-red-50/50' : 'border-gray-200'}`} />
+                    className={`w-full rtl:pr-10 ltr:pl-10 py-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !odometer.trim() ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-bold text-gray-500 mb-1 block">{isRTL ? 'الموقع *' : 'Location *'}</label>
+              <div className="space-y-2">
+                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{isRTL ? 'الموقع *' : 'Location *'}</label>
                 <div className="relative">
-                  <MapPin size={16} className="absolute top-3 left-3 text-gray-400" />
+                  <MapPin size={16} className="absolute top-3.5 rtl:right-3 ltr:left-3 text-gray-400" />
                   <input value={location} onChange={e => setLocation(e.target.value)}
-                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl border bg-gray-50 text-sm font-bold focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none transition ${attemptedSubmit && !location.trim() ? 'border-red-400 bg-red-50/50' : 'border-gray-200'}`} />
+                    className={`w-full rtl:pr-10 ltr:pl-10 py-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !location.trim() ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-bold text-gray-500 mb-1 block">{isRTL ? 'تاريخ انتهاء الملكية (ROP) *' : 'ROP Expiry *'}</label>
+              <div className="space-y-2">
+                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{isRTL ? 'تاريخ انتهاء الملكية (ROP) *' : 'ROP Expiry *'}</label>
                 <input type="date" value={ropExpiry} onChange={e => setRopExpiry(e.target.value)}
-                  className={`w-full py-2.5 px-4 rounded-xl border bg-gray-50 text-sm font-bold focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none transition ${attemptedSubmit && !ropExpiry ? 'border-red-400 bg-red-50/50' : 'border-gray-200'}`} />
+                  className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !ropExpiry ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
               </div>
-              <div>
-                <label className="text-xs font-bold text-gray-500 mb-1 block">{isRTL ? `${config.expiryLabel2Ar} *` : `${config.expiryLabel2En} *`}</label>
+              <div className="space-y-2">
+                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{isRTL ? `${config.expiryLabel2Ar} *` : `${config.expiryLabel2En} *`}</label>
                 <input type="date" value={opalExpiry} onChange={e => setOpalExpiry(e.target.value)}
-                  className={`w-full py-2.5 px-4 rounded-xl border bg-gray-50 text-sm font-bold focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none transition ${attemptedSubmit && !opalExpiry ? 'border-red-400 bg-red-50/50' : 'border-gray-200'}`} />
+                  className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !opalExpiry ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
+              </div>
               </div>
             </div>
-          </div>
+          </section>
 
           {/* Ambulance Extra Fields */}
           {config.extraFields.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-lg space-y-4">
-              <h3 className="text-base font-black text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-3">
-                <MapPin size={20} className="text-red-500" />
+            <section className="space-y-4">
+              <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start px-2">
                 {isRTL ? 'بيانات إضافية' : 'Additional Information'}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {config.extraFields.map(field => (
-                  <div key={field.id} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
-                    <label className="text-xs font-bold text-gray-500 mb-1 block">
+              </h2>
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {config.extraFields.map(field => (
+                  <div key={field.id} className={`space-y-2 ${field.type === 'textarea' ? 'md:col-span-2' : ''}`}>
+                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">
                       {isRTL ? field.labelAr : field.labelEn}
                       {field.required && ' *'}
                     </label>
                     {field.type === 'textarea' ? (
                       <textarea value={extraFields[field.id] || ''} onChange={e => setExtraField(field.id, e.target.value)} rows={3}
-                        className="w-full py-2.5 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-bold focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none transition resize-none" />
+                        className="w-full p-3.5 border border-gray-300 bg-gray-50 rounded-xl outline-none font-bold text-base focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white transition-all duration-300 resize-none" />
                     ) : (
                       <input value={extraFields[field.id] || ''} onChange={e => setExtraField(field.id, e.target.value)}
-                        className="w-full py-2.5 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-bold focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none transition" />
+                        className="w-full p-3.5 border border-gray-300 bg-gray-50 rounded-xl outline-none font-bold text-base focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white transition-all duration-300" />
                     )}
                   </div>
                 ))}
-              </div>
-            </div>
+                  </div>
+                </div>
+            </section>
           )}
           
           {/* Sender Info */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-lg space-y-4">
-            <h3 className="text-base font-black text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-3">
-              <User size={20} className="text-blue-600" />
+          <section className="space-y-4">
+            <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start px-2">
               {isRTL ? `بيانات ${action === 'sender' ? config.senderLabelAr : config.receiverLabelAr}` : `${action === 'sender' ? config.senderLabelEn : config.receiverLabelEn} Info`}
-            </h3>
-            <div>
-              <label className="text-xs font-bold text-gray-500 mb-1 block">{isRTL ? 'الاسم الكامل *' : 'Full Name *'}</label>
-              <input value={personName} onChange={e => setPersonName(e.target.value)}
-                className={`w-full py-2.5 px-4 rounded-xl border bg-gray-50 text-sm font-bold focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none transition ${attemptedSubmit && !personName.trim() ? 'border-red-400 bg-red-50/50' : 'border-gray-200'}`} />
+            </h2>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300">
+              <div className="space-y-2">
+                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{isRTL ? 'الاسم الكامل *' : 'Full Name *'}</label>
+                <input value={personName} onChange={e => setPersonName(e.target.value)}
+                  className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !personName.trim() ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
+              </div>
             </div>
-          </div>
+          </section>
           
           {/* Checklist */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-lg space-y-4">
-            <h3 className="text-base font-black text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-3">
-              <FileCheck size={20} className="text-emerald-600" />
+          <section className="space-y-4">
+            <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start px-2">
               {isRTL ? 'قائمة الفحص والمعدات' : 'Inspection & Equipment Checklist'}
-            </h3>
-            <div className="space-y-3">
-              {items.map(item => {
+            </h2>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300">
+              <div className="space-y-3">
+                {items.map(item => {
                 const renderAnswerUI = () => {
                   if (item.answerType === 'level') {
                     const levels = [
@@ -692,35 +695,43 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
               })}
             </div>
           </div>
-          
+          </section>
           {/* Notes */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-lg space-y-3">
-            <h3 className="text-base font-black text-gray-800 flex items-center gap-2 border-b border-gray-100 pb-3">
-              <MessageSquare size={20} className="text-amber-600" />
+          <section className="space-y-4">
+            <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start px-2">
               {isRTL ? `ملاحظات ${action === 'sender' ? config.senderLabelAr : config.receiverLabelAr}` : `${action === 'sender' ? config.senderLabelEn : config.receiverLabelEn} Remarks`}
-            </h3>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
-              className="w-full py-2.5 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-bold focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none transition resize-none" />
-          </div>
+            </h2>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300">
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
+                className="w-full p-3.5 border border-gray-300 bg-gray-50 rounded-xl outline-none font-bold text-base focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white transition-all duration-300 resize-none" />
+            </div>
+          </section>
           
           {/* Signature */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-lg">
-            <SignaturePad
-              label={isRTL ? `توقيع ${action === 'sender' ? config.senderLabelAr : config.receiverLabelAr} *` : `${action === 'sender' ? config.senderLabelEn : config.receiverLabelEn} Signature *`}
-              isRTL={isRTL}
-              onSave={setSignature}
-              onClear={() => setSignature('')}
-              error={attemptedSubmit && !signature}
-            />
-          </div>
+          <section className="space-y-4">
+            <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start px-2">
+              {isRTL ? `توقيع ${action === 'sender' ? config.senderLabelAr : config.receiverLabelAr} *` : `${action === 'sender' ? config.senderLabelEn : config.receiverLabelEn} Signature *`}
+            </h2>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300">
+              <SignaturePad
+                label={isRTL ? 'ارسم التوقيع هنا' : 'Draw signature here'}
+                isRTL={isRTL}
+                onSave={setSignature}
+                onClear={() => setSignature('')}
+                error={attemptedSubmit && !signature}
+              />
+            </div>
+          </section>
           
           {/* Next Button */}
-          <button
-            onClick={() => { if (validateData()) setStep(2); }}
-            className="w-full py-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-2xl font-black text-base shadow-xl shadow-primary-600/20 hover:shadow-2xl hover:shadow-primary-600/30 hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-300 flex items-center justify-center gap-3">
-            {isRTL ? 'التالي: عرض التقرير النهائي' : 'Next: View Final Report'}
-            {isRTL ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-          </button>
+          <div className="pt-2">
+            <button
+              onClick={() => { if (validateData()) setStep(2); }}
+              className="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-black text-lg transition-all flex items-center justify-center gap-3">
+              {isRTL ? 'التالي: عرض التقرير النهائي' : 'Next: View Final Report'}
+              {isRTL ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+            </button>
+          </div>
         </div>
       )}
       

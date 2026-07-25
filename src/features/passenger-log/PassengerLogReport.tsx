@@ -1,11 +1,9 @@
 import React, { useRef, useState } from 'react';
 import {
-  Download, Share2, Users, Bus, Clock, MapPin, Hash, User,
+  Users, Bus, Clock, MapPin, Hash, User,
   Calendar, FileText, ArrowLeftRight, Truck
 } from 'lucide-react';
 import { DayInfo, Trip } from '../../hooks/usePassengerLogSession';
-import { captureNode } from '../../utils/pdfGenerator';
-import { jsPDF } from 'jspdf';
 
 interface Props {
   dayInfo: DayInfo;
@@ -23,51 +21,6 @@ export const PassengerLogReport: React.FC<Props> = ({ dayInfo, trips, isRTL }) =
   const routineCount = trips.filter(trip => trip.type === 'routine').length;
   const shiftCount = trips.filter(trip => trip.type === 'shift').length;
 
-  const handleDownloadPDF = async () => {
-    if (!reportRef.current) return;
-    setIsGenerating(true);
-    try {
-      // Force A4 width proportions temporarily for perfect scaling on all devices
-      const originalWidth = reportRef.current.style.width;
-      const originalMaxWidth = reportRef.current.style.maxWidth;
-      const originalMinWidth = reportRef.current.style.minWidth;
-      const originalFlexShrink = reportRef.current.style.flexShrink;
-      
-      reportRef.current.style.width = '794px';
-      reportRef.current.style.maxWidth = 'none';
-      reportRef.current.style.minWidth = '794px';
-      reportRef.current.style.flexShrink = '0';
-      
-      // Wait a tick for browser layout engine to apply the forced width
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      const { dataUrl } = await captureNode(reportRef.current);
-      
-      // Restore original responsive styles
-      reportRef.current.style.width = originalWidth;
-      reportRef.current.style.maxWidth = originalMaxWidth;
-      reportRef.current.style.minWidth = originalMinWidth;
-      reportRef.current.style.flexShrink = originalFlexShrink;
-
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const a4W = 210, a4H = 297;
-      const imgProps = pdf.getImageProperties(dataUrl);
-      const pdfWidth = a4W;
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      let position = 0;
-      let remainingHeight = pdfHeight;
-      while (remainingHeight > 5) {
-        pdf.addImage(dataUrl, 'JPEG', 0, position, pdfWidth, pdfHeight, undefined, 'FAST');
-        remainingHeight -= a4H;
-        position -= a4H;
-        if (remainingHeight > 5) pdf.addPage();
-      }
-      pdf.save(`passenger_log_${dayInfo.vehiclePlate}_${dayInfo.date}.pdf`);
-    } catch (err) {
-      console.error('PDF generation failed', err);
-    }
-    setIsGenerating(false);
-  };
 
   const generateExcelBuffer = async () => {
     const ExcelJS = (await import('exceljs')).default;
@@ -200,49 +153,13 @@ export const PassengerLogReport: React.FC<Props> = ({ dayInfo, trips, isRTL }) =
       const buffer = await generateExcelBuffer();
       const { saveAs } = (await import('file-saver')).default;
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      saveAs(blob, `passenger_log_${dayInfo.vehiclePlate}_${dayInfo.date}.xlsx`);
+      const cleanName = dayInfo.driverName.trim().replace(/\s+/g, '_');
+      const cleanPlate = dayInfo.vehiclePlate.trim().replace(/\s+/g, '_');
+      const cleanClass = dayInfo.vehicleClass.trim().replace(/\s+/g, '_');
+      saveAs(blob, `[${dayInfo.date}]_[Bus ${cleanClass}]_[${cleanPlate}]_[${cleanName}].xlsx`);
     } catch (err) {
       console.error('Excel generation failed', err);
       alert(t('حدث خطأ أثناء تصدير ملف الإكسل', 'Failed to export Excel file'));
-    }
-    setIsGenerating(false);
-  };
-
-  const handleShare = async () => {
-    setIsGenerating(true);
-    try {
-      const buffer = await generateExcelBuffer();
-      const fileName = `passenger_log_${dayInfo.vehiclePlate}_${dayInfo.date}.xlsx`;
-      const mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-      const blob = new Blob([buffer], { type: mimeType });
-      const file = new File([blob], fileName, { type: mimeType, lastModified: Date.now() });
-
-      let shared = false;
-
-      // Try native share (works on Android Chrome, iOS Safari, etc.)
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({
-            files: [file],
-            title: t('تقرير تسجيل الركاب', 'Passenger Log Report'),
-          });
-          shared = true;
-        } catch (shareErr: any) {
-          // User cancelled — do nothing
-          if (shareErr.name === 'AbortError') {
-            shared = true;
-          }
-        }
-      }
-
-      if (!shared) {
-        // Fallback: download the Excel file directly
-        const { saveAs } = (await import('file-saver')).default;
-        saveAs(blob, fileName);
-      }
-    } catch (err: any) {
-      console.error('Share failed:', err);
-      alert(t('حدث خطأ أثناء المشاركة', 'Failed to share'));
     }
     setIsGenerating(false);
   };
@@ -347,26 +264,29 @@ export const PassengerLogReport: React.FC<Props> = ({ dayInfo, trips, isRTL }) =
                 <div className="text-[8px] font-bold text-purple-500 uppercase tracking-wider mt-1">{t('نقلات مناوبة', 'Shift')}</div>
               </div>
             </div>
+
+            {/* Notes Section */}
+            {dayInfo.notes && (
+              <div className="mt-4 pt-3 border-t border-gray-200">
+                <h3 className="text-[10px] font-black text-gray-800 mb-1.5 flex items-center gap-1">
+                  <FileText size={12} className="text-gray-500" />
+                  {t('الملاحظات', 'Notes')}
+                </h3>
+                <div className="bg-gray-50 rounded-lg p-2.5 border border-gray-200">
+                  <p className="text-xs font-bold text-gray-700 whitespace-pre-wrap leading-relaxed">{dayInfo.notes}</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-wrap gap-2 max-w-2xl mx-auto no-print">
-        <button onClick={handleDownloadPDF} disabled={isGenerating}
-          className="flex-1 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-bold text-xs shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:transform-none">
-          <Download size={14} />
-          {t('تحميل PDF', 'Download PDF')}
-        </button>
+      <div className="flex max-w-2xl mx-auto no-print">
         <button onClick={handleExportExcel} disabled={isGenerating}
-          className="flex-1 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-bold text-xs shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:transform-none">
-          <FileText size={14} />
-          {t('تصدير Excel', 'Export Excel')}
-        </button>
-        <button onClick={handleShare} disabled={isGenerating}
-          className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-bold text-xs shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:transform-none">
-          <Share2 size={14} />
-          {t('مشاركة', 'Share')}
+          className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-bold text-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:transform-none">
+          <FileText size={18} />
+          {t('تصدير التقرير كملف Excel', 'Export Report as Excel')}
         </button>
       </div>
     </div>

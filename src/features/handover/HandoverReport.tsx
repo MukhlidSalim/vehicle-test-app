@@ -47,7 +47,11 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
         position -= a4H;
         if (remainingHeight > 5) pdf.addPage();
       }
-      pdf.save(`handover_${vehiclePlate}_${new Date().toISOString().slice(0,10)}.pdf`);
+      const cleanName = personName.trim().replace(/\s+/g, '_');
+      const cleanPlate = vehiclePlate.trim().replace(/\s+/g, '_');
+      const dateStr = new Date().toISOString().slice(0,10);
+      const typeStr = isRTL ? (personRole === 'sender' ? 'تسليم' : 'استلام') : (personRole === 'sender' ? 'Handover' : 'Takeover');
+      pdf.save(`[${dateStr}]_[${typeStr}]_[${cleanPlate}]_[${cleanName}].pdf`);
     } catch (err) {
       console.error('PDF generation failed', err);
     }
@@ -62,7 +66,11 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
       const res = await fetch(dataUrl);
       const blob = await res.blob();
       if (blob && navigator.share) {
-        const file = new File([blob], `handover_${vehiclePlate}.jpeg`, { type: 'image/jpeg' });
+        const cleanName = personName.trim().replace(/\s+/g, '_');
+        const cleanPlate = vehiclePlate.trim().replace(/\s+/g, '_');
+        const dateStr = new Date().toISOString().slice(0,10);
+        const typeStr = isRTL ? (personRole === 'sender' ? 'تسليم' : 'استلام') : (personRole === 'sender' ? 'Handover' : 'Takeover');
+        const file = new File([blob], `[${dateStr}]_[${typeStr}]_[${cleanPlate}]_[${cleanName}].jpeg`, { type: 'image/jpeg' });
         await navigator.share({ files: [file], title: isRTL ? config.formTitleAr : config.formTitleEn });
       }
     } catch (err) {
