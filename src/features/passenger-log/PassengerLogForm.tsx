@@ -304,58 +304,58 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
               </div>
               <div className="bg-white rounded-2xl shadow-sm border border-gray-300 overflow-hidden">
                 <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full table-fixed text-[9px] sm:text-[10px] md:text-sm">
                   <thead>
                     <tr className="bg-gray-100 border-b border-gray-200">
-                      <th className="px-4 py-3 text-start font-black text-gray-700 w-10">#</th>
-                      <th className="px-4 py-3 text-start font-black text-gray-700">{t('النوع', 'Type')}</th>
-                      <th className="px-4 py-3 text-start font-black text-gray-700">{t('الانطلاق', 'Start')}</th>
-                      <th className="px-4 py-3 text-start font-black text-gray-700">{t('الوصول', 'End')}</th>
-                      <th className="px-4 py-3 text-center font-black text-gray-700">{t('الركاب', 'Pax')}</th>
-                      <th className="px-4 py-3 text-start font-black text-gray-700">{t('الوقت', 'Time')}</th>
-                      <th className="px-4 py-3 text-end font-black text-gray-700 w-24"></th>
+                      <th className="px-0.5 md:px-4 py-2 md:py-3 text-center font-black text-gray-700 w-[8%]">#</th>
+                      <th className="px-0.5 md:px-4 py-2 md:py-3 text-center font-black text-gray-700 w-[18%]">{t('النوع', 'Type')}</th>
+                      <th className="px-0.5 md:px-4 py-2 md:py-3 text-center font-black text-gray-700 w-[18%]">{t('من', 'From')}</th>
+                      <th className="px-0.5 md:px-4 py-2 md:py-3 text-center font-black text-gray-700 w-[18%]">{t('إلى', 'To')}</th>
+                      <th className="px-0.5 md:px-4 py-2 md:py-3 text-center font-black text-gray-700 w-[10%]">{t('الركاب', 'Pax')}</th>
+                      <th className="px-0.5 md:px-4 py-2 md:py-3 text-center font-black text-gray-700 w-[14%]">{t('الوقت', 'Time')}</th>
+                      <th className="px-0.5 md:px-4 py-2 md:py-3 text-center font-black text-gray-700 w-[14%]"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200 bg-white">
+                  <tbody className="divide-y divide-gray-200 bg-white text-center">
                     {trips.map((trip, idx) => (
                       <tr key={trip.id} className="group hover:bg-primary-50/50 transition-colors">
-                        <td className="px-4 py-4 font-black text-gray-500">
+                        <td className="px-0.5 md:px-4 py-2 md:py-4 font-black text-gray-500">
                           {idx + 1}
                         </td>
-                        <td className="px-4 py-4">
-                          <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${
+                        <td className="px-0.5 md:px-4 py-2 md:py-4">
+                          <div className={`text-[8px] md:text-xs font-black px-1 md:px-2.5 py-1 rounded-md md:rounded-lg overflow-hidden text-ellipsis ${
                             trip.type === 'routine' ? 'bg-primary-100 text-primary-700 border border-primary-200' : 'bg-purple-100 text-purple-700 border border-purple-200'
                           }`}>
                             {trip.type === 'routine' ? t('روتينية', 'Routine') : t('مناوبة', 'Shift')}
-                          </span>
+                          </div>
                         </td>
-                        <td className="px-4 py-4 font-bold text-gray-800">
+                        <td className="px-0.5 md:px-4 py-2 md:py-4 font-bold text-gray-800 truncate" title={trip.pickupLocation}>
                           {trip.pickupLocation}
                         </td>
-                        <td className="px-4 py-4 font-bold text-gray-800">
+                        <td className="px-0.5 md:px-4 py-2 md:py-4 font-bold text-gray-800 truncate" title={trip.dropoffLocation}>
                           {trip.dropoffLocation}
                         </td>
-                        <td className="px-4 py-4 text-center font-black text-gray-900 text-base">
+                        <td className="px-0.5 md:px-4 py-2 md:py-4 font-black text-gray-900 text-[10px] md:text-base">
                           {trip.passengerCount}
                         </td>
-                        <td className="px-4 py-4 font-bold text-gray-600">
+                        <td className="px-0.5 md:px-4 py-2 md:py-4 font-bold text-gray-600 truncate">
                           {trip.time}
                         </td>
-                        <td className="px-4 py-4 text-end">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="px-0.5 md:px-4 py-2 md:py-4">
+                          <div className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2">
                             <button
                               onClick={() => handleEditTrip(trip)}
-                              className="p-2 text-blue-600 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors"
+                              className="p-1 text-blue-600 rounded bg-blue-50 hover:bg-blue-100 transition-colors"
                               title={t('تعديل', 'Edit')}
                             >
-                              <Edit3 size={16} />
+                              <Edit3 size={12} className="md:w-4 md:h-4" />
                             </button>
                             <button
                               onClick={() => setShowDeleteConfirm(trip.id)}
-                              className="p-2 text-red-600 rounded-lg bg-red-50 hover:bg-red-100 transition-colors"
+                              className="p-1 text-red-600 rounded bg-red-50 hover:bg-red-100 transition-colors"
                               title={t('حذف', 'Delete')}
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={12} className="md:w-4 md:h-4" />
                             </button>
                           </div>
                         </td>
@@ -485,9 +485,9 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
             </section>
           )}
 
-          {/* Add Trip Button */}
-          {!showAddTrip && !showNoteForm && (
-            <div className="flex flex-col gap-3">
+          {/* Action Buttons */}
+          <div className="flex flex-col gap-3">
+            {!showAddTrip && (
               <button
                 onClick={() => { resetTripForm(); setShowAddTrip(true); }}
                 className="w-full py-4 border-2 border-dashed border-primary-300 text-primary-600 rounded-2xl font-black text-base hover:bg-primary-50 transition-all flex items-center justify-center gap-2 shadow-sm bg-white"
@@ -495,7 +495,9 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
                 <Plus size={20} />
                 {t('إضافة نقلة جديدة', 'Add New Trip')}
               </button>
-              
+            )}
+            
+            {!showNoteForm && (
               <button
                 onClick={() => setShowNoteForm(true)}
                 className="w-full py-3.5 border border-dashed border-gray-300 text-gray-500 rounded-2xl font-bold text-sm hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400 transition-all flex items-center justify-center gap-2 bg-white"
@@ -503,8 +505,8 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
                 <FileText size={18} />
                 {t('إضافة ملاحظة', 'Add Note')}
               </button>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Note Form */}
           {showNoteForm && (

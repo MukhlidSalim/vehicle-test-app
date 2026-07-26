@@ -28,6 +28,34 @@ export function useInspectionSession() {
     additionalNotes: '',
   });
 
+  // Reset the application state completely and clear saved session
+  const resetSession = () => {
+    localStorage.removeItem('svi_session');
+    setInspectionStep(1);
+    setSaveStatus('idle');
+    setData({
+      mode: 'full',
+      driverInfo: { 
+        name: '', 
+        assistantName: '', 
+        assistantPhone: '',
+        vehicleType: 'light_vehicle', 
+        plateNumber: '', 
+        phoneNumber: '', 
+        odometer: '', 
+        vehicleExpiryDate: '',
+        departure: '',
+        destination: '',
+        timestamp: new Date().toLocaleString('en-US', { numberingSystem: 'latn' }), 
+        nextInspectionDate: '',
+      },
+      readiness: { ...INITIAL_READINESS },
+      checklist: getChecklistForType('light_vehicle'),
+      tyrePressures: { fl: '', fr: '', rl: '', rr: '', rlo: '', rli: '', rro: '', rri: '' },
+      additionalNotes: '',
+    });
+  };
+
   // Restore session from localStorage if present on mount
   useEffect(() => {
     const saved = localStorage.getItem('svi_session');
@@ -50,6 +78,32 @@ export function useInspectionSession() {
       }
     }
   }, []);
+
+  // Check expiration when returning to the app from background
+  useEffect(() => {
+    const checkExpiration = () => {
+      if (document.visibilityState === 'visible' && inspectionStep > 1) {
+        const saved = localStorage.getItem('svi_session');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            const now = Date.now();
+            const EXPIRE_TIME = 60 * 60 * 1000; // 1 Hour
+            if (parsed.timestamp && (now - parsed.timestamp > EXPIRE_TIME)) {
+              resetSession();
+              // Optional reload to ensure fresh state if they were deep in a form
+              window.location.reload();
+            }
+          } catch (e) {
+            resetSession();
+          }
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', checkExpiration);
+    return () => document.removeEventListener('visibilitychange', checkExpiration);
+  }, [inspectionStep]);
 
   // Auto-save progress to localStorage on data or step changes
   useEffect(() => {
@@ -86,33 +140,6 @@ export function useInspectionSession() {
     setInspectionStep(2);
   };
 
-  // Reset the application state completely and clear saved session
-  const resetSession = () => {
-    localStorage.removeItem('svi_session');
-    setInspectionStep(1);
-    setSaveStatus('idle');
-    setData({
-      mode: 'full',
-      driverInfo: { 
-        name: '', 
-        assistantName: '', 
-        assistantPhone: '',
-        vehicleType: 'light_vehicle', 
-        plateNumber: '', 
-        phoneNumber: '', 
-        odometer: '', 
-        vehicleExpiryDate: '',
-        departure: '',
-        destination: '',
-        timestamp: new Date().toLocaleString('en-US', { numberingSystem: 'latn' }), 
-        nextInspectionDate: '',
-      },
-      readiness: { ...INITIAL_READINESS },
-      checklist: getChecklistForType('light_vehicle'),
-      tyrePressures: { fl: '', fr: '', rl: '', rr: '', rlo: '', rli: '', rro: '', rri: '' },
-      additionalNotes: '',
-    });
-  };
 
   return {
     data,
