@@ -16,7 +16,7 @@ export const validateBasicInfo = (data: InspectionData): ValidationResult => {
   if (data.mode === 'full' || data.mode === 'driver_only') {
     if (!departure || !destination) isValid = false;
   } else if (data.mode === 'maintenance') {
-    if (!vehicleExpiryDate || !opalExpiryDate || !vocExpiryDate) isValid = false;
+    if (!vehicleExpiryDate || !vocExpiryDate) isValid = false;
   } else {
     if (!vehicleExpiryDate) isValid = false;
   }

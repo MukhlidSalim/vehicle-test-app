@@ -23,6 +23,7 @@ export interface TbtData {
   routeTo: string;
   drivers: DriverInfo[];
   selectedTopicId: string;
+  otherTopicDetails: string;
   notes: string;
   managerSignature: string;
 }
@@ -46,6 +47,7 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
       routeTo: '',
       drivers: [{ id: Date.now().toString(), name: '', signature: '' }],
       selectedTopicId: '',
+      otherTopicDetails: '',
       notes: '',
       managerSignature: ''
     };
@@ -95,17 +97,32 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
 
   const validateForm = () => {
     setAttemptedSubmit(true);
-    
-    if (!data.managerName.trim()) {
-      showAlert(t('الرجاء إدخال اسم مسؤول الرحلة.', 'Please enter Journey Manager name.'));
+    if (!data.date) {
+      showAlert(t('يرجى إدخال التاريخ.', 'Please enter date.'));
       return false;
     }
+    if (data.date > new Date().toISOString().split('T')[0]) {
+      showAlert(t('لا يمكن تسجيل استمارة بتاريخ مستقبلي.', 'Cannot submit form with a future date.'));
+      return false;
+    }
+    
     if (!data.routeFrom.trim() || !data.routeTo.trim()) {
       showAlert(t('الرجاء إدخال مسار الرحلة كاملاً.', 'Please enter the complete journey route.'));
       return false;
     }
+
+    // Validate Topic
+    if (!data.selectedTopicId) {
+      showAlert(t('الرجاء اختيار موضوع TBT.', 'Please select a TBT topic.'));
+      return false;
+    }
     
-    // Validate drivers
+    if (data.selectedTopicId === 'other' && !data.otherTopicDetails.trim()) {
+      showAlert(t('الرجاء كتابة تفاصيل الموضوع الإضافي.', 'Please enter details for the other topic.'));
+      return false;
+    }
+    
+    // Validate Drivers
     if (data.drivers.length === 0) {
       showAlert(t('يجب إضافة سائق واحد على الأقل.', 'At least one driver is required.'));
       return false;
@@ -121,8 +138,9 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
       }
     }
 
-    if (!data.selectedTopicId) {
-      showAlert(t('الرجاء اختيار موضوع TBT.', 'Please select a TBT topic.'));
+    // Validate Manager
+    if (!data.managerName.trim()) {
+      showAlert(t('الرجاء إدخال اسم مسؤول الرحلة.', 'Please enter Journey Manager name.'));
       return false;
     }
     
@@ -199,18 +217,13 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button type="button" onClick={() => setData({...data, type: 'face_to_face'})} className={`flex-1 p-3.5 rounded-xl border-2 font-black transition-all flex items-center justify-center gap-2 ${data.type === 'face_to_face' ? 'border-primary-600 bg-primary-50 text-primary-700' : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'}`}>
                   <Users size={20} />
-                  {t('وجهًا لوجه', 'Face to Face')}
+                  {t('حضوري', 'In-Person')}
                 </button>
                 <button type="button" onClick={() => setData({...data, type: 'remote'})} className={`flex-1 p-3.5 rounded-xl border-2 font-black transition-all flex items-center justify-center gap-2 ${data.type === 'remote' ? 'border-primary-600 bg-primary-50 text-primary-700' : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'}`}>
                   <MapPin size={20} />
                   {t('عن بُعد', 'Remote')}
                 </button>
               </div>
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('اسم مسؤول الرحلة (JM)', 'Journey Manager Name')}</label>
-              <input type="text" placeholder={t('اكتب اسم المسؤول...', 'Enter manager name...')} value={data.managerName} onChange={e => setData({...data, managerName: e.target.value})} className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !data.managerName ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
             </div>
 
             <div className="space-y-2 md:col-span-2">
@@ -221,14 +234,126 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
                 <input type="text" placeholder={t('إلى (الوجهة)', 'To (Destination)')} value={data.routeTo} onChange={e => setData({...data, routeTo: e.target.value})} className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !data.routeTo ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
               </div>
             </div>
+
             </div>
           </div>
         </section>
 
-        {/* Section 2: Drivers */}
+        {/* Section 2: Topic Selection & Discussion */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start px-2">
+            {t('موضوع النقاش (TBT Topic)', 'Discussion Topic')}
+          </h2>
+          
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300 space-y-6">
+            <div className="space-y-4">
+              <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('اختر الموضوع *', 'Select Topic *')}</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {TBT_TOPICS.map(topic => (
+                  <button
+                    key={topic.id}
+                    onClick={() => setData({...data, selectedTopicId: topic.id})}
+                    className={`p-4 rounded-xl border-2 text-start font-black transition-all flex items-center justify-between group ${data.selectedTopicId === topic.id ? 'border-primary-600 bg-primary-50 text-primary-800' : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-white hover:border-primary-300'}`}
+                  >
+                    <span className="text-sm">{isRTL ? topic.categoryAr : topic.categoryEn}</span>
+                    {data.selectedTopicId === topic.id && <CheckCircle2 size={18} className="text-primary-600" />}
+                  </button>
+                ))}
+              </div>
+              {attemptedSubmit && !data.selectedTopicId && (
+                 <p className="text-red-500 text-xs font-bold mt-2">{t('يجب اختيار موضوع واحد على الأقل.', 'You must select at least one topic.')}</p>
+              )}
+            </div>
+
+            {/* Other Topic Input */}
+            {data.selectedTopicId === 'other' && (
+              <div className="animate-fade-in space-y-2 mt-4 p-5 bg-gray-50 border border-gray-200 rounded-2xl">
+                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('تفاصيل الموضوع الإضافي *', 'Other Topic Details *')}</label>
+                <textarea 
+                  value={data.otherTopicDetails}
+                  onChange={e => setData({...data, otherTopicDetails: e.target.value})}
+                  placeholder={t('اكتب تفاصيل الموضوع الذي تمت مناقشته...', 'Type the details of the discussed topic...')}
+                  className={`w-full p-3.5 border rounded-xl font-bold transition-all outline-none min-h-[100px] resize-y ${attemptedSubmit && !data.otherTopicDetails.trim() ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20'}`}
+                />
+              </div>
+            )}
+
+            {/* Topic Details Preview */}
+            {data.selectedTopicId && data.selectedTopicId !== 'other' && (
+              <div className="mt-4 bg-gray-50 text-gray-900 p-6 rounded-2xl animate-fade-in border border-gray-200 shadow-sm">
+                {(() => {
+                  const topic = TBT_TOPICS.find(t => t.id === data.selectedTopicId);
+                  if (!topic) return null;
+                  const intro = isRTL ? topic.introAr : topic.introEn;
+                  const points = isRTL ? topic.pointsAr : topic.pointsEn;
+                  const incidents = isRTL ? topic.incidentsAr : topic.incidentsEn;
+                  const takeaway = isRTL ? topic.takeawayAr : topic.takeawayEn;
+
+                  return (
+                    <div className="space-y-6">
+                      {intro && (
+                        <div>
+                          <h3 className="text-[14px] font-black mb-2 text-primary-700 border-b border-primary-100 pb-1">{isRTL ? 'المقدمة' : 'Introduction'}</h3>
+                          <p className="text-sm font-bold text-gray-700 leading-relaxed">{intro}</p>
+                        </div>
+                      )}
+
+                      {points && points.length > 0 && (
+                        <div>
+                          <h3 className="text-[14px] font-black mb-3 text-primary-700 border-b border-primary-100 pb-1">{isRTL ? 'النقاط الرئيسية' : 'Key Points'}</h3>
+                          <ul className="space-y-3">
+                            {points.map((point, idx) => (
+                              <li key={idx} className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                                <span className="font-black text-gray-900 block mb-1 text-sm">{point.title}</span>
+                                <span className="text-sm font-bold text-gray-600 block leading-relaxed">{point.desc}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {incidents && incidents.length > 0 && (
+                        <div>
+                          <h3 className="text-[14px] font-black mb-3 text-amber-700 border-b border-amber-100 pb-1">{isRTL ? 'حوادث سابقة للنقاش' : 'Previous Incidents'}</h3>
+                          <ul className="space-y-2 list-disc list-inside">
+                            {incidents.map((inc, idx) => (
+                              <li key={idx} className="text-sm font-bold text-gray-700 leading-relaxed">{inc}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {takeaway && (
+                        <div className="bg-primary-50 p-4 rounded-xl border border-primary-100">
+                          <h3 className="text-[14px] font-black mb-2 text-primary-800 flex items-center gap-2">
+                            <CheckCircle2 size={18} />
+                            {isRTL ? 'الرسالة الأساسية' : 'Key Takeaway'}
+                          </h3>
+                          <p className="text-sm font-bold text-primary-900 leading-relaxed">{takeaway}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            <div className="space-y-2 pt-4 border-t border-gray-100 mt-4">
+              <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('ملاحظات إضافية (اختياري)', 'Additional Notes (Optional)')}</label>
+              <textarea 
+                value={data.notes}
+                onChange={e => setData({...data, notes: e.target.value})}
+                placeholder={t('اكتب أي ملاحظات أو تعليمات إضافية هنا...', 'Type any additional notes or instructions here...')}
+                className="w-full p-3.5 border border-gray-300 bg-gray-50 rounded-xl font-bold focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 transition-all outline-none min-h-[100px] resize-y"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Section 3: Drivers */}
         <section className="space-y-4">
           <div className="flex items-center justify-between px-2">
-            <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start">{t('أسماء السائقين', 'Drivers')}</h2>
+            <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start">{t('المشاركون (السائقين)', 'Participants (Drivers)')}</h2>
             <button onClick={addDriver} className="px-4 py-2 bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
               <Plus size={16} /> {t('إضافة سائق', 'Add Driver')}
             </button>
@@ -245,7 +370,7 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
                 
                 <div className="space-y-2 max-w-md">
                   <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t(`السائق رقم ${idx + 1}`, `Driver #${idx + 1}`)}</label>
-                  <input type="text" placeholder={t('اسم السائق', 'Driver Name')} value={driver.name} onChange={e => updateDriver(driver.id, 'name', e.target.value)} className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !driver.name ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
+                  <input type="text" placeholder={t('اسم السائق', 'Driver Name')} value={driver.name} onChange={e => updateDriver(driver.id, 'name', e.target.value)} className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !driver.name ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
                 </div>
 
                 {data.type === 'face_to_face' && (
@@ -263,7 +388,7 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
             ))}
             
             {data.type === 'remote' && (
-              <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-xl flex items-start gap-3 text-sm font-bold">
+              <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-xl flex items-start gap-3 text-sm font-bold mt-2">
                 <div className="mt-0.5"><MapPin size={18} /></div>
                 <p>{t('بما أن الاجتماع تم عن بُعد، لا يُشترط أخذ تواقيع السائقين في هذا النموذج.', 'Since the meeting is remote, physical driver signatures are not required.')}</p>
               </div>
@@ -271,76 +396,27 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
           </div>
         </section>
 
-        {/* Section 3: Topic Selection */}
+        {/* Section 4: Manager Approval */}
         <section className="space-y-4">
           <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start px-2">
-            {t('موضوع النقاش (TBT Topic)', 'Discussion Topic')}
-          </h2>
-          
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300 space-y-4">
-            <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('اختر الموضوع *', 'Select Topic *')}</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {TBT_TOPICS.map(topic => (
-                <button
-                  key={topic.id}
-                  onClick={() => setData({...data, selectedTopicId: topic.id})}
-                  className={`p-4 rounded-xl border-2 text-start font-black transition-all flex items-center justify-between group ${data.selectedTopicId === topic.id ? 'border-primary-600 bg-primary-50 text-primary-800' : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-white hover:border-primary-300'}`}
-                >
-                  <span className="text-sm">{isRTL ? topic.categoryAr : topic.categoryEn}</span>
-                  {data.selectedTopicId === topic.id && <CheckCircle2 size={18} className="text-primary-600" />}
-                </button>
-              ))}
-            </div>
-            {attemptedSubmit && !data.selectedTopicId && (
-               <p className="text-red-500 text-xs font-bold mt-2">{t('يجب اختيار موضوع واحد على الأقل.', 'You must select at least one topic.')}</p>
-            )}
-
-            {/* Topic Details Preview */}
-            {data.selectedTopicId && (
-              <div className="mt-6 bg-gray-800 text-white p-6 rounded-2xl animate-fade-in border border-gray-700 shadow-sm">
-                <h3 className="text-lg font-black mb-4 flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-primary-400"></div>
-                  {t('النقاط الرئيسية للمناقشة:', 'Key points to discuss:')}
-                </h3>
-                <ul className="space-y-3">
-                  {TBT_TOPICS.find(t => t.id === data.selectedTopicId)?.[isRTL ? 'pointsAr' : 'pointsEn'].map((point, idx) => (
-                    <li key={idx} className="flex gap-3 text-sm font-bold text-gray-300">
-                      <span className="text-primary-400 mt-1">•</span>
-                      <span>{point}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Section 4: Notes & JM Signature */}
-        <section className="space-y-4">
-          <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start px-2">
-            {t('الملاحظات واعتماد المسؤول', 'Notes & Approval')}
+            {t('اعتماد مسؤول الرحلة (JM)', 'Journey Manager Approval')}
           </h2>
           
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300 space-y-6">
             <div className="space-y-2">
-              <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('ملاحظات إضافية (اختياري)', 'Additional Notes (Optional)')}</label>
-              <textarea 
-                value={data.notes}
-                onChange={e => setData({...data, notes: e.target.value})}
-                placeholder={t('اكتب أي ملاحظات أو تعليمات إضافية هنا...', 'Type any additional notes or instructions here...')}
-                className="w-full p-3.5 border border-gray-300 bg-gray-50 rounded-xl font-bold focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 transition-all outline-none min-h-[120px] resize-y"
-              />
+              <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('اسم مسؤول الرحلة (JM) *', 'Journey Manager Name *')}</label>
+              <input type="text" placeholder={t('اكتب اسم المسؤول...', 'Enter manager name...')} value={data.managerName} onChange={e => setData({...data, managerName: e.target.value})} className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !data.managerName ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
             </div>
 
             <div className="pt-4 border-t border-gray-100">
               <SignaturePad
-              label={t('توقيع مسؤول الرحلة (JM) *', 'Journey Manager Signature *')}
-              onSave={(sig) => setData({...data, managerSignature: sig})}
-              onClear={() => setData({...data, managerSignature: ''})}
-              error={attemptedSubmit && !data.managerSignature}
-              isRTL={isRTL}
-            />
-          </div>
+                label={t('توقيع مسؤول الرحلة (JM) *', 'Journey Manager Signature *')}
+                onSave={(sig) => setData({...data, managerSignature: sig})}
+                onClear={() => setData({...data, managerSignature: ''})}
+                error={attemptedSubmit && !data.managerSignature}
+                isRTL={isRTL}
+              />
+            </div>
           </div>
         </section>
       </div>

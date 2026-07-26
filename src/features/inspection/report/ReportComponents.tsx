@@ -8,12 +8,16 @@ export const formatDisplayDate = (dateStr: string, lang: Language): string => {
   if (!dateStr) return '';
   const parts = dateStr.split('-');
   if (parts.length === 2) {
-    const [year, month] = parts;
-    if (lang === 'ar') {
-      return `${month}-${year}`;
+    const [year, monthOrWeek] = parts;
+    if (monthOrWeek.startsWith('W')) {
+      const week = monthOrWeek.substring(1);
+      return lang === 'ar' ? `الأسبوع ${week} - ${year}` : `Week ${week} - ${year}`;
     }
-    const monthIdx = parseInt(month, 10) - 1;
-    return `${MONTH_ABBR[monthIdx] ?? month}-${year}`;
+    if (lang === 'ar') {
+      return `${monthOrWeek}-${year}`;
+    }
+    const monthIdx = parseInt(monthOrWeek, 10) - 1;
+    return `${MONTH_ABBR[monthIdx] ?? monthOrWeek}-${year}`;
   }
   const [year, month, day] = parts;
   if (lang === 'ar') {

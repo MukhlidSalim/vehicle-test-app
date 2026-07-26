@@ -89,8 +89,10 @@ const HEAVY_BUS_ITEMS: ItemConfig[] = [
 const AMBULANCE_ITEMS: ItemConfig[] = [
   { id: 'vehicle_cleaning', labelAr: 'نظافة المركبة', labelEn: 'Vehicle Cleanliness', answerType: 'rating' },
   { id: 'fuel_level', labelAr: 'مستوى الوقود', labelEn: 'Fuel Level', answerType: 'level' },
+  { id: 'fuel_card', labelAr: 'بطاقة الوقود', labelEn: 'Fuel Card', answerType: 'availability_binary' },
   { id: 'first_aid_kits', labelAr: 'حقيبة الإسعافات الأولية', labelEn: 'First Aid Kit', answerType: 'first_aid_state_ambulance' },
   { id: 'aed', labelAr: 'جهاز الإنعاش القلبي (AED)', labelEn: 'Defibrillator (AED)', answerType: 'working_state_2' },
+  { id: 'electronic_jack', labelAr: 'الرافع الإلكتروني', labelEn: 'Electronic Jack', answerType: 'working_state_1' },
   { id: 'fire_extinguisher', labelAr: 'طفاية الحريق', labelEn: 'Fire Extinguisher', answerType: 'fire_extinguisher_state' },
   { id: 'mobile_phone', labelAr: 'الهاتف النقال', labelEn: 'Mobile Phone', answerType: 'working_state_2' },
 ];
@@ -154,12 +156,12 @@ export const getCategoryConfig = (category: VehicleCategory): VehicleCategoryCon
     case 'ambulance':
       return {
         items: AMBULANCE_ITEMS,
-        extraFields: AMBULANCE_EXTRA_FIELDS,
+        extraFields: [],
         ...defaultLabels,
-        senderLabelAr: 'سائق المناوبة الصباحية',
-        senderLabelEn: 'Day Driver',
-        receiverLabelAr: 'سائق المناوبة الليلية',
-        receiverLabelEn: 'Night Driver',
+        senderLabelAr: 'السائق',
+        senderLabelEn: 'Driver',
+        receiverLabelAr: 'السائق المستلم',
+        receiverLabelEn: 'Receiver Driver',
         formTitleAr: 'قائمة تسليم مناوبة الإسعاف',
         formTitleEn: 'Ambulance Handover Checklist',
       };

@@ -60,6 +60,8 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
   // ---- SETUP VALIDATION ----
   const validateSetup = (): boolean => {
     setAttemptedSubmit(true);
+    if (!dayInfo.date) { showAlert(t('يرجى إدخال التاريخ', 'Please enter date')); return false; }
+    if (dayInfo.date > new Date().toISOString().split('T')[0]) { showAlert(t('لا يمكن تسجيل السجل بتاريخ مستقبلي', 'Cannot record log with a future date')); return false; }
     if (!dayInfo.vehiclePlate.trim()) { showAlert(t('يرجى إدخال رقم المركبة', 'Please enter vehicle plate')); return false; }
     if (!dayInfo.driverName.trim()) { showAlert(t('يرجى إدخال اسم السائق', 'Please enter driver name')); return false; }
     if (!dayInfo.vehicleClass) { showAlert(t('يرجى اختيار رمز التصنيف', 'Please select vehicle class')); return false; }

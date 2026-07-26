@@ -198,22 +198,32 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                </div>
              ) : (
                <div className="space-y-2">
-                  <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">
-                    {t.vehicle_expiry_date} *
-                  </label>
+                  <div className="flex justify-between items-center">
+                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">
+                      {t.vehicle_expiry_date} *
+                    </label>
+                    {data.driverInfo.vehicleExpiryDate && data.driverInfo.vehicleExpiryDate < new Date().toISOString().split('T')[0] && (
+                      <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                        {isRTL ? 'منتهي الصلاحية' : 'Expired'}
+                      </span>
+                    )}
+                  </div>
                   <div className="relative">
                     <input 
                       type="date"
                       data-error={attemptedStep2 && !data.driverInfo.vehicleExpiryDate ? 'true' : undefined}
                       className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${
-                        data.driverInfo.vehicleExpiryDate && new Date(data.driverInfo.vehicleExpiryDate) < new Date()
-                          ? '!border-red-500 !bg-red-50 !text-red-900 focus:ring-4 focus:ring-red-500/20'
-                          : getInputStateClass(data.driverInfo.vehicleExpiryDate, attemptedStep2 && !data.driverInfo.vehicleExpiryDate)
+                        attemptedStep2 && !data.driverInfo.vehicleExpiryDate 
+                          ? 'border-red-500 bg-red-50 text-red-900 focus:ring-4 focus:ring-red-500/20'
+                          : (data.driverInfo.vehicleExpiryDate && data.driverInfo.vehicleExpiryDate < new Date().toISOString().split('T')[0]
+                            ? 'border-amber-500 bg-amber-50 text-amber-900 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20'
+                            : getInputStateClass(data.driverInfo.vehicleExpiryDate, false))
                       }`} 
                       value={data.driverInfo.vehicleExpiryDate || ''} 
                       onChange={e => {
                         const val = e.target.value;
-                        if (val && new Date(val) < new Date()) {
+                        const todayStr = new Date().toISOString().split('T')[0];
+                        if (val && val < todayStr) {
                           showDateWarning(isRTL ? 'تنبيه: رخصة المركبة منتهية الصلاحية!' : 'Warning: Vehicle license is expired!');
                         }
                         setData((p) => ({ 
@@ -222,7 +232,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                         }));
                       }} 
                     />
-                    {data.driverInfo.vehicleExpiryDate && data.driverInfo.vehicleExpiryDate.trim().length > 0 && new Date(data.driverInfo.vehicleExpiryDate) >= new Date() && <CheckIcon />}
+                    {data.driverInfo.vehicleExpiryDate && data.driverInfo.vehicleExpiryDate.trim().length > 0 && data.driverInfo.vehicleExpiryDate >= new Date().toISOString().split('T')[0] && <CheckIcon />}
                   </div>
                </div>
              )}
@@ -231,18 +241,25 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
              {data.mode === 'maintenance' && (
                <>
                  <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">
-                      {isRTL ? 'تاريخ انتهاء تصريح أوبال' : 'OPAL Expiry Date'} *
-                    </label>
+                    <div className="flex justify-between items-center">
+                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">
+                        {isRTL ? 'تاريخ انتهاء تصريح أوبال' : 'OPAL Expiry Date'}
+                      </label>
+                      {data.driverInfo.opalExpiryDate && data.driverInfo.opalExpiryDate < new Date().toISOString().split('T')[0] && (
+                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                          {isRTL ? 'منتهي الصلاحية' : 'Expired'}
+                        </span>
+                      )}
+                    </div>
                     <div className="relative">
                       <input 
                         type="date"
-                        data-error={attemptedStep2 && !data.driverInfo.opalExpiryDate ? 'true' : undefined} 
-                        className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${getInputStateClass(data.driverInfo.opalExpiryDate, attemptedStep2 && !data.driverInfo.opalExpiryDate)}`} 
+                        className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${(data.driverInfo.opalExpiryDate && data.driverInfo.opalExpiryDate < new Date().toISOString().split('T')[0] ? 'border-amber-500 bg-amber-50 text-amber-900 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20' : getInputStateClass(data.driverInfo.opalExpiryDate, false))}`} 
                         value={data.driverInfo.opalExpiryDate || ''} 
                         onChange={e => {
                           const val = e.target.value;
-                          if (val && new Date(val) < new Date()) {
+                          const todayStr = new Date().toISOString().split('T')[0];
+                          if (val && val < todayStr) {
                             showDateWarning(isRTL ? 'تنبيه: تصريح أوبال منتهي الصلاحية!' : 'Warning: OPAL permit is expired!');
                           }
                           setData((p) => ({ 
@@ -251,22 +268,36 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                           }));
                         }} 
                       />
-                      {data.driverInfo.opalExpiryDate && data.driverInfo.opalExpiryDate.trim().length > 0 && new Date(data.driverInfo.opalExpiryDate) >= new Date() && <CheckIcon />}
+                      {data.driverInfo.opalExpiryDate && data.driverInfo.opalExpiryDate.trim().length > 0 && data.driverInfo.opalExpiryDate >= new Date().toISOString().split('T')[0] && <CheckIcon />}
                     </div>
                  </div>
                  <div className="space-y-2">
-                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">
-                      {isRTL ? 'تاريخ انتهاء تصريح VOC' : 'VOC Expiry Date'} *
-                    </label>
+                    <div className="flex justify-between items-center">
+                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">
+                        {isRTL ? 'تاريخ انتهاء تصريح VOC' : 'VOC Expiry Date'} *
+                      </label>
+                      {data.driverInfo.vocExpiryDate && data.driverInfo.vocExpiryDate < new Date().toISOString().split('T')[0] && (
+                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                          {isRTL ? 'منتهي الصلاحية' : 'Expired'}
+                        </span>
+                      )}
+                    </div>
                     <div className="relative">
                       <input 
                         type="date"
                         data-error={attemptedStep2 && !data.driverInfo.vocExpiryDate ? 'true' : undefined} 
-                        className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${getInputStateClass(data.driverInfo.vocExpiryDate, attemptedStep2 && !data.driverInfo.vocExpiryDate)}`} 
+                        className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${
+                          attemptedStep2 && !data.driverInfo.vocExpiryDate 
+                            ? 'border-red-500 bg-red-50 text-red-900 focus:ring-4 focus:ring-red-500/20'
+                            : (data.driverInfo.vocExpiryDate && data.driverInfo.vocExpiryDate < new Date().toISOString().split('T')[0]
+                              ? 'border-amber-500 bg-amber-50 text-amber-900 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20'
+                              : getInputStateClass(data.driverInfo.vocExpiryDate, false))
+                        }`} 
                         value={data.driverInfo.vocExpiryDate || ''} 
                         onChange={e => {
                           const val = e.target.value;
-                          if (val && new Date(val) < new Date()) {
+                          const todayStr = new Date().toISOString().split('T')[0];
+                          if (val && val < todayStr) {
                             showDateWarning(isRTL ? 'تنبيه: تصريح VOC منتهي الصلاحية!' : 'Warning: VOC permit is expired!');
                           }
                           setData((p) => ({ 
@@ -275,7 +306,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                           }));
                         }} 
                       />
-                      {data.driverInfo.vocExpiryDate && data.driverInfo.vocExpiryDate.trim().length > 0 && new Date(data.driverInfo.vocExpiryDate) >= new Date() && <CheckIcon />}
+                      {data.driverInfo.vocExpiryDate && data.driverInfo.vocExpiryDate.trim().length > 0 && data.driverInfo.vocExpiryDate >= new Date().toISOString().split('T')[0] && <CheckIcon />}
                     </div>
                  </div>
                </>

@@ -186,18 +186,13 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
       showAlert(isRTL ? 'يرجى إدخال تاريخ انتهاء الملكية.' : 'Please enter ROP expiry date.');
       return false;
     }
-    if (!opalExpiry) {
-      showAlert(isRTL ? `يرجى إدخال ${config.expiryLabel2Ar}.` : `Please enter ${config.expiryLabel2En}.`);
-      return false;
-    }
+
     const today = new Date().toISOString().split('T')[0];
     if (ropExpiry < today) {
-      showAlert(isRTL ? 'تنبيه: لا يمكن المتابعة، ملكية المركبة منتهية الصلاحية!' : 'Warning: Cannot proceed, vehicle registration is expired!');
-      return false;
+      showAlert(isRTL ? 'تنبيه: ملكية المركبة منتهية الصلاحية!' : 'Warning: Vehicle registration is expired!');
     }
-    if (opalExpiry < today) {
-      showAlert(isRTL ? `تنبيه: لا يمكن المتابعة، ${config.expiryLabel2Ar} منتهي الصلاحية!` : `Warning: Cannot proceed, ${config.expiryLabel2En} is expired!`);
-      return false;
+    if (opalExpiry && opalExpiry < today) {
+      showAlert(isRTL ? `تنبيه: ${config.expiryLabel2Ar} منتهي الصلاحية!` : `Warning: ${config.expiryLabel2En} is expired!`);
     }
     if (!signature || signature.length < 5000) {
       showAlert(isRTL ? 'يرجى رسم توقيع واضح وصحيح.' : 'Please draw a clear and valid signature.');
@@ -348,14 +343,28 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{isRTL ? 'تاريخ انتهاء الملكية (ROP) *' : 'ROP Expiry *'}</label>
+                <div className="flex justify-between items-center">
+                  <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{isRTL ? 'تاريخ انتهاء الملكية (ROP) *' : 'ROP Expiry *'}</label>
+                  {ropExpiry && ropExpiry < new Date().toISOString().split('T')[0] && (
+                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                      {isRTL ? 'منتهي الصلاحية' : 'Expired'}
+                    </span>
+                  )}
+                </div>
                 <input type="date" value={ropExpiry} onChange={e => setRopExpiry(e.target.value)}
-                  className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !ropExpiry ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
+                  className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !ropExpiry ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : (ropExpiry && ropExpiry < new Date().toISOString().split('T')[0] ? 'border-amber-500 bg-amber-50 text-amber-900 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white')}`} />
               </div>
               <div className="space-y-2">
-                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{isRTL ? `${config.expiryLabel2Ar} *` : `${config.expiryLabel2En} *`}</label>
+                <div className="flex justify-between items-center">
+                  <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{isRTL ? `${config.expiryLabel2Ar}` : `${config.expiryLabel2En}`}</label>
+                  {opalExpiry && opalExpiry < new Date().toISOString().split('T')[0] && (
+                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                      {isRTL ? 'منتهي الصلاحية' : 'Expired'}
+                    </span>
+                  )}
+                </div>
                 <input type="date" value={opalExpiry} onChange={e => setOpalExpiry(e.target.value)}
-                  className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !opalExpiry ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
+                  className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${(opalExpiry && opalExpiry < new Date().toISOString().split('T')[0] ? 'border-amber-500 bg-amber-50 text-amber-900 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white')}`} />
               </div>
               </div>
             </div>

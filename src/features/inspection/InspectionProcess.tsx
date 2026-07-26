@@ -185,23 +185,15 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
           <div className="space-y-6 pb-10 no-print">
             {/* Signature Section (Always shown at the end of the last active step) */}
             {currentStepIndex === totalSteps - 2 && (
-              <div className="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm space-y-5 animate-in fade-in slide-in-from-bottom-4">
-                <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                  <div className="p-2 bg-gray-50 rounded-xl text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
-                  </div>
-                  <h3 className="text-sm font-black text-gray-800">
-                    {isRTL ? 'التواقيع' : 'Signatures'}
-                  </h3>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <section className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-center px-2">
+                  {data.mode === 'maintenance' 
+                    ? (isRTL ? 'توقيع الفاحص *' : 'Inspector Signature *') 
+                    : (isRTL ? 'توقيع السائق *' : 'Driver Signature *')}
+                </h2>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300">
                   <SignaturePad
-                    label={
-                      data.mode === 'maintenance' 
-                        ? (isRTL ? 'توقيع الفاحص' : 'Inspector Signature') 
-                        : (isRTL ? 'توقيع السائق' : 'Driver Signature')
-                    }
+                    label={isRTL ? 'ارسم التوقيع هنا' : 'Draw signature here'}
                     isRTL={isRTL}
                     initialSignature={data.mode === 'maintenance' ? data.signatures?.inspector : data.signatures?.driver}
                     error={attemptedSignature && !(data.mode === 'maintenance' ? data.signatures?.inspector : data.signatures?.driver)}
@@ -224,7 +216,7 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
                     }))}
                   />
                 </div>
-              </div>
+              </section>
             )}
 
             <div className="flex gap-4 border-t border-gray-300 pt-8">

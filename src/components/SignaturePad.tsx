@@ -199,7 +199,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, lab
           onPointerCancel={handlePointerUp}
         />
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-20 transition-opacity z-0">
-          <span className="font-bold text-gray-400 select-none text-2xl tracking-widest uppercase">{isRTL ? 'وقع هنا' : 'SIGN HERE'}</span>
+          <span className="font-bold text-gray-400 select-none text-2xl tracking-widest uppercase">{isRTL ? 'التوقيع' : 'SIGNATURE'}</span>
         </div>
       </div>
     </div>

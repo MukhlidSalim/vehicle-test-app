@@ -72,7 +72,167 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20 animate-fade-in" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* Top Action Bar (Hidden in PDF) */}
+
+
+      {/* A4 Report Container */}
+      <div className="overflow-x-auto bg-gray-50 p-4 sm:p-8 rounded-3xl border border-gray-200">
+        <div 
+          ref={reportRef}
+          className="bg-white mx-auto shadow-2xl relative"
+          style={{ 
+            width: '210mm', 
+            minHeight: '297mm', 
+            padding: '20mm',
+            color: '#000',
+            fontFamily: isRTL ? 'Cairo, sans-serif' : 'Arial, sans-serif'
+          }}
+          dir={isRTL ? 'rtl' : 'ltr'}
+        >
+          {/* Header */}
+          <div className="flex justify-between items-end border-b-4 border-indigo-900 pb-4 mb-5">
+            <div>
+              <h1 className="text-2xl font-black text-indigo-900 uppercase tracking-widest">{t('استمارة TBT', 'Toolbox Talk Form')}</h1>
+              <p className="text-gray-500 font-bold mt-2 text-sm">{t('اجتماع السلامة قبل الرحلة', 'Pre-Journey Safety Meeting')}</p>
+            </div>
+            <div className="text-end text-xs font-bold text-gray-500 uppercase space-y-1">
+              <p>{t('التاريخ:', 'Date:')} <span className="text-black ml-2 text-sm">{data.date}</span></p>
+              <p>{t('الوقت:', 'Time:')} <span className="text-black ml-2 text-sm">{data.time}</span></p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            
+            {/* General Info Table */}
+            <div className="border border-gray-300 rounded-lg overflow-hidden">
+              <div className="grid grid-cols-4 bg-gray-100 font-bold text-xs uppercase tracking-wider">
+                <div className="col-span-1 p-3 border-b border-gray-300">{t('مسؤول الرحلة (JM)', 'Journey Manager')}</div>
+                <div className="col-span-1 p-3 border-b border-l rtl:border-l-0 rtl:border-r border-gray-300">{t('مسار الرحلة', 'Journey Route')}</div>
+                <div className="col-span-2 p-3 border-b border-l rtl:border-l-0 rtl:border-r border-gray-300">{t('نوع الاجتماع', 'Meeting Type')}</div>
+              </div>
+              <div className="grid grid-cols-4 font-bold text-sm bg-white">
+                <div className="col-span-1 p-3">{data.managerName}</div>
+                <div className="col-span-1 p-3 border-l rtl:border-l-0 rtl:border-r border-gray-300">
+                  {data.routeFrom} <ArrowRight size={14} className="inline mx-1 rtl:rotate-180 text-gray-400" /> {data.routeTo}
+                </div>
+                <div className="col-span-2 p-3 border-l rtl:border-l-0 rtl:border-r border-gray-300 flex items-center gap-2 text-indigo-700">
+                  <CheckCircle2 size={16} />
+                  {data.type === 'face_to_face' ? t('حضوري', 'In-Person') : t('عن بُعد (عبر الهاتف/اللاسلكي)', 'Remote (via Phone/Radio)')}
+                </div>
+              </div>
+            </div>
+
+            {/* Selected Topic Details */}
+            <div>
+              <h2 className="text-lg font-black text-indigo-900 border-b-2 border-indigo-100 pb-2 mb-4">
+                {t('الموضوع الذي تمت مناقشته (Discussed Topic)', 'Discussed Topic')}
+              </h2>
+              <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+                <h3 className="text-base font-black text-indigo-800 mb-3">{topicTitle}</h3>
+                {data.selectedTopicId === 'other' ? (
+                  <div className="text-sm font-bold text-gray-700 whitespace-pre-wrap leading-relaxed mt-2 p-4 bg-white rounded-lg border border-indigo-100">
+                    {data.otherTopicDetails}
+                  </div>
+                ) : (
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6">
+                    {topicPoints?.map((point: any, idx: number) => (
+                      <li key={idx} className="flex items-start gap-2 text-sm font-bold text-gray-700">
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 flex-shrink-0"></div>
+                        {point.title || point}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+
+            {/* Additional Notes */}
+            {data.notes && (
+              <div>
+                <h2 className="text-lg font-black text-gray-900 border-b-2 border-gray-100 pb-2 mb-4">
+                  {t('ملاحظات إضافية', 'Additional Notes')}
+                </h2>
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {data.notes}
+                </div>
+              </div>
+            )}
+
+            {/* Drivers & Signatures Table */}
+            <div>
+              <h2 className="text-lg font-black text-gray-900 border-b-2 border-gray-100 pb-2 mb-4 flex items-center justify-between">
+                <span>{t('السائقون واعتماد الحضور', 'Drivers & Attendance')}</span>
+              </h2>
+              
+              <div className="border border-gray-300 rounded-lg overflow-hidden">
+                <table className="w-full text-start text-sm">
+                  <thead className="bg-gray-100 text-xs uppercase tracking-wider text-gray-700">
+                    <tr>
+                      <th className="p-3 border-b border-gray-300 font-bold w-12 text-center">#</th>
+                      <th className="p-3 border-b border-l rtl:border-l-0 rtl:border-r border-gray-300 font-bold">{t('اسم السائق', 'Driver Name')}</th>
+                      <th className="p-3 border-b border-l rtl:border-l-0 rtl:border-r border-gray-300 font-bold w-1/2">{t('التوقيع', 'Signature')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200 font-bold text-gray-800">
+                    {data.drivers.map((driver, idx) => (
+                      <tr key={driver.id}>
+                        <td className="py-2 px-3 text-center text-gray-500">{idx + 1}</td>
+                        <td className="py-2 px-3 border-l rtl:border-l-0 rtl:border-r border-gray-200">{driver.name}</td>
+                        <td className="py-1 px-3 border-l rtl:border-l-0 rtl:border-r border-gray-200 h-14 relative align-middle text-center">
+                          {data.type === 'face_to_face' ? (
+                            driver.signature ? (
+                              <img src={driver.signature} alt="Driver Signature" className="max-h-12 max-w-full mx-auto object-contain" />
+                            ) : (
+                              <span className="text-gray-300 text-xs uppercase">{t('لا يوجد توقيع', 'No Signature')}</span>
+                            )
+                          ) : (
+                            <span className="text-gray-400 text-xs italic bg-gray-50 px-3 py-1 rounded">
+                              {t('اجتماع عن بُعد (لا يتطلب توقيع)', 'Remote Meeting (Signature Not Required)')}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {data.type === 'remote' && (
+                <div className="mt-3 text-xs font-bold text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200 text-center">
+                  {t('ملاحظة: تم إجراء هذا الاجتماع عن بُعد عبر وسائل الاتصال، لذا لا يُشترط التوقيع الفعلي للسائقين أدناه، ويُكتفى باعتماد مسؤول الرحلة.', 
+                  'Note: This TBT was conducted remotely via communication tools, therefore physical drivers signatures are not required, only the Journey Manager approval is needed.')}
+                </div>
+              )}
+            </div>
+
+            {/* Journey Manager Signature */}
+            <div className="pt-4 border-t-2 border-gray-200 border-dashed mt-6 flex justify-between items-end">
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
+                  {t('اعتماد مسؤول الرحلة (Journey Manager)', 'Journey Manager Approval')}
+                </p>
+                <div className="font-black text-lg text-gray-900">{data.managerName}</div>
+                <div className="text-xs font-bold text-gray-400 mt-1">{t('معتمد وموقع رقمياً', 'Digitally Approved & Signed')}</div>
+              </div>
+              <div className="w-48 h-16 border-b-2 border-gray-300 flex items-center justify-center">
+                {data.managerSignature && (
+                  <img src={data.managerSignature} alt="JM Signature" className="max-h-14 max-w-full object-contain" />
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Footer Page Number / Stamp */}
+          <div className="absolute bottom-8 left-8 right-8 flex justify-between text-[10px] text-gray-400 font-bold uppercase tracking-widest border-t border-gray-200 pt-4">
+            <span>{t('نسخة إلكترونية معتمدة', 'Certified Digital Copy')}</span>
+            <span>{t('نموذج TBT الموحد', 'Standard TBT Form')}</span>
+            <span>{new Date().getFullYear()} ©</span>
+          </div>
+
+        </div>
+      </div>
+
+
+      {/* Bottom Action Bar (Hidden in PDF) */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
         <button 
           onClick={onEdit}
@@ -101,157 +261,6 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
             {isGenerating ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
             {t('تحميل PDF', 'Download PDF')}
           </button>
-        </div>
-      </div>
-
-      {/* A4 Report Container */}
-      <div className="overflow-x-auto bg-gray-50 p-4 sm:p-8 rounded-3xl border border-gray-200">
-        <div 
-          ref={reportRef}
-          className="bg-white mx-auto shadow-2xl relative"
-          style={{ 
-            width: '210mm', 
-            minHeight: '297mm', 
-            padding: '20mm',
-            color: '#000',
-            fontFamily: isRTL ? 'Cairo, sans-serif' : 'Arial, sans-serif'
-          }}
-          dir={isRTL ? 'rtl' : 'ltr'}
-        >
-          {/* Header */}
-          <div className="flex justify-between items-end border-b-4 border-indigo-900 pb-6 mb-8">
-            <div>
-              <h1 className="text-3xl font-black text-indigo-900 uppercase tracking-widest">{t('استمارة TBT', 'Toolbox Talk Form')}</h1>
-              <p className="text-gray-500 font-bold mt-2 text-sm">{t('اجتماع السلامة قبل الرحلة', 'Pre-Journey Safety Meeting')}</p>
-            </div>
-            <div className="text-end text-xs font-bold text-gray-500 uppercase space-y-1">
-              <p>{t('التاريخ:', 'Date:')} <span className="text-black ml-2 text-sm">{data.date}</span></p>
-              <p>{t('الوقت:', 'Time:')} <span className="text-black ml-2 text-sm">{data.time}</span></p>
-            </div>
-          </div>
-
-          <div className="space-y-8">
-            
-            {/* General Info Table */}
-            <div className="border border-gray-300 rounded-lg overflow-hidden">
-              <div className="grid grid-cols-4 bg-gray-100 font-bold text-xs uppercase tracking-wider">
-                <div className="col-span-1 p-3 border-b border-gray-300">{t('مسؤول الرحلة (JM)', 'Journey Manager')}</div>
-                <div className="col-span-1 p-3 border-b border-l rtl:border-l-0 rtl:border-r border-gray-300">{t('مسار الرحلة', 'Journey Route')}</div>
-                <div className="col-span-2 p-3 border-b border-l rtl:border-l-0 rtl:border-r border-gray-300">{t('نوع الاجتماع', 'Meeting Type')}</div>
-              </div>
-              <div className="grid grid-cols-4 font-bold text-sm bg-white">
-                <div className="col-span-1 p-3">{data.managerName}</div>
-                <div className="col-span-1 p-3 border-l rtl:border-l-0 rtl:border-r border-gray-300">
-                  {data.routeFrom} <ArrowRight size={14} className="inline mx-1 rtl:rotate-180 text-gray-400" /> {data.routeTo}
-                </div>
-                <div className="col-span-2 p-3 border-l rtl:border-l-0 rtl:border-r border-gray-300 flex items-center gap-2 text-indigo-700">
-                  <CheckCircle2 size={16} />
-                  {data.type === 'face_to_face' ? t('حضور شخصي (وجهًا لوجه)', 'Face to Face (In-person)') : t('عن بُعد (عبر الهاتف/الراديو)', 'Remote (via Phone/Radio)')}
-                </div>
-              </div>
-            </div>
-
-            {/* Selected Topic Details */}
-            <div>
-              <h2 className="text-lg font-black text-indigo-900 border-b-2 border-indigo-100 pb-2 mb-4">
-                {t('الموضوع الذي تمت مناقشته (Discussed Topic)', 'Discussed Topic')}
-              </h2>
-              <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5">
-                <h3 className="text-base font-black text-indigo-800 mb-3">{topicTitle}</h3>
-                <ul className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6">
-                  {topicPoints?.map((point, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-sm font-bold text-gray-700">
-                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 flex-shrink-0"></div>
-                      {point}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            {/* Additional Notes */}
-            {data.notes && (
-              <div>
-                <h2 className="text-lg font-black text-gray-900 border-b-2 border-gray-100 pb-2 mb-4">
-                  {t('ملاحظات إضافية', 'Additional Notes')}
-                </h2>
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 text-sm font-bold text-gray-700 whitespace-pre-wrap leading-relaxed">
-                  {data.notes}
-                </div>
-              </div>
-            )}
-
-            {/* Drivers & Signatures Table */}
-            <div>
-              <h2 className="text-lg font-black text-gray-900 border-b-2 border-gray-100 pb-2 mb-4 flex items-center justify-between">
-                <span>{t('السائقون واعتماد الحضور', 'Drivers & Attendance')}</span>
-              </h2>
-              
-              <div className="border border-gray-300 rounded-lg overflow-hidden">
-                <table className="w-full text-start text-sm">
-                  <thead className="bg-gray-100 text-xs uppercase tracking-wider text-gray-700">
-                    <tr>
-                      <th className="p-3 border-b border-gray-300 font-bold w-12 text-center">#</th>
-                      <th className="p-3 border-b border-l rtl:border-l-0 rtl:border-r border-gray-300 font-bold">{t('اسم السائق', 'Driver Name')}</th>
-                      <th className="p-3 border-b border-l rtl:border-l-0 rtl:border-r border-gray-300 font-bold w-1/2">{t('التوقيع', 'Signature')}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200 font-bold text-gray-800">
-                    {data.drivers.map((driver, idx) => (
-                      <tr key={driver.id}>
-                        <td className="p-3 text-center text-gray-500">{idx + 1}</td>
-                        <td className="p-3 border-l rtl:border-l-0 rtl:border-r border-gray-200">{driver.name}</td>
-                        <td className="p-3 border-l rtl:border-l-0 rtl:border-r border-gray-200 h-24 relative align-middle text-center">
-                          {data.type === 'face_to_face' ? (
-                            driver.signature ? (
-                              <img src={driver.signature} alt="Driver Signature" className="max-h-16 max-w-full mx-auto object-contain" />
-                            ) : (
-                              <span className="text-gray-300 text-xs uppercase">{t('لا يوجد توقيع', 'No Signature')}</span>
-                            )
-                          ) : (
-                            <span className="text-gray-400 text-xs italic bg-gray-50 px-3 py-1 rounded">
-                              {t('اجتماع عن بُعد (لا يتطلب توقيع)', 'Remote Meeting (Signature Not Required)')}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              
-              {data.type === 'remote' && (
-                <div className="mt-3 text-xs font-bold text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200 text-center">
-                  {t('ملاحظة: تم إجراء هذا الاجتماع عن بُعد عبر وسائل الاتصال، لذا لا يُشترط التوقيع الفعلي للسائقين أدناه، ويُكتفى باعتماد مسؤول الرحلة.', 
-                  'Note: This TBT was conducted remotely via communication tools, therefore physical drivers signatures are not required, only the Journey Manager approval is needed.')}
-                </div>
-              )}
-            </div>
-
-            {/* Journey Manager Signature */}
-            <div className="pt-8 border-t-2 border-gray-200 border-dashed mt-12 flex justify-between items-end">
-              <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
-                  {t('اعتماد مسؤول الرحلة (Journey Manager)', 'Journey Manager Approval')}
-                </p>
-                <div className="font-black text-lg text-gray-900">{data.managerName}</div>
-                <div className="text-xs font-bold text-gray-400 mt-1">{t('معتمد وموقع رقمياً', 'Digitally Approved & Signed')}</div>
-              </div>
-              <div className="w-48 h-24 border-b-2 border-gray-300 flex items-center justify-center">
-                {data.managerSignature && (
-                  <img src={data.managerSignature} alt="JM Signature" className="max-h-20 max-w-full object-contain" />
-                )}
-              </div>
-            </div>
-          </div>
-          
-          {/* Footer Page Number / Stamp */}
-          <div className="absolute bottom-8 left-8 right-8 flex justify-between text-[10px] text-gray-400 font-bold uppercase tracking-widest border-t border-gray-200 pt-4">
-            <span>{t('نسخة إلكترونية معتمدة', 'Certified Digital Copy')}</span>
-            <span>{t('نموذج TBT الموحد', 'Standard TBT Form')}</span>
-            <span>{new Date().getFullYear()} ©</span>
-          </div>
-
         </div>
       </div>
     </div>

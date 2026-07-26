@@ -154,11 +154,25 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
                 </div>
                 <div className="p-4 bg-white">
                   <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('انتهاء الملكية', 'ROP Expiry')}</div>
-                  <div className="text-sm font-bold text-gray-900">{ropExpiry || '-'}</div>
+                  <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    {ropExpiry || '-'}
+                    {ropExpiry && ropExpiry < new Date().toISOString().split('T')[0] && (
+                      <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 whitespace-nowrap">
+                        {isRTL ? '(منتهي)' : '(Expired)'}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="p-4 bg-white">
                   <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{isRTL ? config.expiryLabel2Ar : config.expiryLabel2En}</div>
-                  <div className="text-sm font-bold text-gray-900">{opalExpiry || '-'}</div>
+                  <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    {opalExpiry || (isRTL ? 'لا توجد رخصة أوبال لهذه المركبة' : 'No OPAL license for this vehicle')}
+                    {opalExpiry && opalExpiry < new Date().toISOString().split('T')[0] && (
+                      <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 whitespace-nowrap">
+                        {isRTL ? '(منتهي)' : '(Expired)'}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

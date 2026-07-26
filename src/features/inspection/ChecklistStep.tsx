@@ -265,33 +265,66 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
   };
 
   const handleDateChange = (itemId: number, value: string) => {
-    const isFuture = value && new Date(value) > new Date();
-    const isPast = value && new Date(value) <= new Date();
-
     const nextChecklist = data.checklist.map((item) => {
       if (item.id === itemId) {
-        if (isFuture) {
-          return { ...item, expiryDate: value, status: 'pass' as CheckStatus, notes: '' };
-        } else if (isPast) {
-          showDateWarning(isRTL ? 'تنبيه: التاريخ المدخل منتهي الصلاحية!' : 'Warning: The entered date is expired!');
-          const isFire = item.key === 'fire_ext' || item.key === 'fire_ext_1';
-          const isFirstAid = item.key === 'safety_kit';
-          let newStatus: 'pass' | 'warning' | 'fail' | 'unchecked' = item.status;
-          if (isFire) newStatus = 'fail';
-          else if (isFirstAid) newStatus = 'warning';
-          else newStatus = 'warning';
+        const isTyreDate = item.key === 'tyres_condition' || item.key === 'tyres' || item.key === 'tyre_pressure' || item.key === 'spare_tire';
+        
+        let isFuture = false;
+        let isPast = false;
+        let isExpired = false;
 
-          return { ...item, expiryDate: value, status: newStatus as CheckStatus };
+        if (isTyreDate && value) {
+          const parts = value.split('-');
+          if (parts.length === 2 && parts[1].startsWith('W')) {
+            const y = parseInt(parts[0]);
+            const w = parseInt(parts[1].substring(1));
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const start = new Date(currentYear, 0, 1);
+            const currentWeek = Math.ceil((((now.getTime() - start.getTime()) / 86400000) + start.getDay() + 1) / 7);
+            
+            isFuture = y > currentYear || (y === currentYear && w > currentWeek);
+            isExpired = (currentYear - y) > 5 || ((currentYear - y) === 5 && w < currentWeek);
+          }
+        } else if (value) {
+          const dateVal = new Date(value);
+          const now = new Date();
+          isFuture = dateVal > now;
+          isPast = dateVal <= now;
+          isExpired = isPast;
+        }
+
+        if (isTyreDate && value) {
+           if (isFuture) {
+             showDateWarning(isRTL ? 'تنبيه: تاريخ التصنيع لا يمكن أن يكون في المستقبل!' : 'Warning: Manufacturing date cannot be in the future!');
+             return { ...item, expiryDate: value, status: 'warning' as CheckStatus };
+           } else if (isExpired) {
+             showDateWarning(isRTL ? 'تنبيه: الإطار منتهي الصلاحية (أكثر من 5 سنوات)!' : 'Warning: Tyre is expired (older than 5 years)!');
+             return { ...item, expiryDate: value, status: 'fail' as CheckStatus };
+           } else {
+             return { ...item, expiryDate: value, status: 'pass' as CheckStatus, notes: '' };
+           }
+        } else if (value) {
+          if (isFuture) {
+            return { ...item, expiryDate: value, status: 'pass' as CheckStatus, notes: '' };
+          } else if (isExpired) {
+            showDateWarning(isRTL ? 'تنبيه: التاريخ المدخل منتهي الصلاحية!' : 'Warning: The entered date is expired!');
+            const isFire = item.key === 'fire_ext' || item.key === 'fire_ext_1' || item.key === 'fire_ext_2';
+            const isFirstAid = item.key === 'safety_kit' || item.key === 'aed_device';
+            let newStatus: 'pass' | 'warning' | 'fail' | 'unchecked' = item.status;
+            if (isFire) newStatus = 'fail';
+            else if (isFirstAid) newStatus = 'warning';
+            else newStatus = 'warning';
+
+            return { ...item, expiryDate: value, status: newStatus as CheckStatus };
+          }
         }
         return { ...item, expiryDate: value };
       }
       return item;
     });
 
-    if (isFuture || isPast) {
-      autoScrollToNextUnchecked(itemId, nextChecklist);
-    }
-
+    autoScrollToNextUnchecked(itemId, nextChecklist);
     setData((p) => ({ ...p, checklist: nextChecklist }));
   };
 
@@ -650,31 +683,31 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                         needsExpiry ? 'text-red-600' : 'text-gray-400'
                       }`}>
                         {isRTL 
-                          ? (isTyresCond || isSpareTyreCond ? 'تاريخ تصنيع الإطارات (شهر/سنة) *' : (isAed ? 'تاريخ انتهاء صلاحية جهاز الإنعاش *' : (isFireExt || isFireExt2 ? 'تاريخ انتهاء صلاحية طفاية الحريق *' : 'تاريخ انتهاء صلاحية حقيبة الإسعافات الأولية *')))
-                          : (isTyresCond || isSpareTyreCond ? 'Tyre Manufacturing Date (MM/YYYY) *' : (isAed ? 'AED Device Expiry Date *' : (isFireExt || isFireExt2 ? 'Fire Extinguisher Expiry Date *' : 'First Aid Kit Expiry Date *')))
+                          ? (isTyresCond || isSpareTyreCond ? 'تاريخ تصنيع الإطارات (أسبوع/سنة) *' : (isAed ? 'تاريخ انتهاء صلاحية جهاز الإنعاش *' : (isFireExt || isFireExt2 ? 'تاريخ انتهاء صلاحية طفاية الحريق *' : 'تاريخ انتهاء صلاحية حقيبة الإسعافات الأولية *')))
+                          : (isTyresCond || isSpareTyreCond ? 'Tyre Manufacturing Date (WW/YYYY) *' : (isAed ? 'AED Device Expiry Date *' : (isFireExt || isFireExt2 ? 'Fire Extinguisher Expiry Date *' : 'First Aid Kit Expiry Date *')))
                         }
                       </label>
                       {(isTyresCond || isSpareTyreCond) ? (
                         <div className="flex items-center gap-3">
                           <select
                             className={`w-1/2 p-3 border rounded-xl font-bold text-base outline-none transition-all focus:bg-white appearance-none text-center ${needsExpiry ? 'border-red-400 bg-red-50 focus:border-red-500 text-red-900' : 'border-gray-300 bg-white focus:border-primary-500 text-gray-900'}`}
-                            value={item.expiryDate?.split('-')[1] || ''}
+                            value={item.expiryDate?.split('-')[1]?.replace('W', '') || ''}
                             onChange={e => {
                               const y = item.expiryDate?.split('-')[0] || String(new Date().getFullYear());
-                              handleDateChange(item.id, `${y}-${e.target.value}`);
+                              handleDateChange(item.id, `${y}-W${e.target.value}`);
                             }}
                           >
-                            <option value="" disabled>{isRTL ? 'الشهر' : 'Month'}</option>
-                            {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map(m => (
-                              <option key={m} value={m}>{m}</option>
+                            <option value="" disabled>{isRTL ? 'الأسبوع' : 'Week'}</option>
+                            {Array.from({ length: 52 }, (_, i) => String(i + 1).padStart(2, '0')).map(w => (
+                              <option key={w} value={w}>{w}</option>
                             ))}
                           </select>
                           <select
                             className={`w-1/2 p-3 border rounded-xl font-bold text-base outline-none transition-all focus:bg-white appearance-none text-center ${needsExpiry ? 'border-red-400 bg-red-50 focus:border-red-500 text-red-900' : 'border-gray-300 bg-white focus:border-primary-500 text-gray-900'}`}
                             value={item.expiryDate?.split('-')[0] || ''}
                             onChange={e => {
-                              const m = item.expiryDate?.split('-')[1] || '01';
-                              handleDateChange(item.id, `${e.target.value}-${m}`);
+                              const w = item.expiryDate?.split('-')[1]?.replace('W', '') || '01';
+                              handleDateChange(item.id, `${e.target.value}-W${w}`);
                             }}
                           >
                             <option value="" disabled>{isRTL ? 'السنة' : 'Year'}</option>
