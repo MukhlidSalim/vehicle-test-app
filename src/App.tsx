@@ -7,6 +7,7 @@ import { useInspectionSession } from './hooks/useInspectionSession';
 // Layout & structure components
 import { TopBar } from './components/TopBar';
 import { LowerBar } from './components/LowerBar';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Feature views
 import { HomeView } from './features/home/HomeView';
@@ -18,6 +19,7 @@ import { InspectionProcess } from './features/inspection/InspectionProcess';
 import { HandoverForm } from './features/handover/HandoverForm';
 import { PassengerLogForm } from './features/passenger-log/PassengerLogForm';
 import { TbtForm } from './features/tbt/TbtForm';
+import { PostMaintenanceForm } from './features/post-maintenance/PostMaintenanceForm';
 
 export default function App() {
   const navigate = useNavigate();
@@ -68,102 +70,112 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen bg-white flex flex-col font-${isRTL ? 'cairo' : 'sans'}`} dir={isRTL ? 'rtl' : 'ltr'}>
-      <TopBar 
-        t={t} 
-        currentView={currentView} 
-        setCurrentView={setCurrentView} 
-        lang={lang} 
-        setLang={setLang} 
-      />
-      <main className="flex-1 w-full max-w-7xl mx-auto pt-14 flex flex-col">
-        <div className="flex-1 p-4 md:p-8 w-full">
-          <Routes>
-            <Route path="/" element={
-              <HomeView 
-                t={t} 
-                isRTL={isRTL} 
-                setCurrentView={setCurrentView} 
-                startInspection={startInspection} 
-              />
-            } />
-            
-            <Route path="/driver_safety" element={
-              <DriverGuideView 
-                t={t} 
-                isRTL={isRTL} 
-                onBack={() => setCurrentView('home')} 
-              />
-            } />
-            
-            <Route path="/vehicle_safety" element={
-              <VehicleGuideView 
-                t={t} 
-                isRTL={isRTL} 
-                onBack={() => setCurrentView('home')} 
-              />
-            } />
-            
-            <Route path="/emergency_procedures" element={
-              <EmergencyProcView 
-                t={t} 
-                isRTL={isRTL} 
-                onBack={() => setCurrentView('home')} 
-              />
-            } />
-            
-            <Route path="/pre_trip_tips" element={
-              <PreTripTipsView 
-                t={t} 
-                isRTL={isRTL} 
-                onBack={() => setCurrentView('home')} 
-              />
-            } />
-            
-            <Route path="/inspection_process" element={
-              <InspectionProcess 
-                t={t} 
-                lang={lang} 
-                isRTL={isRTL} 
-                step={inspectionStep} 
-                setStep={setInspectionStep} 
-                data={data} 
-                setData={setData} 
-                onExit={resetApp} 
-                saveStatus={saveStatus} 
-              />
-            } />
-            
-            <Route path="/bus_handover" element={
-              <HandoverForm 
-                lang={lang}
-                isRTL={isRTL}
-                onExit={resetApp}
-              />
-            } />
-            
-            <Route path="/passenger_log" element={
-              <PassengerLogForm 
-                lang={lang}
-                isRTL={isRTL}
-                onExit={resetApp}
-              />
-            } />
-            
-            <Route path="/tbt_form" element={
-              <TbtForm 
-                lang={lang}
-                isRTL={isRTL}
-                onExit={resetApp}
-              />
-            } />
-            
-            {/* Catch all route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
-      </main>
-      <LowerBar />
-    </div>
+    <ErrorBoundary>
+      <div className={`min-h-screen bg-white flex flex-col font-${isRTL ? 'cairo' : 'sans'}`} dir={isRTL ? 'rtl' : 'ltr'}>
+        <TopBar 
+          t={t} 
+          currentView={currentView} 
+          setCurrentView={setCurrentView} 
+          lang={lang} 
+          setLang={setLang} 
+        />
+        <main className="flex-1 w-full max-w-7xl mx-auto pt-14 flex flex-col">
+          <div className="flex-1 p-4 md:p-8 w-full">
+            <Routes>
+              <Route path="/" element={
+                <HomeView 
+                  t={t} 
+                  isRTL={isRTL} 
+                  setCurrentView={setCurrentView} 
+                  startInspection={startInspection} 
+                />
+              } />
+              
+              <Route path="/driver_safety" element={
+                <DriverGuideView 
+                  t={t} 
+                  isRTL={isRTL} 
+                  onBack={() => setCurrentView('home')} 
+                />
+              } />
+              
+              <Route path="/vehicle_safety" element={
+                <VehicleGuideView 
+                  t={t} 
+                  isRTL={isRTL} 
+                  onBack={() => setCurrentView('home')} 
+                />
+              } />
+              
+              <Route path="/emergency_procedures" element={
+                <EmergencyProcView 
+                  t={t} 
+                  isRTL={isRTL} 
+                  onBack={() => setCurrentView('home')} 
+                />
+              } />
+              
+              <Route path="/pre_trip_tips" element={
+                <PreTripTipsView 
+                  t={t} 
+                  isRTL={isRTL} 
+                  onBack={() => setCurrentView('home')} 
+                />
+              } />
+              
+              <Route path="/inspection_process" element={
+                <InspectionProcess 
+                  t={t} 
+                  lang={lang} 
+                  isRTL={isRTL} 
+                  step={inspectionStep} 
+                  setStep={setInspectionStep} 
+                  data={data} 
+                  setData={setData} 
+                  onExit={resetApp} 
+                  saveStatus={saveStatus} 
+                />
+              } />
+              
+              <Route path="/bus_handover" element={
+                <HandoverForm 
+                  lang={lang}
+                  isRTL={isRTL}
+                  onExit={resetApp}
+                />
+              } />
+              
+              <Route path="/passenger_log" element={
+                <PassengerLogForm 
+                  lang={lang}
+                  isRTL={isRTL}
+                  onExit={resetApp}
+                />
+              } />
+              
+              <Route path="/tbt_form" element={
+                <TbtForm 
+                  lang={lang}
+                  isRTL={isRTL}
+                  onExit={resetApp}
+                />
+              } />
+
+              <Route path="/post_maintenance" element={
+                <PostMaintenanceForm 
+                  lang={lang}
+                  isRTL={isRTL}
+                  onExit={resetApp}
+                />
+              } />
+              
+              {/* Catch all route */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </main>
+        <LowerBar />
+      </div>
+    </ErrorBoundary>
   );
 }
