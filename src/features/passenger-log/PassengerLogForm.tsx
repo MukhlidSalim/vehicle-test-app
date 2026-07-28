@@ -7,6 +7,9 @@ import {
 } from 'lucide-react';
 import { usePassengerLogSession, Trip, DayInfo } from '../../hooks/usePassengerLogSession';
 import { PassengerLogReport } from './PassengerLogReport';
+import { CustomDatePicker } from '../../components/CustomDatePicker';
+import { CustomTimePicker } from '../../components/CustomTimePicker';
+import { OmanPlateInput } from '../../components/OmanPlateInput';
 
 // Fixed locations (always English)
 const LOCATIONS = ['EPCM', 'KRC', 'KOB', 'CPF'];
@@ -191,11 +194,11 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Vehicle Plate */}
               <div className="space-y-2">
-                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('رقم المركبة *', 'Vehicle Plate *')}</label>
+                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('رقم اللوحة *', 'Vehicle Plate *')}</label>
                 <input
                   value={dayInfo.vehiclePlate}
                   onChange={e => setDayInfo({ ...dayInfo, vehiclePlate: e.target.value })}
-                  placeholder={t('أدخل رقم المركبة', 'Enter vehicle plate')}
+                  placeholder={t('أدخل رقم اللوحة', 'Enter vehicle plate')}
                   className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !dayInfo.vehiclePlate.trim() ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`}
                 />
               </div>
@@ -214,11 +217,10 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
               {/* Date (auto-filled) */}
               <div className="space-y-2">
                 <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('التاريخ', 'Date')}</label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   value={dayInfo.date}
-                  onChange={e => setDayInfo({ ...dayInfo, date: e.target.value })}
-                  className="w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white"
+                  onChange={val => setDayInfo({ ...dayInfo, date: val })}
+                  isRTL={isRTL}
                 />
               </div>
 
@@ -458,11 +460,10 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
                 </div>
                 <div className="space-y-2">
                   <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('التوقيت *', 'Time *')}</label>
-                  <input
-                    type="time"
+                  <CustomTimePicker
                     value={newTrip.time}
-                    onChange={e => setNewTrip({ ...newTrip, time: e.target.value })}
-                    className="w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white"
+                    onChange={val => setNewTrip({ ...newTrip, time: val })}
+                    isRTL={isRTL}
                   />
                 </div>
               </div>

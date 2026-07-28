@@ -6,7 +6,11 @@ import {
   Share2, Clipboard, Check, ArrowLeft,
   FileCheck, MessageSquare
 } from 'lucide-react';
+import { CustomDatePicker } from '../../components/CustomDatePicker';
 import { SignaturePad } from '../../components/SignaturePad';
+import { OmanPlateInput } from '../../components/OmanPlateInput';
+import { OdometerInput } from '../../components/OdometerInput';
+import { CustomDropdown } from '../../components/CustomDropdown';
 
 import { HandoverReport } from './HandoverReport';
 import {
@@ -25,6 +29,7 @@ export interface HandoverItem {
   hasCount: boolean;
   answerType: AnswerType;
   answerValue: string;
+  icon?: any;
 }
 
 export interface HandoverData {
@@ -56,6 +61,7 @@ const buildItemsFromConfig = (config: VehicleCategoryConfig): HandoverItem[] =>
     hasCount: !!ic.hasCount,
     answerType: ic.answerType || 'binary',
     answerValue: '',
+    icon: ic.icon,
   }));
 
 interface Props {
@@ -85,6 +91,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
   const [ropExpiry, setRopExpiry] = useState('');
   const [notes, setNotes] = useState('');
   const [signature, setSignature] = useState('');
+  const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
   const [extraFields, setExtraFields] = useState<Record<string, string>>({});
   
   const category = getVehicleCategory(vehicleType);
@@ -139,10 +146,11 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
     setOpalExpiry('');
     setNotes('');
     setSignature('');
+    setFormDate(new Date().toISOString().split('T')[0]);
     setExtraFields({});
     setItems(getCategoryConfig(getVehicleCategory(vehicleType)).items.map(i => ({
       id: i.id, labelAr: i.labelAr, labelEn: i.labelEn, status: null, note: '',
-      hasCount: !!i.hasCount, count: '', answerType: i.answerType || 'binary', answerValue: ''
+      hasCount: !!i.hasCount, count: '', answerType: i.answerType || 'binary', answerValue: '', icon: i.icon
     })));
   };
   
@@ -157,7 +165,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
     ropExpiry,
     notes,
     signature,
-    date: new Date().toISOString(),
+    date: formDate,
     lang: formLang,
     extraFields,
     items,
@@ -319,19 +327,22 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
               </div>
               <div className="space-y-2">
                 <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{isRTL ? 'نوع المركبة' : 'Vehicle Type'}</label>
-                <select value={vehicleType} onChange={e => setVehicleType(e.target.value)}
-                  className="w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white">
-                  {CONFIG_VEHICLE_TYPES.map(vt => (
-                    <option key={vt.value} value={vt.value}>{isRTL ? vt.labelAr : vt.labelEn}</option>
-                  ))}
-                </select>
+                <CustomDropdown
+                  value={vehicleType}
+                  onChange={setVehicleType}
+                  options={CONFIG_VEHICLE_TYPES.map(vt => ({ value: vt.value, labelAr: vt.labelAr, labelEn: vt.labelEn }))}
+                  isRTL={isRTL}
+                />
               </div>
               <div className="space-y-2">
-                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{isRTL ? 'عداد المسافة (كم) *' : 'Odometer (km) *'}</label>
+                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{isRTL ? 'قراءة العداد (كم) *' : 'Odometer (km) *'}</label>
                 <div className="relative">
-                  <Gauge size={16} className="absolute top-3.5 rtl:right-3 ltr:left-3 text-gray-400" />
-                  <input type="number" min="0" value={odometer} onChange={e => setOdometer(e.target.value)}
-                    className={`w-full rtl:pr-10 ltr:pl-10 py-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !odometer.trim() ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
+                  <OdometerInput
+                    value={odometer}
+                    onChange={setOdometer}
+                    error={attemptedSubmit && !odometer.trim() ? true : false}
+                    isRTL={isRTL}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
@@ -351,8 +362,13 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
                     </span>
                   )}
                 </div>
-                <input type="date" value={ropExpiry} onChange={e => setRopExpiry(e.target.value)}
-                  className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !ropExpiry ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : (ropExpiry && ropExpiry < new Date().toISOString().split('T')[0] ? 'border-amber-500 bg-amber-50 text-amber-900 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white')}`} />
+                <CustomDatePicker
+                  value={ropExpiry}
+                  onChange={val => setRopExpiry(val)}
+                  error={attemptedSubmit && !ropExpiry}
+                  isRTL={isRTL}
+                  isExpiryDate={true}
+                />
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
@@ -363,8 +379,12 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
                     </span>
                   )}
                 </div>
-                <input type="date" value={opalExpiry} onChange={e => setOpalExpiry(e.target.value)}
-                  className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${(opalExpiry && opalExpiry < new Date().toISOString().split('T')[0] ? 'border-amber-500 bg-amber-50 text-amber-900 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white')}`} />
+                <CustomDatePicker
+                  value={opalExpiry}
+                  onChange={val => setOpalExpiry(val)}
+                  isRTL={isRTL}
+                  isExpiryDate={true}
+                />
               </div>
               </div>
             </div>
@@ -674,7 +694,13 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
                   <div key={item.id} className={`p-4 rounded-xl border transition-all duration-200 ${attemptedSubmit && item.status === null ? 'border-red-400 bg-red-50/50 shadow-[0_0_0_1px_rgba(248,113,113,0.5)]' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                       <span className="text-sm font-black text-gray-800 flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-primary-400"></div>
+                        {item.icon ? (
+                          <div className={`p-1 rounded-xl border shadow-inner ${attemptedSubmit && item.status === null ? 'bg-red-100 text-red-600 border-red-200' : 'bg-gray-50 text-primary-600 border-gray-300'}`}>
+                            <item.icon size={24} />
+                          </div>
+                        ) : (
+                          <div className="w-2 h-2 rounded-full bg-primary-400"></div>
+                        )}
                         {isRTL ? item.labelAr : item.labelEn}
                       </span>
                       {renderAnswerUI()}

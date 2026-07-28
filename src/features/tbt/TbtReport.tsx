@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Download, Share2, Edit2, Loader2, CheckCircle2, ArrowRight } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { captureNode } from '../../utils/pdfGenerator';
+import { ReportPageFooter } from '../../components/ReportPageFooter';
 import { TbtData } from './TbtForm';
 import { TBT_TOPICS } from './tbtConfig';
 
@@ -21,30 +22,37 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
 
   const t = (ar: string, en: string) => isRTL ? ar : en;
 
+  const generatePdfInstance = async () => {
+    if (!reportRef.current) return null;
+    const { dataUrl } = await captureNode(reportRef.current);
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const imgProps = pdf.getImageProperties(dataUrl);
+    const a4W = pdf.internal.pageSize.getWidth();
+    const a4H = pdf.internal.pageSize.getHeight();
+    const pdfWidth = a4W;
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    
+    let position = 0;
+    let remainingHeight = pdfHeight;
+    while (remainingHeight > 5) {
+      pdf.addImage(dataUrl, 'JPEG', 0, position, pdfWidth, pdfHeight, undefined, 'FAST');
+      remainingHeight -= a4H;
+      position -= a4H;
+      if (remainingHeight > 5) pdf.addPage();
+    }
+    return pdf;
+  };
+
   const handleDownloadPDF = async () => {
     if (!reportRef.current) return;
     setIsGenerating(true);
     try {
-      const { dataUrl } = await captureNode(reportRef.current);
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const imgProps = pdf.getImageProperties(dataUrl);
-      const a4W = pdf.internal.pageSize.getWidth();
-      const a4H = pdf.internal.pageSize.getHeight();
-      const pdfWidth = a4W;
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      
-      let position = 0;
-      let remainingHeight = pdfHeight;
-      while (remainingHeight > 5) {
-        pdf.addImage(dataUrl, 'JPEG', 0, position, pdfWidth, pdfHeight, undefined, 'FAST');
-        remainingHeight -= a4H;
-        position -= a4H;
-        if (remainingHeight > 5) pdf.addPage();
+      const pdf = await generatePdfInstance();
+      if (pdf) {
+        const dateStr = data.date;
+        const cleanName = data.managerName.trim().replace(/\s+/g, '_');
+        pdf.save(`[${dateStr}]_[TBT]_[${cleanName}].pdf`);
       }
-
-      const dateStr = data.date;
-      const cleanName = data.managerName.trim().replace(/\s+/g, '_');
-      pdf.save(`[${dateStr}]_[TBT]_[${cleanName}].pdf`);
     } catch (err) {
       console.error('PDF generation failed', err);
     }
@@ -55,14 +63,13 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
     if (!reportRef.current) return;
     setIsGenerating(true);
     try {
-      const { dataUrl } = await captureNode(reportRef.current);
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      if (blob && navigator.share) {
+      const pdf = await generatePdfInstance();
+      if (pdf && navigator.share) {
+        const blob = pdf.output('blob');
         const dateStr = data.date;
         const cleanName = data.managerName.trim().replace(/\s+/g, '_');
-        const file = new File([blob], `[${dateStr}]_[TBT]_[${cleanName}].jpeg`, { type: 'image/jpeg' });
-        await navigator.share({ files: [file], title: isRTL ? 'استمارة TBT' : 'TBT Form' });
+        const file = new File([blob], `[${dateStr}]_[TBT]_[${cleanName}].pdf`, { type: 'application/pdf' });
+        await navigator.share({ files: [file], title: isRTL ? 'تقرير TBT' : 'TBT Form' });
       }
     } catch (err) {
       console.error('Share failed', err);
@@ -92,7 +99,7 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
           <div className="flex justify-between items-end border-b-4 border-indigo-900 pb-4 mb-5">
             <div>
               <h1 className="text-2xl font-black text-indigo-900 uppercase tracking-widest">{t('استمارة TBT', 'Toolbox Talk Form')}</h1>
-              <p className="text-gray-500 font-bold mt-2 text-sm">{t('اجتماع السلامة قبل الرحلة', 'Pre-Journey Safety Meeting')}</p>
+              <p className="text-gray-500 font-bold mt-2 text-sm">{t('إجتماع السلامة قبل الرحلة', 'Pre-Journey Safety Meeting')}</p>
             </div>
             <div className="text-end text-xs font-bold text-gray-500 uppercase space-y-1">
               <p>{t('التاريخ:', 'Date:')} <span className="text-black ml-2 text-sm">{data.date}</span></p>
@@ -116,7 +123,7 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
                 </div>
                 <div className="col-span-2 p-3 border-l rtl:border-l-0 rtl:border-r border-gray-300 flex items-center gap-2 text-indigo-700">
                   <CheckCircle2 size={16} />
-                  {data.type === 'face_to_face' ? t('حضوري', 'In-Person') : t('عن بُعد (عبر الهاتف/اللاسلكي)', 'Remote (via Phone/Radio)')}
+                  {data.type === 'face_to_face' ? t('حضوري', 'In-Person') : t('عن بُعد (عبر الهاتف)', 'Remote (via Phone)')}
                 </div>
               </div>
             </div>
@@ -124,7 +131,7 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
             {/* Selected Topic Details */}
             <div>
               <h2 className="text-lg font-black text-indigo-900 border-b-2 border-indigo-100 pb-2 mb-4">
-                {t('الموضوع الذي تمت مناقشته (Discussed Topic)', 'Discussed Topic')}
+                {t('الموضوع', 'Topic')}
               </h2>
               <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
                 <h3 className="text-base font-black text-indigo-800 mb-3">{topicTitle}</h3>
@@ -186,7 +193,7 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
                             )
                           ) : (
                             <span className="text-gray-400 text-xs italic bg-gray-50 px-3 py-1 rounded">
-                              {t('اجتماع عن بُعد (لا يتطلب توقيع)', 'Remote Meeting (Signature Not Required)')}
+                              {t('اجتماع عن بُعد', 'Remote Meeting')}
                             </span>
                           )}
                         </td>
@@ -196,12 +203,6 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
                 </table>
               </div>
               
-              {data.type === 'remote' && (
-                <div className="mt-3 text-xs font-bold text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200 text-center">
-                  {t('ملاحظة: تم إجراء هذا الاجتماع عن بُعد عبر وسائل الاتصال، لذا لا يُشترط التوقيع الفعلي للسائقين أدناه، ويُكتفى باعتماد مسؤول الرحلة.', 
-                  'Note: This TBT was conducted remotely via communication tools, therefore physical drivers signatures are not required, only the Journey Manager approval is needed.')}
-                </div>
-              )}
             </div>
 
             {/* Journey Manager Signature */}
@@ -211,7 +212,7 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
                   {t('اعتماد مسؤول الرحلة (Journey Manager)', 'Journey Manager Approval')}
                 </p>
                 <div className="font-black text-lg text-gray-900">{data.managerName}</div>
-                <div className="text-xs font-bold text-gray-400 mt-1">{t('معتمد وموقع رقمياً', 'Digitally Approved & Signed')}</div>
+
               </div>
               <div className="w-48 h-16 border-b-2 border-gray-300 flex items-center justify-center">
                 {data.managerSignature && (
@@ -221,12 +222,9 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
             </div>
           </div>
           
-          {/* Footer Page Number / Stamp */}
-          <div className="absolute bottom-8 left-8 right-8 flex justify-between text-[10px] text-gray-400 font-bold uppercase tracking-widest border-t border-gray-200 pt-4">
-            <span>{t('نسخة إلكترونية معتمدة', 'Certified Digital Copy')}</span>
-            <span>{t('نموذج TBT الموحد', 'Standard TBT Form')}</span>
-            <span>{new Date().getFullYear()} ©</span>
-          </div>
+
+          
+          <ReportPageFooter showText={true} isRTL={isRTL} />
 
         </div>
       </div>

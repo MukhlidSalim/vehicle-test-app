@@ -2,8 +2,10 @@ import React, { useRef, useState } from 'react';
 import { Download, Share2, CheckCircle, XCircle, Truck, User, FileText, Clock, MapPin } from 'lucide-react';
 import { HandoverData } from './HandoverForm';
 import { captureNode } from '../../utils/pdfGenerator';
+import { ReportPageFooter } from '../../components/ReportPageFooter';
 import { jsPDF } from 'jspdf';
 import { VEHICLE_TYPES_OPTIONS } from './handoverConfig';
+import { formatStringDDMMYYYY } from '../../utils/dateHelpers';
 
 interface Props {
   data: HandoverData;
@@ -29,29 +31,39 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
 
   const vehicleLabel = VEHICLE_TYPES_OPTIONS.find(v => v.value === vehicleType)?.[isRTL ? 'labelAr' : 'labelEn'] || vehicleType;
 
+  const generatePdfInstance = async () => {
+    if (!reportRef.current) return null;
+    const { dataUrl } = await captureNode(reportRef.current);
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const imgProps = pdf.getImageProperties(dataUrl);
+    const a4W = pdf.internal.pageSize.getWidth();
+    const a4H = pdf.internal.pageSize.getHeight();
+    const pdfWidth = a4W;
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    
+    let position = 0;
+    let remainingHeight = pdfHeight;
+    while (remainingHeight > 5) {
+      pdf.addImage(dataUrl, 'JPEG', 0, position, pdfWidth, pdfHeight, undefined, 'FAST');
+      remainingHeight -= a4H;
+      position -= a4H;
+      if (remainingHeight > 5) pdf.addPage();
+    }
+    return pdf;
+  };
+
   const handleDownloadPDF = async () => {
     if (!reportRef.current) return;
     setIsGenerating(true);
     try {
-      const { dataUrl } = await captureNode(reportRef.current);
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const a4W = 210, a4H = 297;
-      const imgProps = pdf.getImageProperties(dataUrl);
-      const pdfWidth = a4W;
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      let position = 0;
-      let remainingHeight = pdfHeight;
-      while (remainingHeight > 5) {
-        pdf.addImage(dataUrl, 'JPEG', 0, position, pdfWidth, pdfHeight, undefined, 'FAST');
-        remainingHeight -= a4H;
-        position -= a4H;
-        if (remainingHeight > 5) pdf.addPage();
+      const pdf = await generatePdfInstance();
+      if (pdf) {
+        const cleanName = personName.trim().replace(/\s+/g, '_');
+        const cleanPlate = vehiclePlate.trim().replace(/\s+/g, '_');
+        const dateStr = new Date().toISOString().slice(0,10);
+        const typeStr = isRTL ? (personRole === 'sender' ? 'تسليم' : 'استلام') : (personRole === 'sender' ? 'Handover' : 'Takeover');
+        pdf.save(`[${dateStr}]_[${typeStr}]_[${cleanPlate}]_[${cleanName}].pdf`);
       }
-      const cleanName = personName.trim().replace(/\s+/g, '_');
-      const cleanPlate = vehiclePlate.trim().replace(/\s+/g, '_');
-      const dateStr = new Date().toISOString().slice(0,10);
-      const typeStr = isRTL ? (personRole === 'sender' ? 'تسليم' : 'استلام') : (personRole === 'sender' ? 'Handover' : 'Takeover');
-      pdf.save(`[${dateStr}]_[${typeStr}]_[${cleanPlate}]_[${cleanName}].pdf`);
     } catch (err) {
       console.error('PDF generation failed', err);
     }
@@ -62,15 +74,14 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
     if (!reportRef.current) return;
     setIsGenerating(true);
     try {
-      const { dataUrl } = await captureNode(reportRef.current);
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      if (blob && navigator.share) {
+      const pdf = await generatePdfInstance();
+      if (pdf && navigator.share) {
+        const blob = pdf.output('blob');
         const cleanName = personName.trim().replace(/\s+/g, '_');
         const cleanPlate = vehiclePlate.trim().replace(/\s+/g, '_');
         const dateStr = new Date().toISOString().slice(0,10);
         const typeStr = isRTL ? (personRole === 'sender' ? 'تسليم' : 'استلام') : (personRole === 'sender' ? 'Handover' : 'Takeover');
-        const file = new File([blob], `[${dateStr}]_[${typeStr}]_[${cleanPlate}]_[${cleanName}].jpeg`, { type: 'image/jpeg' });
+        const file = new File([blob], `[${dateStr}]_[${typeStr}]_[${cleanPlate}]_[${cleanName}].pdf`, { type: 'application/pdf' });
         await navigator.share({ files: [file], title: isRTL ? config.formTitleAr : config.formTitleEn });
       }
     } catch (err) {
@@ -155,7 +166,7 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
                 <div className="p-4 bg-white">
                   <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('انتهاء الملكية', 'ROP Expiry')}</div>
                   <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                    {ropExpiry || '-'}
+                    {formatStringDDMMYYYY(ropExpiry) || '-'}
                     {ropExpiry && ropExpiry < new Date().toISOString().split('T')[0] && (
                       <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 whitespace-nowrap">
                         {isRTL ? '(منتهي)' : '(Expired)'}
@@ -166,7 +177,7 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
                 <div className="p-4 bg-white">
                   <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{isRTL ? config.expiryLabel2Ar : config.expiryLabel2En}</div>
                   <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                    {opalExpiry || (isRTL ? 'لا توجد رخصة أوبال لهذه المركبة' : 'No OPAL license for this vehicle')}
+                    {formatStringDDMMYYYY(opalExpiry) || (isRTL ? 'لا توجد رخصة أوبال لهذه المركبة' : 'No OPAL license for this vehicle')}
                     {opalExpiry && opalExpiry < new Date().toISOString().split('T')[0] && (
                       <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 whitespace-nowrap">
                         {isRTL ? '(منتهي)' : '(Expired)'}
@@ -243,10 +254,12 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
                     <div key={item.id} className={`p-2.5 border-b border-gray-100 ${item.status === 'bad' ? 'bg-red-50/50' : ''}`}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          {item.status === 'good' ? (
-                            <CheckCircle size={13} className="text-emerald-500 shrink-0" />
+                          {item.icon ? (
+                            <item.icon size={14} className={`shrink-0 ${item.status === 'good' ? 'text-emerald-500' : 'text-red-500'}`} />
+                          ) : item.status === 'good' ? (
+                            <CheckCircle size={14} className="text-emerald-500 shrink-0" />
                           ) : (
-                            <XCircle size={13} className="text-red-500 shrink-0" />
+                            <XCircle size={14} className="text-red-500 shrink-0" />
                           )}
                           <span className={`text-xs font-bold ${item.status === 'good' ? 'text-gray-800' : 'text-red-600'}`}>
                             {isRTL ? item.labelAr : item.labelEn}
@@ -308,13 +321,8 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="border-t border-gray-200 pt-6 mt-8 text-center pb-4">
-              <p className="text-[10px] font-bold text-gray-400">
-                {t('تم إنشاء هذا التقرير إلكترونياً بواسطة نظام فحص المركبات (VIS)', 'Generated electronically by Vehicle Inspection System (VIS)')}
-              </p>
-            </div>
           </div>
+          <ReportPageFooter showText={true} isRTL={isRTL} />
         </div>
       </div>
 

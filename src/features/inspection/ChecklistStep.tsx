@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Camera, AlertTriangle, Eraser, Trash2, Check, X, Images, CheckCircle } from 'lucide-react';
 import { InspectionData, CheckStatus } from '../../types';
+import { CustomDatePicker } from '../../components/CustomDatePicker';
 import { 
   GENERIC_CHECKLIST, 
   HEAVY_BUS_CHECKLIST, 
@@ -717,13 +719,12 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                           </select>
                         </div>
                       ) : (
-                        <input
-                          type="date"
+                        <CustomDatePicker
                           value={item.expiryDate || ''}
-                          onChange={e => handleDateChange(item.id, e.target.value)}
-                          className={`w-full p-3 border rounded-xl font-bold text-base outline-none transition-all focus:bg-white ${
-                            needsExpiry ? 'border-red-400 bg-red-50 focus:border-red-500' : 'border-gray-300 bg-white focus:border-primary-500'
-                          }`}
+                          onChange={val => handleDateChange(item.id, val)}
+                          error={needsExpiry}
+                          isRTL={isRTL}
+                          isExpiryDate={true}
                         />
                       )}
                     </div>

@@ -151,6 +151,20 @@ export const CustomWasherFluidIcon = ImageIcon("/assets/icons/Washer Fluid.png",
 export const CustomWindowOpIcon = ImageIcon("/assets/icons/Window Operation.png", "Window Operation");
 export const CustomWindowsCondIcon = ImageIcon("/assets/icons/Windows Condition.png", "Windows Condition");
 
+// Handover specific items
+export const MobilePhoneIcon = ImageIcon("/assets/icons/Mobile Phone.png", "Mobile Phone");
+export const UmbrellasIcon = ImageIcon("/assets/icons/Umbrellas.png", "Umbrellas");
+export const WaterCartonsIcon = ImageIcon("/assets/icons/Water Cartons.png", "Water Cartons");
+export const ThurayaChargerIcon = ImageIcon("/assets/icons/Thuraya Charger Cable.png", "Thuraya Charger Cable");
+export const FlashlightIcon = ImageIcon("/assets/icons/flashlight.png", "Flashlight");
+export const ElectronicJackIcon = ImageIcon("/assets/icons/Electronic Jack.png", "Electronic Jack");
+export const TripScheduleIcon = ImageIcon("/assets/icons/Trip Schedule.png", "Trip Schedule");
+export const FuelCardIcon = ImageIcon("/assets/icons/Fuel Card.png", "Fuel Card");
+export const SatellitePhoneIcon = ImageIcon("/assets/icons/Satellite Phone.png", "Satellite Phone");
+export const WheelChocksIcon = ImageIcon("/assets/icons/Wheel Chocks.png", "Wheel Chocks");
+export const DefibrillatorIcon = ImageIcon("/assets/icons/defibrillator.png", "Defibrillator");
+export const PhoneCableIcon = ImageIcon("/assets/icons/phone cable.png", "Phone Cable");
+
 // EV-Specific Custom SVG Icons
 export const EVMotorIcon = ({ size = 20, className = "" }: { size?: number, className?: string }) => (
   React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", className },

@@ -177,10 +177,32 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   {isRTL ? 'استمارة TBT' : 'TBT Form'}
                 </h3>
                 <p className="text-[11px] text-gray-400 font-bold leading-relaxed">
-                  {isRTL ? 'اجتماع نقاش أدوات السلامة قبل الرحلة' : 'Toolbox Talk safety meeting before journey'}
+                  {isRTL ? 'إجتماع السلامة قبل الرحلة' : 'Toolbox Talk safety meeting before journey'}
                 </p>
               </div>
               <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-indigo-600 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 uppercase tracking-widest">
+                {isRTL ? 'فتح الاستمارة' : 'Open Form'}
+                {isRTL ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
+              </div>
+            </button>
+
+            {/* Post-Maintenance Acceptance Form Card */}
+            <button 
+              onClick={() => setCurrentView('post_maintenance')}
+              className="group bg-white/80 backdrop-blur-lg p-5 rounded-[1.25rem] border border-gray-200/60 shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-amber-500/10 hover:border-amber-300 hover:-translate-y-1 transition-all duration-300 text-start flex flex-col h-full"
+            >
+              <div className="p-3 bg-amber-50 text-amber-600 rounded-xl w-fit group-hover:scale-105 transition-transform duration-300 mb-5">
+                <Wrench size={24} strokeWidth={2.5} />
+              </div>
+              <div className="space-y-1.5 flex-1">
+                <h3 className="text-base font-black text-gray-900 group-hover:text-amber-600 transition-colors">
+                  {isRTL ? 'استلام حافلة بعد الصيانة' : 'Post-Maintenance Acceptance'}
+                </h3>
+                <p className="text-[11px] text-gray-400 font-bold leading-relaxed">
+                  {isRTL ? 'فحص استلام الحافلات بعد الصيانة' : 'Post-maintenance bus acceptance checklist'}
+                </p>
+              </div>
+              <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-amber-600 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 uppercase tracking-widest">
                 {isRTL ? 'فتح الاستمارة' : 'Open Form'}
                 {isRTL ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
               </div>

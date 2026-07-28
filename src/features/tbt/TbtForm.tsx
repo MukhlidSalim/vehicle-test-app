@@ -6,6 +6,9 @@ import {
 } from 'lucide-react';
 import { TBT_TOPICS } from './tbtConfig';
 import { SignaturePad } from '../../components/SignaturePad';
+import { TbtData } from '../../types';
+import { CustomDatePicker } from '../../components/CustomDatePicker';
+import { CustomTimePicker } from '../../components/CustomTimePicker';
 import { TbtReport } from './TbtReport';
 
 export interface DriverInfo {
@@ -187,8 +190,8 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
       </div>
 
       {alertMsg && (
-        <div className="bg-red-50 border border-red-200 text-red-600 px-6 py-4 rounded-2xl font-bold text-sm shadow-sm flex items-center gap-3 animate-fade-in">
-          <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></div>
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[100] bg-red-50 border-2 border-red-200 text-red-700 px-8 py-6 rounded-2xl font-black text-lg shadow-2xl flex flex-col items-center gap-3 animate-fade-in text-center max-w-[85vw] backdrop-blur-sm">
+          <AlertTriangle size={36} className="text-red-500 mb-1 animate-pulse" />
           {alertMsg}
         </div>
       )}
@@ -205,11 +208,19 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('التاريخ', 'Date')}</label>
-              <input type="date" value={data.date} onChange={e => setData({...data, date: e.target.value})} className="w-full p-3.5 border border-gray-300 rounded-xl outline-none font-bold text-base transition-all duration-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white" />
+              <CustomDatePicker
+                value={data.date}
+                onChange={val => setData({...data, date: val})}
+                isRTL={isRTL}
+              />
             </div>
             <div className="space-y-2">
               <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('الوقت', 'Time')}</label>
-              <input type="time" value={data.time} onChange={e => setData({...data, time: e.target.value})} className="w-full p-3.5 border border-gray-300 rounded-xl outline-none font-bold text-base transition-all duration-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white" />
+              <CustomTimePicker
+                value={data.time}
+                onChange={val => setData({...data, time: val})}
+                isRTL={isRTL}
+              />
             </div>
             
             <div className="space-y-2 md:col-span-2">
@@ -241,8 +252,8 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
 
         {/* Section 2: Topic Selection & Discussion */}
         <section className="space-y-4">
-          <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start px-2">
-            {t('موضوع النقاش (TBT Topic)', 'Discussion Topic')}
+          <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start">
+            {t('موضوع السلامة', 'Discussion Topic')}
           </h2>
           
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300 space-y-6">
@@ -353,7 +364,7 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
         {/* Section 3: Drivers */}
         <section className="space-y-4">
           <div className="flex items-center justify-between px-2">
-            <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start">{t('المشاركون (السائقين)', 'Participants (Drivers)')}</h2>
+            <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start">{t('السائقين', 'Participants (Drivers)')}</h2>
             <button onClick={addDriver} className="px-4 py-2 bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
               <Plus size={16} /> {t('إضافة سائق', 'Add Driver')}
             </button>
@@ -390,7 +401,7 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
             {data.type === 'remote' && (
               <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-xl flex items-start gap-3 text-sm font-bold mt-2">
                 <div className="mt-0.5"><MapPin size={18} /></div>
-                <p>{t('بما أن الاجتماع تم عن بُعد، لا يُشترط أخذ تواقيع السائقين في هذا النموذج.', 'Since the meeting is remote, physical driver signatures are not required.')}</p>
+                <p>{t('الاجتماع تم عن بُعد، لا يوجد تواقيع للسائقين', 'Since the meeting is remote, physical driver signatures are not required.')}</p>
               </div>
             )}
           </div>

@@ -167,6 +167,23 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, lab
     }
   };
 
+  const handleUndo = () => {
+    if (strokesRef.current.length > 0) {
+      strokesRef.current.pop();
+      redraw();
+      const canvas = canvasRef.current;
+      if (canvas) {
+        if (strokesRef.current.length === 0 && !initialLoadedRef.current) {
+          onClear();
+        } else {
+          onSave(canvas.toDataURL('image/png'));
+        }
+      }
+    } else if (initialLoadedRef.current) {
+      handleClear();
+    }
+  };
+
   const handleClear = () => {
     strokesRef.current = [];
     currentStrokeRef.current = [];
@@ -180,9 +197,14 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, lab
     <div className="flex flex-col gap-2 w-full" data-error={error ? "true" : "false"}>
       <div className="flex justify-between items-center px-1">
         <label className="text-sm font-black text-gray-700">{label}</label>
-        <button type="button" onClick={handleClear} className="text-[11px] bg-red-50 text-red-600 px-3 py-1 rounded-full font-bold hover:bg-red-100 transition-colors active:scale-95">
-          {isRTL ? 'مسح' : 'Clear'}
-        </button>
+        <div className="flex gap-2">
+          <button type="button" onClick={handleUndo} className="text-[11px] bg-gray-100 text-gray-700 px-3 py-1 rounded-full font-bold hover:bg-gray-200 transition-colors active:scale-95 flex items-center gap-1">
+            {isRTL ? 'تراجع' : 'Undo'}
+          </button>
+          <button type="button" onClick={handleClear} className="text-[11px] bg-red-50 text-red-600 px-3 py-1 rounded-full font-bold hover:bg-red-100 transition-colors active:scale-95">
+            {isRTL ? 'مسح' : 'Clear'}
+          </button>
+        </div>
       </div>
       <div 
         className={`relative w-full h-40 bg-gray-50/50 rounded-xl border-2 transition-colors overflow-hidden touch-none group ${

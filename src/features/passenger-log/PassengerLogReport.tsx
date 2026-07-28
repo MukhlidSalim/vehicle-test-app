@@ -1,9 +1,10 @@
 import React, { useRef, useState } from 'react';
 import {
   Users, Bus, Clock, MapPin, Hash, User,
-  Calendar, FileText, ArrowLeftRight, Truck
+  Calendar, FileText, ArrowLeftRight, Truck, Download
 } from 'lucide-react';
 import { DayInfo, Trip } from '../../hooks/usePassengerLogSession';
+import { ReportPageFooter } from '../../components/ReportPageFooter';
 
 interface Props {
   dayInfo: DayInfo;
@@ -277,7 +278,9 @@ export const PassengerLogReport: React.FC<Props> = ({ dayInfo, trips, isRTL }) =
                 </div>
               </div>
             )}
+            
           </div>
+          <ReportPageFooter showText={true} isRTL={isRTL} />
         </div>
       </div>
 

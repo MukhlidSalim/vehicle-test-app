@@ -448,6 +448,27 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
     );
   };
 
+  // Determine page visibilities to correctly place the footer on the last page ONLY.
+  const _isVehicleOrMaintenance = data.mode === 'full' || data.mode === 'vehicle_only' || data.mode === 'maintenance';
+  const _hasPage1 = _isVehicleOrMaintenance;
+  const _hasPage2 = data.mode === 'maintenance' && data.checklist.length > 36;
+  const _hasUnifiedEvidencePages = _isVehicleOrMaintenance && unifiedEvidencePages.length > 0;
+  
+  const _hasPhotoEvidencePages = (data.mode === 'full' || data.mode === 'driver_only') && hasEvidencePage && photoEvidencePages.length > 0;
+  
+  const _allTextItems = data.checklist.filter(i => (i.status === 'fail' || i.status === 'warning') && i.remarks?.trim());
+  const _hasExtras = Boolean(data.additionalNotes || data.tyrePressures);
+  const _hasTextNotesPage = (data.mode === 'full' || data.mode === 'driver_only') && hasEvidencePage && (_allTextItems.length > 0 || _hasExtras);
+  
+  const _hasDriverReadinessPage = (data.mode === 'full' || data.mode === 'driver_only');
+
+  const showFooterOnPage1 = _hasPage1 && !_hasPage2 && !_hasUnifiedEvidencePages && !_hasPhotoEvidencePages && !_hasTextNotesPage && !_hasDriverReadinessPage;
+  const showFooterOnPage2 = _hasPage2 && !_hasUnifiedEvidencePages && !_hasPhotoEvidencePages && !_hasTextNotesPage && !_hasDriverReadinessPage;
+  const isFooterOnUnified = (idx: number) => idx === unifiedEvidencePages.length - 1 && !_hasPhotoEvidencePages && !_hasTextNotesPage && !_hasDriverReadinessPage;
+  const isFooterOnPhoto = (idx: number) => idx === photoEvidencePages.length - 1 && !_hasTextNotesPage && !_hasDriverReadinessPage;
+  const showFooterOnText = _hasTextNotesPage && !_hasDriverReadinessPage;
+  const showFooterOnReadiness = _hasDriverReadinessPage;
+
   return (
     <div className="space-y-10 pb-20">
        {/* Generate Loading State Overlay */}
@@ -581,13 +602,15 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
           </div>
        </div>
 
+
+
        {/* A4 Report Pages Render */}
        <div className="flex flex-col items-center gap-0 no-scrollbar w-full px-2" id="print-zone">
           {/* Page 1: Vehicle Checklist and Body Map */}
           {(data.mode === 'full' || data.mode === 'vehicle_only' || data.mode === 'maintenance') && (
             <ScaledPreview>
               <div className="ui-preview-card h-fit">
-                <div className="a4-preview-wrapper font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
+                <div className="a4-preview-wrapper relative font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
                   <CompactReportHeader titleSuffix={data.mode === 'maintenance' ? (isRTL ? `تقرير قسم الصيانة - ${vTypeLabel}` : `Maintenance Inspection Report - ${vTypeLabel}`) : (isRTL ? `فحص المركبة - ${vTypeLabel}` : `Vehicle Inspection - ${vTypeLabel}`)} lang={lang} />
                   <CompactInfoGrid data={data} t={t} lang={lang} />
                   <div className="flex-1 flex flex-col gap-0">
@@ -719,7 +742,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                       </div>
                     )}
                   </div>
-                  <ReportPageFooter isRTL={isRTL} lang={lang} pageNumber={1} />
+                  <ReportPageFooter showText={showFooterOnPage1} isRTL={isRTL} lang={lang} pageNumber={1} />
                 </div>
               </div>
             </ScaledPreview>
@@ -729,7 +752,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
           {(data.mode === 'maintenance' && data.checklist.length > 36) && (
             <ScaledPreview>
               <div className="ui-preview-card h-fit">
-                <div className="a4-preview-wrapper font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
+                <div className="a4-preview-wrapper relative font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
                   <CompactReportHeader titleSuffix={data.mode === 'maintenance' ? (isRTL ? "تقرير فحص الصيانة - تكملة" : "Maintenance Inspection - Continued") : ""} lang={lang} />
                   <div className="flex-1 flex flex-col gap-0 mt-2">
                     <div className="mb-1">
@@ -858,7 +881,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                         </div>
                     </div>
                   </div>
-                  <ReportPageFooter />
+                  <ReportPageFooter showText={showFooterOnPage2} isRTL={isRTL} lang={lang} />
                 </div>
               </div>
             </ScaledPreview>
@@ -868,7 +891,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
           {isVehicleOrMaintenance && unifiedEvidencePages.map((page, pageIndex) => (
             <ScaledPreview key={`unified-page-${pageIndex}`}>
               <div className="ui-preview-card h-fit">
-                <div className="a4-preview-wrapper fixed-a4-height font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
+                <div className="a4-preview-wrapper relative fixed-a4-height font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
                   <CompactReportHeader
                     titleSuffix={isRTL ? `الملاحظات والملخص (${pageIndex + 1}/${unifiedEvidencePages.length})` : `Evidence & Summary (${pageIndex + 1}/${unifiedEvidencePages.length})`}
                     lang={lang}
@@ -1054,7 +1077,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                     })}
                   </div>
                   
-                  <ReportPageFooter />
+                  <ReportPageFooter showText={isFooterOnUnified(pageIndex)} isRTL={isRTL} lang={lang} />
                 </div>
               </div>
             </ScaledPreview>
@@ -1067,7 +1090,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
               {photoEvidencePages.map((page, pageIndex) => (
                 <ScaledPreview key={`photo-notes-${pageIndex}`}>
                   <div className="ui-preview-card h-fit">
-                    <div className="a4-preview-wrapper font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
+                    <div className="a4-preview-wrapper relative font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
                       <CompactReportHeader
                         titleSuffix={
                           isRTL
@@ -1165,7 +1188,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                       </div>
 
                       {placeSigOnLastPhotoPage && pageIndex === photoEvidencePages.length - 1 && renderSummaryAndSignatures()}
-                      <ReportPageFooter />
+                      <ReportPageFooter showText={isFooterOnPhoto(pageIndex)} isRTL={isRTL} lang={lang} />
                     </div>
                   </div>
                 </ScaledPreview>
@@ -1182,7 +1205,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                 return (
                   <ScaledPreview>
                     <div className="ui-preview-card h-fit">
-                      <div className="a4-preview-wrapper font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
+                      <div className="a4-preview-wrapper relative font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
                         <CompactReportHeader
                           titleSuffix={isRTL ? 'الملاحظات والبيانات الإضافية' : 'Notes & Additional Data'}
                           lang={lang}
@@ -1331,7 +1354,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
 
                         {placeSigOnTextNotesPage && renderSummaryAndSignatures()}
 
-                        <ReportPageFooter />
+                        <ReportPageFooter showText={showFooterOnText} isRTL={isRTL} lang={lang} />
                       </div>
                     </div>
                   </ScaledPreview>
@@ -1344,7 +1367,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
           {(data.mode === 'full' || data.mode === 'driver_only') && (
             <ScaledPreview>
               <div className="ui-preview-card h-fit">
-                <div className="a4-preview-wrapper font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
+                <div className="a4-preview-wrapper relative font-cairo flex flex-col report-light" dir={isRTL ? 'rtl' : 'ltr'} lang={isRTL ? 'ar' : 'en'}>
                   <CompactReportHeader titleSuffix={isRTL ? "جاهزية السائق" : "Driver Readiness"} lang={lang} />
                   <CompactInfoGrid data={data} t={t} lang={lang} />
                   <div className="space-y-4 mt-4 mb-4">
@@ -1382,7 +1405,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
 
                   {(data.mode === 'full' || data.mode === 'driver_only') && renderSignatures()}
 
-                  <ReportPageFooter />
+                  <ReportPageFooter showText={showFooterOnReadiness} isRTL={isRTL} lang={lang} />
                 </div>
               </div>
             </ScaledPreview>
