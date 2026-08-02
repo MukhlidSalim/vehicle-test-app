@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Download, Share2, CheckCircle, XCircle, Truck, User, FileText, Clock, MapPin } from 'lucide-react';
 import { HandoverData } from './HandoverForm';
 import { captureNode } from '../../utils/pdfGenerator';
+import { ScaledPreview } from '../../components/ScaledPreview';
 import { ReportPageFooter } from '../../components/ReportPageFooter';
 import { jsPDF } from 'jspdf';
 import { VEHICLE_TYPES_OPTIONS } from './handoverConfig';
@@ -109,221 +110,224 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
     <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* ===== REPORT CONTENT ===== */}
       <div className="flex justify-center w-full pb-4">
-        <div
-          ref={reportRef}
-          className="bg-white relative overflow-hidden w-full max-w-[794px]"
-          style={{
-            minHeight: '1123px',
-            fontFamily: 'Cairo, sans-serif',
-            direction: isRTL ? 'rtl' : 'ltr',
-          }}
-        >
-          {/* Watermark */}
-          <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center opacity-[0.03] select-none z-0">
-            <Truck size={350} />
-            <h1 className="text-7xl font-black mt-10">{isRTL ? config.formTitleAr : config.formTitleEn}</h1>
-          </div>
-
-          <div className="p-4 sm:p-8 space-y-6 relative z-10">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-gray-800 to-gray-700 p-6 rounded-2xl text-center text-white shadow-lg">
-              <div className="flex items-center justify-center gap-3 mb-2">
-                <Truck size={28} className="text-blue-400" />
-                <h1 className="text-2xl font-black tracking-tight">
-                  {isRTL ? config.formTitleAr : config.formTitleEn} - {isRTL ? (personRole === 'sender' ? 'تسليم' : 'استلام') : (personRole === 'sender' ? 'Handover' : 'Receive')}
-                </h1>
-              </div>
-              <p className="text-gray-300 text-xs font-bold uppercase tracking-widest">
-                {t('نظام فحص المركبات', 'Vehicle Inspection System')}
-              </p>
+        <ScaledPreview>
+          <div
+            ref={reportRef}
+            className="bg-white relative overflow-hidden w-full max-w-[794px]"
+            style={{
+              minHeight: '1123px',
+              width: '794px', // Hardcode to match A4
+              fontFamily: 'Cairo, sans-serif',
+              direction: isRTL ? 'rtl' : 'ltr',
+            }}
+          >
+            {/* Watermark */}
+            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center opacity-[0.03] select-none z-0">
+              <Truck size={350} />
+              <h1 className="text-7xl font-black mt-10">{isRTL ? config.formTitleAr : config.formTitleEn}</h1>
             </div>
 
-            {/* Vehicle Info */}
-            <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center gap-2">
-                <Truck size={16} className="text-gray-600" />
-                <h2 className="text-sm font-black text-gray-800">{t('بيانات المركبة', 'Vehicle Information')}</h2>
+            <div className="p-4 sm:p-8 space-y-6 relative z-10">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-gray-800 to-gray-700 p-6 rounded-2xl text-center text-white shadow-lg">
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <Truck size={28} className="text-blue-400" />
+                  <h1 className="text-2xl font-black tracking-tight">
+                    {isRTL ? config.formTitleAr : config.formTitleEn} - {isRTL ? (personRole === 'sender' ? 'تسليم' : 'استلام') : (personRole === 'sender' ? 'Handover' : 'Receive')}
+                  </h1>
+                </div>
+                <p className="text-gray-300 text-xs font-bold uppercase tracking-widest">
+                  {t('نظام فحص المركبات', 'Vehicle Inspection System')}
+                </p>
               </div>
-              <div className="grid grid-cols-3 divide-x rtl:divide-x-reverse divide-gray-100">
-                <div className="p-4 bg-white">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('رقم اللوحة', 'Plate No.')}</div>
-                  <div className="text-lg font-black text-gray-900">{vehiclePlate}</div>
-                </div>
-                <div className="p-4 bg-white">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('نوع المركبة', 'Vehicle Type')}</div>
-                  <div className="text-base font-bold text-gray-900 mt-1">{vehicleLabel}</div>
-                </div>
-                <div className="p-4 bg-white">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('عداد المسافة', 'Odometer')}</div>
-                  <div className="text-base font-bold text-gray-900 mt-1">{odometer ? `${odometer} km` : '-'}</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 divide-x rtl:divide-x-reverse divide-gray-100 border-t border-gray-100">
-                <div className="p-4 bg-white">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('الموقع', 'Location')}</div>
-                  <div className="text-sm font-bold text-gray-900">{location || '-'}</div>
-                </div>
-                <div className="p-4 bg-white">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('انتهاء الملكية', 'ROP Expiry')}</div>
-                  <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                    {formatStringDDMMYYYY(ropExpiry) || '-'}
-                    {ropExpiry && ropExpiry < new Date().toISOString().split('T')[0] && (
-                      <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 whitespace-nowrap">
-                        {isRTL ? '(منتهي)' : '(Expired)'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="p-4 bg-white">
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{isRTL ? config.expiryLabel2Ar : config.expiryLabel2En}</div>
-                  <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                    {formatStringDDMMYYYY(opalExpiry) || (isRTL ? 'لا توجد رخصة أوبال لهذه المركبة' : 'No OPAL license for this vehicle')}
-                    {opalExpiry && opalExpiry < new Date().toISOString().split('T')[0] && (
-                      <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 whitespace-nowrap">
-                        {isRTL ? '(منتهي)' : '(Expired)'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Extra Fields (Ambulance) */}
-            {extraFields && Object.keys(extraFields).length > 0 && (
+              {/* Vehicle Info */}
               <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                 <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center gap-2">
-                  <MapPin size={16} className="text-red-500" />
-                  <h2 className="text-sm font-black text-gray-800">{t('بيانات إضافية', 'Additional Information')}</h2>
+                  <Truck size={16} className="text-gray-600" />
+                  <h2 className="text-sm font-black text-gray-800">{t('بيانات المركبة', 'Vehicle Information')}</h2>
                 </div>
-                <div className="grid grid-cols-2 divide-x rtl:divide-x-reverse divide-gray-100 bg-white">
-                  {config.extraFields.map(field => (
-                    extraFields[field.id] ? (
-                      <div key={field.id} className="p-4">
-                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{isRTL ? field.labelAr : field.labelEn}</div>
-                        <div className="text-sm font-bold text-gray-900 whitespace-pre-wrap">{extraFields[field.id]}</div>
-                      </div>
-                    ) : null
-                  ))}
+                <div className="grid grid-cols-3 divide-x rtl:divide-x-reverse divide-gray-100">
+                  <div className="p-4 bg-white">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('رقم اللوحة', 'Plate No.')}</div>
+                    <div className="text-lg font-black text-gray-900">{vehiclePlate}</div>
+                  </div>
+                  <div className="p-4 bg-white">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('نوع المركبة', 'Vehicle Type')}</div>
+                    <div className="text-base font-bold text-gray-900 mt-1">{vehicleLabel}</div>
+                  </div>
+                  <div className="p-4 bg-white">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('عداد المسافة', 'Odometer')}</div>
+                    <div className="text-base font-bold text-gray-900 mt-1">{odometer ? `${odometer} km` : '-'}</div>
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* Checklist */}
-            <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center gap-2">
-                <FileText size={16} className="text-gray-600" />
-                <h2 className="text-sm font-black text-gray-800">{t('قائمة الفحص والمعدات', 'Inspection & Equipment')}</h2>
-              </div>
-              <div className="grid grid-cols-2 divide-x rtl:divide-x-reverse divide-gray-100 bg-white">
-                {items.map((item, i) => {
-                  const getLabelForValue = (val: string) => {
-                    const map: Record<string, {ar: string, en: string}> = {
-                      'full': { ar: 'ممتلئ (100%)', en: 'Full (100%)' },
-                      '3_4': { ar: '3/4', en: '3/4' },
-                      '1_2': { ar: 'نصف (50%)', en: 'Half (50%)' },
-                      '1_4': { ar: '1/4', en: '1/4' },
-                      'empty': { ar: 'فارغ', en: 'Empty' },
-                      'clean': { ar: 'نظيفة', en: 'Clean' },
-                      'acceptable': { ar: 'مقبولة', en: 'Acceptable' },
-                      'dirty': { ar: 'تحتاج غسيل', en: 'Needs Wash' },
-                      'present_complete': { ar: 'موجودة ومكتملة', en: 'Present & Complete' },
-                      'present_incomplete': { ar: 'موجودة وغير مكتملة', en: 'Present, Incomplete' },
-                      'complete': { ar: 'مكتملة', en: 'Complete' },
-                      'needs_completion': { ar: 'تحتاج استكمال', en: 'Needs Completion' },
-                      'present_good': { ar: 'موجود وسليم', en: 'Present & Good' },
-                      'present_needs_maintenance': { ar: 'موجود ويحتاج صيانة', en: 'Present, Needs Maintenance' },
-                      'present_valid': { ar: 'موجودة وصالحة', en: 'Present & Valid' },
-                      'present_expired': { ar: 'موجودة ومنتهية الصلاحية', en: 'Present, Expired' },
-                      'missing': { ar: 'غير موجود', en: 'Missing' },
-                      'working': { ar: 'يعمل', en: 'Working' },
-                      'not_working': { ar: 'لا يعمل', en: 'Not Working' },
-                      'not_available': { ar: 'غير متوفر', en: 'Not Available' },
-                      'present_working': { ar: 'موجود ويعمل', en: 'Present & Working' },
-                      'present_not_working': { ar: 'موجود ولا يعمل', en: 'Present & Not Working' },
-                      'present': { ar: 'موجود', en: 'Present' },
-                      'batt_100': { ar: '100%', en: '100%' },
-                      'batt_75': { ar: '75%', en: '75%' },
-                      'batt_50': { ar: '50%', en: '50%' },
-                      'batt_25': { ar: '25%', en: '25%' },
-                      'batt_less_25': { ar: 'أقل من 25%', en: '< 25%' },
-                    };
-                    return map[val] ? (isRTL ? map[val].ar : map[val].en) : val;
-                  };
-
-                  return (
-                    <div key={item.id} className={`p-2.5 border-b border-gray-100 ${item.status === 'bad' ? 'bg-red-50/50' : ''}`}>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          {item.icon ? (
-                            <item.icon size={14} className={`shrink-0 ${item.status === 'good' ? 'text-emerald-500' : 'text-red-500'}`} />
-                          ) : item.status === 'good' ? (
-                            <CheckCircle size={14} className="text-emerald-500 shrink-0" />
-                          ) : (
-                            <XCircle size={14} className="text-red-500 shrink-0" />
-                          )}
-                          <span className={`text-xs font-bold ${item.status === 'good' ? 'text-gray-800' : 'text-red-600'}`}>
-                            {isRTL ? item.labelAr : item.labelEn}
-                          </span>
-                        </div>
-                        
-                        {(item.answerType === 'count' || item.hasCount) && item.count && (
-                          <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 shrink-0">
-                            {item.count}
-                          </span>
-                        )}
-                        
-                        {item.answerType !== 'binary' && item.answerType !== 'count' && item.answerValue && (
-                          <span className="text-[10px] font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 shrink-0 text-center">
-                            {getLabelForValue(item.answerValue)}
-                          </span>
-                        )}
-                      </div>
-                      
-                      {item.status === 'bad' && item.note && (
-                        <div className="mt-1 ms-5 text-[9px] font-bold text-red-500">
-                          <span className="opacity-80 me-1">{t('ملاحظة:', 'Note:')}</span>
-                          {item.note}
-                        </div>
+                <div className="grid grid-cols-3 divide-x rtl:divide-x-reverse divide-gray-100 border-t border-gray-100">
+                  <div className="p-4 bg-white">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('الموقع', 'Location')}</div>
+                    <div className="text-sm font-bold text-gray-900">{location || '-'}</div>
+                  </div>
+                  <div className="p-4 bg-white">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('انتهاء الملكية', 'ROP Expiry')}</div>
+                    <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                      {formatStringDDMMYYYY(ropExpiry) || '-'}
+                      {ropExpiry && ropExpiry < new Date().toISOString().split('T')[0] && (
+                        <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 whitespace-nowrap">
+                          {isRTL ? '(منتهي)' : '(Expired)'}
+                        </span>
                       )}
                     </div>
-                  );
-                })}
+                  </div>
+                  <div className="p-4 bg-white">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{isRTL ? config.expiryLabel2Ar : config.expiryLabel2En}</div>
+                    <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                      {formatStringDDMMYYYY(opalExpiry) || (isRTL ? 'لا توجد رخصة أوبال لهذه المركبة' : 'No OPAL license for this vehicle')}
+                      {opalExpiry && opalExpiry < new Date().toISOString().split('T')[0] && (
+                        <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 whitespace-nowrap">
+                          {isRTL ? '(منتهي)' : '(Expired)'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              {/* Extra Fields (Ambulance) */}
+              {extraFields && Object.keys(extraFields).length > 0 && (
+                <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                  <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+                    <MapPin size={16} className="text-red-500" />
+                    <h2 className="text-sm font-black text-gray-800">{t('بيانات إضافية', 'Additional Information')}</h2>
+                  </div>
+                  <div className="grid grid-cols-2 divide-x rtl:divide-x-reverse divide-gray-100 bg-white">
+                    {config.extraFields.map(field => (
+                      extraFields[field.id] ? (
+                        <div key={field.id} className="p-4">
+                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{isRTL ? field.labelAr : field.labelEn}</div>
+                          <div className="text-sm font-bold text-gray-900 whitespace-pre-wrap">{extraFields[field.id]}</div>
+                        </div>
+                      ) : null
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Checklist */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+                  <FileText size={16} className="text-gray-600" />
+                  <h2 className="text-sm font-black text-gray-800">{t('قائمة الفحص والمعدات', 'Inspection & Equipment')}</h2>
+                </div>
+                <div className="grid grid-cols-2 divide-x rtl:divide-x-reverse divide-gray-100 bg-white">
+                  {items.map((item, i) => {
+                    const getLabelForValue = (val: string) => {
+                      const map: Record<string, {ar: string, en: string}> = {
+                        'full': { ar: 'ممتلئ (100%)', en: 'Full (100%)' },
+                        '3_4': { ar: '3/4', en: '3/4' },
+                        '1_2': { ar: 'نصف (50%)', en: 'Half (50%)' },
+                        '1_4': { ar: '1/4', en: '1/4' },
+                        'empty': { ar: 'فارغ', en: 'Empty' },
+                        'clean': { ar: 'نظيفة', en: 'Clean' },
+                        'acceptable': { ar: 'مقبولة', en: 'Acceptable' },
+                        'dirty': { ar: 'تحتاج غسيل', en: 'Needs Wash' },
+                        'present_complete': { ar: 'موجودة ومكتملة', en: 'Present & Complete' },
+                        'present_incomplete': { ar: 'موجودة وغير مكتملة', en: 'Present, Incomplete' },
+                        'complete': { ar: 'مكتملة', en: 'Complete' },
+                        'needs_completion': { ar: 'تحتاج استكمال', en: 'Needs Completion' },
+                        'present_good': { ar: 'موجود وسليم', en: 'Present & Good' },
+                        'present_needs_maintenance': { ar: 'موجود ويحتاج صيانة', en: 'Present, Needs Maintenance' },
+                        'present_valid': { ar: 'موجودة وصالحة', en: 'Present & Valid' },
+                        'present_expired': { ar: 'موجودة ومنتهية الصلاحية', en: 'Present, Expired' },
+                        'missing': { ar: 'غير موجود', en: 'Missing' },
+                        'working': { ar: 'يعمل', en: 'Working' },
+                        'not_working': { ar: 'لا يعمل', en: 'Not Working' },
+                        'not_available': { ar: 'غير متوفر', en: 'Not Available' },
+                        'present_working': { ar: 'موجود ويعمل', en: 'Present & Working' },
+                        'present_not_working': { ar: 'موجود ولا يعمل', en: 'Present & Not Working' },
+                        'present': { ar: 'موجود', en: 'Present' },
+                        'batt_100': { ar: '100%', en: '100%' },
+                        'batt_75': { ar: '75%', en: '75%' },
+                        'batt_50': { ar: '50%', en: '50%' },
+                        'batt_25': { ar: '25%', en: '25%' },
+                        'batt_less_25': { ar: 'أقل من 25%', en: '< 25%' },
+                      };
+                      return map[val] ? (isRTL ? map[val].ar : map[val].en) : val;
+                    };
+
+                    return (
+                      <div key={item.id} className={`p-2.5 border-b border-gray-100 ${item.status === 'bad' ? 'bg-red-50/50' : ''}`}>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            {item.icon ? (
+                              <item.icon size={14} className={`shrink-0 ${item.status === 'good' ? 'text-emerald-500' : 'text-red-500'}`} />
+                            ) : item.status === 'good' ? (
+                              <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                            ) : (
+                              <XCircle size={14} className="text-red-500 shrink-0" />
+                            )}
+                            <span className={`text-xs font-bold ${item.status === 'good' ? 'text-gray-800' : 'text-red-600'}`}>
+                              {isRTL ? item.labelAr : item.labelEn}
+                            </span>
+                          </div>
+                          
+                          {(item.answerType === 'count' || item.hasCount) && item.count && (
+                            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 shrink-0">
+                              {item.count}
+                            </span>
+                          )}
+                          
+                          {item.answerType !== 'binary' && item.answerType !== 'count' && item.answerValue && (
+                            <span className="text-[10px] font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 shrink-0 text-center">
+                              {getLabelForValue(item.answerValue)}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {item.status === 'bad' && item.note && (
+                          <div className="mt-1 ms-5 text-[9px] font-bold text-red-500">
+                            <span className="opacity-80 me-1">{t('ملاحظة:', 'Note:')}</span>
+                            {item.note}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Remarks */}
+              {notes && (
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                  <div className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-2">{isRTL ? `ملاحظات ${personRole === 'sender' ? config.senderLabelAr : config.receiverLabelAr}` : `${personRole === 'sender' ? config.senderLabelEn : config.receiverLabelEn} Remarks`}</div>
+                  <p className="text-sm font-bold text-blue-900">{notes}</p>
+                </div>
+              )}
+
+              {/* Signature */}
+              <div className="border border-blue-200 rounded-xl overflow-hidden bg-white shadow-sm mt-8">
+                <div className="bg-blue-50 px-4 py-3 border-b border-blue-200 flex items-center gap-2">
+                  <User size={16} className="text-blue-600" />
+                  <span className="text-sm font-black text-blue-800">{isRTL ? (personRole === 'sender' ? config.senderLabelAr : config.receiverLabelAr) : (personRole === 'sender' ? config.senderLabelEn : config.receiverLabelEn)}</span>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('الاسم', 'Name')}</div>
+                    <div className="text-base font-black text-gray-900">{personName}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{t('التوقيع', 'Signature')}</div>
+                    {renderSig(signature)}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 mt-2">
+                    <Clock size={12} />
+                    {formatDate(date)}
+                  </div>
+                </div>
+              </div>
+
             </div>
-
-            {/* Remarks */}
-            {notes && (
-              <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                <div className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-2">{isRTL ? `ملاحظات ${personRole === 'sender' ? config.senderLabelAr : config.receiverLabelAr}` : `${personRole === 'sender' ? config.senderLabelEn : config.receiverLabelEn} Remarks`}</div>
-                <p className="text-sm font-bold text-blue-900">{notes}</p>
-              </div>
-            )}
-
-            {/* Signature */}
-            <div className="border border-blue-200 rounded-xl overflow-hidden bg-white shadow-sm mt-8">
-              <div className="bg-blue-50 px-4 py-3 border-b border-blue-200 flex items-center gap-2">
-                <User size={16} className="text-blue-600" />
-                <span className="text-sm font-black text-blue-800">{isRTL ? (personRole === 'sender' ? config.senderLabelAr : config.receiverLabelAr) : (personRole === 'sender' ? config.senderLabelEn : config.receiverLabelEn)}</span>
-              </div>
-              <div className="p-5 space-y-4">
-                <div>
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('الاسم', 'Name')}</div>
-                  <div className="text-base font-black text-gray-900">{personName}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{t('التوقيع', 'Signature')}</div>
-                  {renderSig(signature)}
-                </div>
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 mt-2">
-                  <Clock size={12} />
-                  {formatDate(date)}
-                </div>
-              </div>
-            </div>
-
+            <ReportPageFooter showText={true} isRTL={isRTL} />
           </div>
-          <ReportPageFooter showText={true} isRTL={isRTL} />
-        </div>
+        </ScaledPreview>
       </div>
 
       {/* ===== ACTION BUTTONS ===== */}

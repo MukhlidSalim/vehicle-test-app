@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Download, Share2, Edit2, Loader2, CheckCircle2, ArrowRight } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { captureNode } from '../../utils/pdfGenerator';
+import { ScaledPreview } from '../../components/ScaledPreview';
 import { ReportPageFooter } from '../../components/ReportPageFooter';
 import { TbtData } from './TbtForm';
 import { TBT_TOPICS } from './tbtConfig';
@@ -82,19 +83,20 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
 
 
       {/* A4 Report Container */}
-      <div className="overflow-x-auto bg-gray-50 p-4 sm:p-8 rounded-3xl border border-gray-200">
-        <div 
-          ref={reportRef}
-          className="bg-white mx-auto shadow-2xl relative"
-          style={{ 
-            width: '210mm', 
-            minHeight: '297mm', 
-            padding: '20mm',
-            color: '#000',
-            fontFamily: isRTL ? 'Cairo, sans-serif' : 'Arial, sans-serif'
-          }}
-          dir={isRTL ? 'rtl' : 'ltr'}
-        >
+      <div className="flex justify-center w-full pb-4">
+        <ScaledPreview>
+          <div 
+            ref={reportRef}
+            className="bg-white mx-auto shadow-2xl relative"
+            style={{ 
+              width: '210mm', 
+              minHeight: '297mm', 
+              padding: '20mm',
+              color: '#000',
+              fontFamily: isRTL ? 'Cairo, sans-serif' : 'Arial, sans-serif'
+            }}
+            dir={isRTL ? 'rtl' : 'ltr'}
+          >
           {/* Header */}
           <div className="flex justify-between items-end border-b-4 border-indigo-900 pb-4 mb-5">
             <div>
@@ -226,7 +228,8 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
           
           <ReportPageFooter showText={true} isRTL={isRTL} />
 
-        </div>
+          </div>
+        </ScaledPreview>
       </div>
 
 

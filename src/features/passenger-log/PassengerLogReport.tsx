@@ -4,6 +4,7 @@ import {
   Calendar, FileText, ArrowLeftRight, Truck, Download
 } from 'lucide-react';
 import { DayInfo, Trip } from '../../hooks/usePassengerLogSession';
+import { ScaledPreview } from '../../components/ScaledPreview';
 import { ReportPageFooter } from '../../components/ReportPageFooter';
 
 interface Props {
@@ -169,15 +170,17 @@ export const PassengerLogReport: React.FC<Props> = ({ dayInfo, trips, isRTL }) =
     <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Report Content */}
       <div className="flex justify-center w-full pb-4">
-        <div
-          ref={reportRef}
-          className="bg-white relative overflow-hidden w-full max-w-[794px]"
-          style={{
-            minHeight: '400px',
-            fontFamily: 'Cairo, sans-serif',
-            direction: isRTL ? 'rtl' : 'ltr',
-          }}
-        >
+        <ScaledPreview>
+          <div
+            ref={reportRef}
+            className="bg-white relative overflow-hidden w-full max-w-[794px]"
+            style={{
+              minHeight: '400px',
+              width: '794px', // Enforce A4 width for PDF generation
+              fontFamily: 'Cairo, sans-serif',
+              direction: isRTL ? 'rtl' : 'ltr',
+            }}
+          >
           <div className="p-2 sm:p-4 space-y-2 relative z-10">
             {/* Day Info */}
             <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
@@ -281,7 +284,8 @@ export const PassengerLogReport: React.FC<Props> = ({ dayInfo, trips, isRTL }) =
             
           </div>
           <ReportPageFooter showText={true} isRTL={isRTL} />
-        </div>
+          </div>
+        </ScaledPreview>
       </div>
 
       {/* Action Buttons */}

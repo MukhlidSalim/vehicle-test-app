@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Download, Share2, CheckCircle, XCircle, Truck, User, FileText, Calendar, Wrench, Settings, ClipboardCheck, ArrowLeft } from 'lucide-react';
 import { PostMaintenanceData, PostMaintenanceStatus } from '../../types';
 import { captureNode } from '../../utils/pdfGenerator';
+import { ScaledPreview } from '../../components/ScaledPreview';
 import { ReportPageFooter } from '../../components/ReportPageFooter';
 import { jsPDF } from 'jspdf';
 import { SECTION_A_ITEMS, SECTION_B_ITEMS, SECTION_C_ITEMS } from './postMaintenanceConfig';
@@ -148,7 +149,8 @@ export const PostMaintenanceReport: React.FC<Props> = ({ data, isRTL, onNewForm,
       <div ref={containerRef} className="space-y-8 flex flex-col items-center w-full print:block print:space-y-0">
         
         {/* ================= PAGE 1 ================= */}
-        <div ref={page1Ref} className="bg-white relative overflow-hidden shadow-lg border border-gray-100 print:shadow-none print:border-none shrink-0" style={pageStyle}>
+        <ScaledPreview>
+          <div ref={page1Ref} className="bg-white relative overflow-hidden shadow-lg border border-gray-100 print:shadow-none print:border-none shrink-0" style={pageStyle}>
           <div className="p-8 space-y-4 relative z-10">
             {/* Header */}
             <div className="bg-gradient-to-r from-gray-800 to-gray-700 p-4 rounded-xl text-center text-white shadow-lg flex items-center justify-between gap-3">
@@ -231,9 +233,11 @@ export const PostMaintenanceReport: React.FC<Props> = ({ data, isRTL, onNewForm,
             <div className="text-center text-[10px] text-gray-400 font-bold pt-2 relative z-10">Page 1 of 3</div>
           </div>
         </div>
+        </ScaledPreview>
 
         {/* ================= PAGE 2 ================= */}
-        <div ref={page2Ref} className="bg-white relative overflow-hidden shadow-lg border border-gray-100 print:shadow-none print:border-none shrink-0 print:break-before-page" style={pageStyle}>
+        <ScaledPreview>
+          <div ref={page2Ref} className="bg-white relative overflow-hidden shadow-lg border border-gray-100 print:shadow-none print:border-none shrink-0 print:break-before-page" style={pageStyle}>
           <div className="p-8 space-y-4 relative z-10 h-full flex flex-col">
             <div className="bg-white border border-gray-200 rounded-lg p-2 shadow-sm flex-1">
                {renderSectionHeader('ب. الفحوصات التشغيلية (جزء 2)', 'B. Functional Checks (Part 2)')}
@@ -244,9 +248,11 @@ export const PostMaintenanceReport: React.FC<Props> = ({ data, isRTL, onNewForm,
             <div className="text-center text-[10px] text-gray-400 font-bold mt-auto pb-4 relative z-10">Page 2 of 3</div>
           </div>
         </div>
+        </ScaledPreview>
 
         {/* ================= PAGE 3 ================= */}
-        <div ref={page3Ref} className="bg-white relative overflow-hidden shadow-lg border border-gray-100 print:shadow-none print:border-none shrink-0 print:break-before-page" style={pageStyle}>
+        <ScaledPreview>
+          <div ref={page3Ref} className="bg-white relative overflow-hidden shadow-lg border border-gray-100 print:shadow-none print:border-none shrink-0 print:break-before-page" style={pageStyle}>
           <div className="p-8 space-y-4 relative z-10 h-full flex flex-col">
             <div className="bg-white border border-gray-200 rounded-lg p-2 shadow-sm">
                {renderSectionHeader('ج. اختبار الطريق والقبول النهائي', 'C. Road Test and Final Acceptance')}
@@ -308,6 +314,7 @@ export const PostMaintenanceReport: React.FC<Props> = ({ data, isRTL, onNewForm,
           </div>
           <ReportPageFooter showText={true} isRTL={isRTL} />
         </div>
+        </ScaledPreview>
 
       </div>
 
