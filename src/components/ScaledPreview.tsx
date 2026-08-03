@@ -1,21 +1,24 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 
 /**
  * ScaledPreview dynamically scales A4 preview documents to fit smaller container widths.
- * Automatically listens to window resize events.
+ * 
+ * Uses useLayoutEffect to measure content height BEFORE the browser paints,
+ * preventing Layout Shift that causes buttons below to jump and miss touch events on mobile.
  */
 export const ScaledPreview: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [scale, setScale] = useState<number>(1);
-  const [contentHeight, setContentHeight] = useState<number>(1122.5); // Default to approx 297mm in px
+  const [contentHeight, setContentHeight] = useState<number | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Calculate scale based on container width
   useEffect(() => {
     const handleResize = () => {
       if (wrapperRef.current) {
         const parentWidth = wrapperRef.current.offsetWidth;
-        const a4WidthInPx = 793.7; // Width of A4 in pixels at standard DPI
-        const padding = 16; // Standard padding offset
+        const a4WidthInPx = 793.7;
+        const padding = 16;
         const availableWidth = parentWidth - padding;
         
         if (availableWidth < a4WidthInPx) {
@@ -31,18 +34,29 @@ export const ScaledPreview: React.FC<React.PropsWithChildren> = ({ children }) =
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Measure content height BEFORE paint (useLayoutEffect) to prevent Layout Shift.
+  // This runs synchronously after DOM mutations but before the browser renders,
+  // so the user never sees the wrong height.
+  useLayoutEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const target = el.firstElementChild || el;
+    const measured = Math.ceil(target.scrollHeight);
+    setContentHeight(measured);
+  }, [children]);
+
+  // Continue observing for dynamic content changes after initial paint
   useEffect(() => {
     const el = contentRef.current;
     if (!el) return;
     
-    // Measure actual height of the inner content wrapper
     const resizeObserver = new ResizeObserver((entries) => {
       for (let entry of entries) {
-        setContentHeight(entry.target.scrollHeight);
+        const newHeight = Math.ceil(entry.target.scrollHeight);
+        setContentHeight((prev) => prev === null || Math.abs(prev - newHeight) > 5 ? newHeight : prev);
       }
     });
     
-    // Check inner children since the outer div scales
     const innerWrapper = el.firstElementChild;
     if (innerWrapper) {
        resizeObserver.observe(innerWrapper);
@@ -53,13 +67,18 @@ export const ScaledPreview: React.FC<React.PropsWithChildren> = ({ children }) =
     return () => resizeObserver.disconnect();
   }, [children]);
 
-  const visualHeight = contentHeight * scale;
+  // If not yet measured, use 'auto' to avoid guessing wrong
+  const visualHeight = contentHeight !== null ? contentHeight * scale : undefined;
 
   return (
     <div 
       ref={wrapperRef} 
       className="w-full flex justify-center no-print" 
-      style={{ height: `${visualHeight}px`, marginBottom: scale < 1 ? '1rem' : '2.5rem' }}
+      style={{ 
+        height: visualHeight !== undefined ? `${visualHeight}px` : 'auto', 
+        marginBottom: scale < 1 ? '1rem' : '2.5rem',
+        overflow: 'hidden'
+      }}
     >
       <div 
         ref={contentRef}
