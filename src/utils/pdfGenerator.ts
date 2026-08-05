@@ -1,5 +1,6 @@
 import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
+import React from 'react';
 import { Language } from '../types';
 
 /**
@@ -282,3 +283,208 @@ export const generatePdfReport = async ({
     onError(error);
   }
 };
+
+export interface GenerateSmartPdfParams {
+  containerRef: React.RefObject<HTMLDivElement>;
+  baseFilename: string;
+  isRTL: boolean;
+  lang: Language;
+  shouldShare: boolean;
+  onProgress?: (progress: { phase: string }) => void;
+  onSuccess: (file: File) => void;
+  onDownloadDirect: (pdf: jsPDF, filename: string) => void;
+  onError: (err: any) => void;
+}
+
+/**
+ * Smart PDF Generator (Two-Tier Boundary Algorithm).
+ * Captures the entire container as one giant canvas, then intelligently slices it into A4 pages.
+ * It auto-detects major boundaries (sections, cards) and minor boundaries (table rows) to prevent
+ * splitting logical blocks across pages. Adapts to giant sections automatically.
+ */
+export const generateSmartPdf = async ({
+  containerRef,
+  baseFilename,
+  isRTL,
+  lang,
+  shouldShare,
+  onProgress,
+  onSuccess,
+  onDownloadDirect,
+  onError,
+}: GenerateSmartPdfParams): Promise<void> => {
+  if (!containerRef.current) return;
+  const container = containerRef.current;
+
+  try {
+    onProgress?.({ phase: isRTL ? 'جاري تجهيز بيانات التقرير...' : 'Capturing report data...' });
+
+    // 1. Capture the entire container as one giant canvas
+    const { dataUrl } = await captureNode(container);
+
+    // 2. We need the original image dimensions to map DOM coordinates to image pixels
+    const img = new Image();
+    img.src = dataUrl;
+    await new Promise((resolve) => { img.onload = resolve; });
+
+    const sourceWidth = img.width;
+    const sourceHeight = img.height;
+
+    // We assume pixelRatio = 2 (as hardcoded in captureNode)
+    const pixelRatio = 2;
+
+    // 3. Find Boundaries in DOM (Auto-Detection)
+    const containerRect = container.getBoundingClientRect();
+
+    const getBoundaries = (selector: string) => {
+      const elements = Array.from(container.querySelectorAll(selector)) as HTMLElement[];
+      return elements.map(el => {
+        const rect = el.getBoundingClientRect();
+        return {
+          top: (rect.top - containerRect.top) * pixelRatio,
+          bottom: (rect.bottom - containerRect.top) * pixelRatio,
+          height: rect.height * pixelRatio
+        };
+      });
+    };
+
+    // Major Boundaries: large containers, sections, explicit blocks
+    const majorBoundaries = getBoundaries('.pdf-keep-together, section, article, .rounded-xl, .rounded-2xl, .rounded-lg, .shadow-sm, .border');
+
+    // Minor Boundaries: table rows, list items
+    const minorBoundaries = getBoundaries('tr, li, .border-b, .border-t, .divide-y > *');
+
+    // 4. Initialize jsPDF
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+    const a4W_mm = pdf.internal.pageSize.getWidth();
+    const a4H_mm = pdf.internal.pageSize.getHeight();
+
+    // Max height in source pixels that fits exactly on one A4 page
+    const maxSliceHeightPx = Math.floor((a4H_mm / a4W_mm) * sourceWidth);
+
+    let currentSourceY = 0;
+
+    // Temporary canvas for cropping
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = sourceWidth;
+    // We do NOT set height here, we set it dynamically per slice!
+    const ctx = cropCanvas.getContext('2d');
+
+    if (!ctx) throw new Error("Could not create canvas context");
+
+    onProgress?.({ phase: isRTL ? 'جاري التجميع الذكي للصفحات...' : 'Assembling smart pages...' });
+
+    while (currentSourceY < sourceHeight) {
+      let sliceHeight = maxSliceHeightPx;
+
+      // If we are not on the very last slice
+      if (currentSourceY + sliceHeight < sourceHeight) {
+        const sliceBottom = currentSourceY + sliceHeight;
+
+        // Check if slice cuts through a major boundary
+        const intersectingMajor = majorBoundaries.find(b => b.top < sliceBottom && b.bottom > sliceBottom);
+
+        if (intersectingMajor) {
+          if (intersectingMajor.height < maxSliceHeightPx) {
+            // It's a small section, push it entirely to next page
+            // But only if we actually made progress on this page (don't infinitely loop)
+            if (intersectingMajor.top > currentSourceY + 50) {
+              sliceHeight = intersectingMajor.top - currentSourceY;
+            }
+          } else {
+            // It's a GIANT section. Must cut inside it. Let's look for a minor boundary.
+            const intersectingMinor = minorBoundaries.find(b => b.top < sliceBottom && b.bottom > sliceBottom);
+            if (intersectingMinor && intersectingMinor.top > currentSourceY + 50) {
+               // Cut cleanly above the minor row
+               sliceHeight = intersectingMinor.top - currentSourceY;
+            }
+          }
+        } else {
+           // Didn't cut a major boundary, but might cut a minor one directly
+           const intersectingMinor = minorBoundaries.find(b => b.top < sliceBottom && b.bottom > sliceBottom);
+           if (intersectingMinor && intersectingMinor.top > currentSourceY + 50) {
+               sliceHeight = intersectingMinor.top - currentSourceY;
+           }
+        }
+      }
+
+      // Ensure we don't exceed remaining height
+      sliceHeight = Math.min(sliceHeight, sourceHeight - currentSourceY);
+
+      // If the remaining slice is extremely small (e.g. 1-2 pixels of border/white space), ignore it to prevent a blank extra page.
+      if (sliceHeight < 5 && currentSourceY > 0) {
+        break;
+      }
+
+      // Dynamically resize canvas to prevent stretching!
+      cropCanvas.height = sliceHeight;
+
+      // Draw slice
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
+      ctx.drawImage(
+        img,
+        0, currentSourceY, sourceWidth, sliceHeight, // Source crop
+        0, 0, sourceWidth, sliceHeight               // Destination
+      );
+
+      const croppedDataUrl = cropCanvas.toDataURL('image/jpeg', 0.95);
+
+      if (currentSourceY > 0) pdf.addPage();
+
+      // The height in mm of this specific slice on the A4 page
+      const sliceHeight_mm = (sliceHeight / sourceWidth) * a4W_mm;
+      pdf.addImage(croppedDataUrl, 'JPEG', 0, 0, a4W_mm, sliceHeight_mm, undefined, 'FAST');
+
+      currentSourceY += sliceHeight;
+    }
+
+    // 5. Append Footer to the VERY BOTTOM of the LAST PAGE
+    try {
+      const footerCanvas = document.createElement('canvas');
+      // Scale canvas for retina quality
+      const scale = 2;
+      footerCanvas.width = sourceWidth * scale;
+      footerCanvas.height = 60 * scale; 
+      const fCtx = footerCanvas.getContext('2d');
+      if (fCtx) {
+        fCtx.scale(scale, scale);
+        fCtx.fillStyle = '#ffffff';
+        fCtx.fillRect(0, 0, sourceWidth, 60);
+        
+        fCtx.fillStyle = '#9ca3af'; // Tailwind gray-400
+        fCtx.font = 'bold 12px Cairo, sans-serif';
+        fCtx.textAlign = 'center';
+        fCtx.textBaseline = 'middle';
+        fCtx.direction = isRTL ? 'rtl' : 'ltr';
+        
+        const footerText = isRTL 
+          ? 'تم إنشاء هذا التقرير إلكترونياً بواسطة نظام فحص المركبات (VIS)' 
+          : 'This report was generated electronically by the Vehicle Inspection System (VIS)';
+          
+        fCtx.fillText(footerText, sourceWidth / 2, 30);
+        
+        const footerDataUrl = footerCanvas.toDataURL('image/jpeg', 1.0);
+        const footerHeight_mm = (60 / sourceWidth) * a4W_mm;
+        
+        // Draw exactly at the bottom of the page (with 5mm margin from the absolute edge)
+        pdf.addImage(footerDataUrl, 'JPEG', 0, a4H_mm - footerHeight_mm - 5, a4W_mm, footerHeight_mm, undefined, 'FAST');
+      }
+    } catch (err) {
+      console.warn('Failed to draw footer', err);
+    }
+
+    if (shouldShare) {
+      const pdfBlob = pdf.output('blob');
+      const file = new File([pdfBlob], `${baseFilename}.pdf`, { type: 'application/pdf' });
+      onSuccess(file);
+    } else {
+      onDownloadDirect(pdf, `${baseFilename}.pdf`);
+    }
+
+  } catch (error) {
+    console.error('Error in generateSmartPdf:', error);
+    onError(error);
+  }
+};
+
