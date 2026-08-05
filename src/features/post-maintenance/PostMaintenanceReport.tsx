@@ -48,7 +48,8 @@ export const PostMaintenanceReport: React.FC<Props> = ({ data, isRTL, onNewForm,
       if (pdf) {
         const cleanPlate = data.vehicleRegNo.trim().replace(/\s+/g, '_');
         const dateStr = new Date().toISOString().slice(0,10);
-        pdf.save(`[${dateStr}]_[Post_Maintenance]_[${cleanPlate}].pdf`);
+        const reportName = isRTL ? 'استلام صيانة' : 'Post Maintenance';
+        pdf.save(`[${cleanPlate}] [${dateStr}] [${reportName}].pdf`);
       }
     } catch (err) {
       console.error('PDF generation failed', err);
@@ -65,7 +66,8 @@ export const PostMaintenanceReport: React.FC<Props> = ({ data, isRTL, onNewForm,
         const blob = pdf.output('blob');
         const cleanPlate = data.vehicleRegNo.trim().replace(/\s+/g, '_');
         const dateStr = new Date().toISOString().slice(0,10);
-        const file = new File([blob], `[${dateStr}]_[Post_Maintenance]_[${cleanPlate}].pdf`, { type: 'application/pdf' });
+        const reportName = isRTL ? 'استلام صيانة' : 'Post Maintenance';
+        const file = new File([blob], `[${cleanPlate}] [${dateStr}] [${reportName}].pdf`, { type: 'application/pdf' });
         await navigator.share({ files: [file], title: t('اعتماد مركبة بعد الصيانة', 'Post-Maintenance Bus Acceptance') });
       }
     } catch (err) {

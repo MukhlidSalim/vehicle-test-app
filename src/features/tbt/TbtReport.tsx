@@ -27,7 +27,8 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
     setIsGenerating(true);
     const dateStr = data.date;
     const cleanName = data.managerName.trim().replace(/\s+/g, '_');
-    const baseFilename = `[${dateStr}]_[TBT]_[${cleanName}]`;
+    const reportName = isRTL ? 'تقرير TBT' : 'TBT Report';
+    const baseFilename = `[TBT] [${dateStr}] [${reportName}] [${cleanName}]`;
 
     await generateSmartPdf({
       containerRef: reportRef,
@@ -49,7 +50,8 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
     setIsGenerating(true);
     const dateStr = data.date;
     const cleanName = data.managerName.trim().replace(/\s+/g, '_');
-    const baseFilename = `[${dateStr}]_[TBT]_[${cleanName}]`;
+    const reportName = isRTL ? 'تقرير TBT' : 'TBT Report';
+    const baseFilename = `[TBT] [${dateStr}] [${reportName}] [${cleanName}]`;
 
     await generateSmartPdf({
       containerRef: reportRef,

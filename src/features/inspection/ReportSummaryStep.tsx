@@ -95,9 +95,9 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
     const day = String(now.getDate()).padStart(2, '0');
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const year = now.getFullYear();
-    const dateStr = `${day}-${month}-${year}`;
+    const dateStr = `${year}-${month}-${day}`;
 
-    const finalFilename = `${name}_${reportTypeLabel}-${dateStr}-${plate}`;
+    const finalFilename = `[${plate}] [${dateStr}] [${reportTypeLabel}] [${name}]`;
     return finalFilename.replace(/[/\\?%*:|"<>]/g, '-').trim();
   };
 

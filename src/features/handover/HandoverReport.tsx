@@ -38,7 +38,7 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
     const cleanPlate = vehiclePlate.trim().replace(/\s+/g, '_');
     const dateStr = new Date().toISOString().slice(0, 10);
     const typeStr = isRTL ? (personRole === 'sender' ? 'تسليم' : 'استلام') : (personRole === 'sender' ? 'Handover' : 'Takeover');
-    const baseFilename = `[${dateStr}]_[${typeStr}]_[${cleanPlate}]_[${cleanName}]`;
+    const baseFilename = `[${cleanPlate}] [${dateStr}] [${typeStr}] [${cleanName}]`;
 
     await generateSmartPdf({
       containerRef: reportRef,
@@ -62,7 +62,7 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
     const cleanPlate = vehiclePlate.trim().replace(/\s+/g, '_');
     const dateStr = new Date().toISOString().slice(0, 10);
     const typeStr = isRTL ? (personRole === 'sender' ? 'تسليم' : 'استلام') : (personRole === 'sender' ? 'Handover' : 'Takeover');
-    const baseFilename = `[${dateStr}]_[${typeStr}]_[${cleanPlate}]_[${cleanName}]`;
+    const baseFilename = `[${cleanPlate}] [${dateStr}] [${typeStr}] [${cleanName}]`;
 
     await generateSmartPdf({
       containerRef: reportRef,
