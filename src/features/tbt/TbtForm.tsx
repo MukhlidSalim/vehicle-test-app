@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ClipboardCheck, MapPin, Users, Clock, 
-  Calendar, FileText, CheckCircle2,
+  Calendar, FileText, CheckCircle2, AlertTriangle,
   ArrowRight, ArrowLeft, Trash2, Plus, PenTool, ArrowLeftRight
 } from 'lucide-react';
 import { TBT_TOPICS } from './tbtConfig';
 import { SignaturePad } from '../../components/SignaturePad';
-import { TbtData } from '../../types';
 import { CustomDatePicker } from '../../components/CustomDatePicker';
 import { CustomTimePicker } from '../../components/CustomTimePicker';
 import { TbtReport } from './TbtReport';
