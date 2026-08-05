@@ -134,14 +134,7 @@ export const PostMaintenanceReport: React.FC<Props> = ({ data, isRTL, onNewForm,
 
   const pageStyle = { width: '794px', height: '1123px', fontFamily: 'Cairo, sans-serif', direction: isRTL ? 'rtl' : 'ltr' } as React.CSSProperties;
   
-  const Watermark = () => (
-    <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center opacity-[0.02] select-none z-0">
-      <ClipboardCheck size={350} />
-      <h1 className="text-5xl md:text-7xl font-black mt-10 text-center leading-tight">
-        {isRTL ? 'استلام الحافلات بعد الصيانة' : 'Post-Maintenance Acceptance'}
-      </h1>
-    </div>
-  );
+
 
   return (
     <div className="space-y-8 pb-12 flex flex-col items-center print:block print:space-y-0" dir={isRTL ? 'rtl' : 'ltr'}>

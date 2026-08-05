@@ -1,7 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Download, Share2, Edit2, Loader2, CheckCircle2, ArrowRight } from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import { captureNode } from '../../utils/pdfGenerator';
+import { captureNode, generateSmartPdf } from '../../utils/pdfGenerator';
 import { ScaledPreview } from '../../components/ScaledPreview';
 import { ReportPageFooter } from '../../components/ReportPageFooter';
 import { TbtData } from './TbtForm';
@@ -23,59 +22,54 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
 
   const t = (ar: string, en: string) => isRTL ? ar : en;
 
-  const generatePdfInstance = async () => {
-    if (!reportRef.current) return null;
-    const { dataUrl } = await captureNode(reportRef.current);
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const imgProps = pdf.getImageProperties(dataUrl);
-    const a4W = pdf.internal.pageSize.getWidth();
-    const a4H = pdf.internal.pageSize.getHeight();
-    const pdfWidth = a4W;
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    
-    let position = 0;
-    let remainingHeight = pdfHeight;
-    while (remainingHeight > 5) {
-      pdf.addImage(dataUrl, 'JPEG', 0, position, pdfWidth, pdfHeight, undefined, 'FAST');
-      remainingHeight -= a4H;
-      position -= a4H;
-      if (remainingHeight > 5) pdf.addPage();
-    }
-    return pdf;
-  };
-
   const handleDownloadPDF = async () => {
     if (!reportRef.current) return;
     setIsGenerating(true);
-    try {
-      const pdf = await generatePdfInstance();
-      if (pdf) {
-        const dateStr = data.date;
-        const cleanName = data.managerName.trim().replace(/\s+/g, '_');
-        pdf.save(`[${dateStr}]_[TBT]_[${cleanName}].pdf`);
-      }
-    } catch (err) {
-      console.error('PDF generation failed', err);
-    }
-    setIsGenerating(false);
+    const dateStr = data.date;
+    const cleanName = data.managerName.trim().replace(/\s+/g, '_');
+    const baseFilename = `[${dateStr}]_[TBT]_[${cleanName}]`;
+
+    await generateSmartPdf({
+      containerRef: reportRef,
+      baseFilename,
+      isRTL,
+      lang: isRTL ? 'ar' : 'en',
+      shouldShare: false,
+      onSuccess: () => setIsGenerating(false),
+      onDownloadDirect: (pdf, filename) => {
+        pdf.save(filename);
+        setIsGenerating(false);
+      },
+      onError: () => setIsGenerating(false),
+    });
   };
 
   const handleShare = async () => {
     if (!reportRef.current) return;
     setIsGenerating(true);
-    try {
-      const pdf = await generatePdfInstance();
-      if (pdf && navigator.share) {
-        const blob = pdf.output('blob');
-        const dateStr = data.date;
-        const cleanName = data.managerName.trim().replace(/\s+/g, '_');
-        const file = new File([blob], `[${dateStr}]_[TBT]_[${cleanName}].pdf`, { type: 'application/pdf' });
-        await navigator.share({ files: [file], title: isRTL ? 'تقرير TBT' : 'TBT Form' });
-      }
-    } catch (err) {
-      console.error('Share failed', err);
-    }
-    setIsGenerating(false);
+    const dateStr = data.date;
+    const cleanName = data.managerName.trim().replace(/\s+/g, '_');
+    const baseFilename = `[${dateStr}]_[TBT]_[${cleanName}]`;
+
+    await generateSmartPdf({
+      containerRef: reportRef,
+      baseFilename,
+      isRTL,
+      lang: isRTL ? 'ar' : 'en',
+      shouldShare: true,
+      onSuccess: async (file) => {
+        if (navigator.share) {
+          try {
+            await navigator.share({ files: [file], title: isRTL ? 'نموذج حديث السلامة' : 'TBT Form' });
+          } catch (err) {
+            console.error('Share failed', err);
+          }
+        }
+        setIsGenerating(false);
+      },
+      onDownloadDirect: () => setIsGenerating(false),
+      onError: () => setIsGenerating(false),
+    });
   };
 
   return (
@@ -225,13 +219,16 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
           </div>
           
 
-          
-          <ReportPageFooter showText={true} isRTL={isRTL} />
-
           </div>
         </ScaledPreview>
       </div>
 
+      {/* Hidden footer template for Smart PDF Engine */}
+      <div id="pdf-footer-template" className="absolute -left-[9999px] top-0 opacity-0 bg-white w-[794px] py-4 text-center">
+        <p className="text-[10px] font-bold text-gray-400" style={{ fontFamily: 'Cairo, sans-serif' }}>
+          {isRTL ? 'تم إنشاء هذا التقرير إلكترونياً بواسطة نظام فحص المركبات (VIS)' : 'This report was generated electronically by the Vehicle Inspection System (VIS)'}
+        </p>
+      </div>
 
       {/* Bottom Action Bar (Hidden in PDF) */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-200">

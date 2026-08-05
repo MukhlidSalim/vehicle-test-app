@@ -531,7 +531,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
                 <div className="flex justify-end pt-2">
                   <button
                     onClick={() => setShowNoteForm(false)}
-                    className="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-black text-sm hover:bg-gray-200 transition-all"
+                    className="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-black text-sm hover:bg-gray-200 active:scale-95 transition-all"
                   >
                     {t('إغلاق', 'Close')}
                   </button>

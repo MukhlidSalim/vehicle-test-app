@@ -1,10 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { Download, Share2, CheckCircle, XCircle, Truck, User, FileText, Clock, MapPin } from 'lucide-react';
 import { HandoverData } from './HandoverForm';
-import { captureNode } from '../../utils/pdfGenerator';
+import { captureNode, generateSmartPdf } from '../../utils/pdfGenerator';
 import { ScaledPreview } from '../../components/ScaledPreview';
 import { ReportPageFooter } from '../../components/ReportPageFooter';
-import { jsPDF } from 'jspdf';
 import { VEHICLE_TYPES_OPTIONS } from './handoverConfig';
 import { formatStringDDMMYYYY } from '../../utils/dateHelpers';
 
@@ -32,69 +31,64 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
 
   const vehicleLabel = VEHICLE_TYPES_OPTIONS.find(v => v.value === vehicleType)?.[isRTL ? 'labelAr' : 'labelEn'] || vehicleType;
 
-  const generatePdfInstance = async () => {
-    if (!reportRef.current) return null;
-    const { dataUrl } = await captureNode(reportRef.current);
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const imgProps = pdf.getImageProperties(dataUrl);
-    const a4W = pdf.internal.pageSize.getWidth();
-    const a4H = pdf.internal.pageSize.getHeight();
-    const pdfWidth = a4W;
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    
-    let position = 0;
-    let remainingHeight = pdfHeight;
-    while (remainingHeight > 5) {
-      pdf.addImage(dataUrl, 'JPEG', 0, position, pdfWidth, pdfHeight, undefined, 'FAST');
-      remainingHeight -= a4H;
-      position -= a4H;
-      if (remainingHeight > 5) pdf.addPage();
-    }
-    return pdf;
-  };
-
   const handleDownloadPDF = async () => {
     if (!reportRef.current) return;
     setIsGenerating(true);
-    try {
-      const pdf = await generatePdfInstance();
-      if (pdf) {
-        const cleanName = personName.trim().replace(/\s+/g, '_');
-        const cleanPlate = vehiclePlate.trim().replace(/\s+/g, '_');
-        const dateStr = new Date().toISOString().slice(0,10);
-        const typeStr = isRTL ? (personRole === 'sender' ? 'تسليم' : 'استلام') : (personRole === 'sender' ? 'Handover' : 'Takeover');
-        pdf.save(`[${dateStr}]_[${typeStr}]_[${cleanPlate}]_[${cleanName}].pdf`);
-      }
-    } catch (err) {
-      console.error('PDF generation failed', err);
-    }
-    setIsGenerating(false);
+    const cleanName = personName.trim().replace(/\s+/g, '_');
+    const cleanPlate = vehiclePlate.trim().replace(/\s+/g, '_');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const typeStr = isRTL ? (personRole === 'sender' ? 'تسليم' : 'استلام') : (personRole === 'sender' ? 'Handover' : 'Takeover');
+    const baseFilename = `[${dateStr}]_[${typeStr}]_[${cleanPlate}]_[${cleanName}]`;
+
+    await generateSmartPdf({
+      containerRef: reportRef,
+      baseFilename,
+      isRTL,
+      lang: isRTL ? 'ar' : 'en',
+      shouldShare: false,
+      onSuccess: () => setIsGenerating(false),
+      onDownloadDirect: (pdf, filename) => {
+        pdf.save(filename);
+        setIsGenerating(false);
+      },
+      onError: () => setIsGenerating(false),
+    });
   };
 
   const handleShare = async () => {
     if (!reportRef.current) return;
     setIsGenerating(true);
-    try {
-      const pdf = await generatePdfInstance();
-      if (pdf && navigator.share) {
-        const blob = pdf.output('blob');
-        const cleanName = personName.trim().replace(/\s+/g, '_');
-        const cleanPlate = vehiclePlate.trim().replace(/\s+/g, '_');
-        const dateStr = new Date().toISOString().slice(0,10);
-        const typeStr = isRTL ? (personRole === 'sender' ? 'تسليم' : 'استلام') : (personRole === 'sender' ? 'Handover' : 'Takeover');
-        const file = new File([blob], `[${dateStr}]_[${typeStr}]_[${cleanPlate}]_[${cleanName}].pdf`, { type: 'application/pdf' });
-        await navigator.share({ files: [file], title: isRTL ? config.formTitleAr : config.formTitleEn });
-      }
-    } catch (err) {
-      console.error('Share failed', err);
-    }
-    setIsGenerating(false);
+    const cleanName = personName.trim().replace(/\s+/g, '_');
+    const cleanPlate = vehiclePlate.trim().replace(/\s+/g, '_');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const typeStr = isRTL ? (personRole === 'sender' ? 'تسليم' : 'استلام') : (personRole === 'sender' ? 'Handover' : 'Takeover');
+    const baseFilename = `[${dateStr}]_[${typeStr}]_[${cleanPlate}]_[${cleanName}]`;
+
+    await generateSmartPdf({
+      containerRef: reportRef,
+      baseFilename,
+      isRTL,
+      lang: isRTL ? 'ar' : 'en',
+      shouldShare: true,
+      onSuccess: async (file) => {
+        if (navigator.share) {
+          try {
+            await navigator.share({ files: [file], title: isRTL ? config.formTitleAr : config.formTitleEn });
+          } catch (err) {
+            console.error('Share failed', err);
+          }
+        }
+        setIsGenerating(false);
+      },
+      onDownloadDirect: () => setIsGenerating(false),
+      onError: () => setIsGenerating(false),
+    });
   };
 
   const renderSig = (sig: string | undefined) => {
     if (sig && sig.startsWith('data:')) {
       return (
-        <div className="bg-white border border-gray-200 rounded-lg p-2 flex justify-center items-center h-20 w-full">
+        <div className="bg-white border border-gray-200 rounded-lg p-2 flex justify-center items-center h-14 w-full">
           <img src={sig} alt="sig" className="h-full object-contain max-w-full" style={{ imageRendering: 'auto', filter: 'contrast(1.3)' }} crossOrigin="anonymous" />
         </div>
       );
@@ -121,54 +115,50 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
               direction: isRTL ? 'rtl' : 'ltr',
             }}
           >
-            {/* Watermark */}
-            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center opacity-[0.03] select-none z-0">
-              <Truck size={350} />
-              <h1 className="text-7xl font-black mt-10">{isRTL ? config.formTitleAr : config.formTitleEn}</h1>
-            </div>
 
-            <div className="p-4 sm:p-8 space-y-6 relative z-10">
+
+            <div className="p-4 sm:p-6 space-y-4 relative z-10">
               {/* Header */}
-              <div className="bg-gradient-to-r from-gray-800 to-gray-700 p-6 rounded-2xl text-center text-white shadow-lg">
-                <div className="flex items-center justify-center gap-3 mb-2">
-                  <Truck size={28} className="text-blue-400" />
-                  <h1 className="text-2xl font-black tracking-tight">
+              <div className="bg-gradient-to-r from-gray-800 to-gray-700 p-4 rounded-2xl text-center text-white shadow-lg">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Truck size={24} className="text-blue-400" />
+                  <h1 className="text-xl font-black tracking-tight">
                     {isRTL ? config.formTitleAr : config.formTitleEn} - {isRTL ? (personRole === 'sender' ? 'تسليم' : 'استلام') : (personRole === 'sender' ? 'Handover' : 'Receive')}
                   </h1>
                 </div>
-                <p className="text-gray-300 text-xs font-bold uppercase tracking-widest">
+                <p className="text-gray-300 text-[10px] font-bold uppercase tracking-widest">
                   {t('نظام فحص المركبات', 'Vehicle Inspection System')}
                 </p>
               </div>
 
               {/* Vehicle Info */}
               <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center gap-2">
-                  <Truck size={16} className="text-gray-600" />
-                  <h2 className="text-sm font-black text-gray-800">{t('بيانات المركبة', 'Vehicle Information')}</h2>
+                <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center gap-2">
+                  <Truck size={14} className="text-gray-600" />
+                  <h2 className="text-xs font-black text-gray-800">{t('بيانات المركبة', 'Vehicle Information')}</h2>
                 </div>
                 <div className="grid grid-cols-3 divide-x rtl:divide-x-reverse divide-gray-100">
-                  <div className="p-4 bg-white">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('رقم اللوحة', 'Plate No.')}</div>
-                    <div className="text-lg font-black text-gray-900">{vehiclePlate}</div>
+                  <div className="p-3 bg-white">
+                    <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('رقم اللوحة', 'Plate No.')}</div>
+                    <div className="text-base font-black text-gray-900">{vehiclePlate}</div>
                   </div>
-                  <div className="p-4 bg-white">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('نوع المركبة', 'Vehicle Type')}</div>
-                    <div className="text-base font-bold text-gray-900 mt-1">{vehicleLabel}</div>
+                  <div className="p-3 bg-white">
+                    <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('نوع المركبة', 'Vehicle Type')}</div>
+                    <div className="text-sm font-bold text-gray-900 mt-1">{vehicleLabel}</div>
                   </div>
-                  <div className="p-4 bg-white">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('عداد المسافة', 'Odometer')}</div>
-                    <div className="text-base font-bold text-gray-900 mt-1">{odometer ? `${odometer} km` : '-'}</div>
+                  <div className="p-3 bg-white">
+                    <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('عداد المسافة', 'Odometer')}</div>
+                    <div className="text-sm font-bold text-gray-900 mt-1">{odometer ? `${odometer} km` : '-'}</div>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 divide-x rtl:divide-x-reverse divide-gray-100 border-t border-gray-100">
-                  <div className="p-4 bg-white">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('الموقع', 'Location')}</div>
-                    <div className="text-sm font-bold text-gray-900">{location || '-'}</div>
+                  <div className="p-3 bg-white">
+                    <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('الموقع', 'Location')}</div>
+                    <div className="text-xs font-bold text-gray-900">{location || '-'}</div>
                   </div>
-                  <div className="p-4 bg-white">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('انتهاء الملكية', 'ROP Expiry')}</div>
-                    <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                  <div className="p-3 bg-white">
+                    <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('انتهاء الملكية', 'ROP Expiry')}</div>
+                    <div className="text-xs font-bold text-gray-900 flex items-center gap-2">
                       {formatStringDDMMYYYY(ropExpiry) || '-'}
                       {ropExpiry && ropExpiry < new Date().toISOString().split('T')[0] && (
                         <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 whitespace-nowrap">
@@ -177,12 +167,12 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
                       )}
                     </div>
                   </div>
-                  <div className="p-4 bg-white">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{isRTL ? config.expiryLabel2Ar : config.expiryLabel2En}</div>
-                    <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                  <div className="p-3 bg-white">
+                    <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">{isRTL ? config.expiryLabel2Ar : config.expiryLabel2En}</div>
+                    <div className="text-xs font-bold text-gray-900 flex items-center gap-2">
                       {formatStringDDMMYYYY(opalExpiry) || (isRTL ? 'لا توجد رخصة أوبال لهذه المركبة' : 'No OPAL license for this vehicle')}
                       {opalExpiry && opalExpiry < new Date().toISOString().split('T')[0] && (
-                        <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 whitespace-nowrap">
+                        <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 whitespace-nowrap">
                           {isRTL ? '(منتهي)' : '(Expired)'}
                         </span>
                       )}
@@ -194,16 +184,16 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
               {/* Extra Fields (Ambulance) */}
               {extraFields && Object.keys(extraFields).length > 0 && (
                 <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                  <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center gap-2">
-                    <MapPin size={16} className="text-red-500" />
-                    <h2 className="text-sm font-black text-gray-800">{t('بيانات إضافية', 'Additional Information')}</h2>
+                  <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center gap-2">
+                    <MapPin size={14} className="text-red-500" />
+                    <h2 className="text-xs font-black text-gray-800">{t('بيانات إضافية', 'Additional Information')}</h2>
                   </div>
                   <div className="grid grid-cols-2 divide-x rtl:divide-x-reverse divide-gray-100 bg-white">
                     {config.extraFields.map(field => (
                       extraFields[field.id] ? (
-                        <div key={field.id} className="p-4">
-                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{isRTL ? field.labelAr : field.labelEn}</div>
-                          <div className="text-sm font-bold text-gray-900 whitespace-pre-wrap">{extraFields[field.id]}</div>
+                        <div key={field.id} className="p-3">
+                          <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">{isRTL ? field.labelAr : field.labelEn}</div>
+                          <div className="text-xs font-bold text-gray-900 whitespace-pre-wrap">{extraFields[field.id]}</div>
                         </div>
                       ) : null
                     ))}
@@ -213,9 +203,9 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
 
               {/* Checklist */}
               <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center gap-2">
-                  <FileText size={16} className="text-gray-600" />
-                  <h2 className="text-sm font-black text-gray-800">{t('قائمة الفحص والمعدات', 'Inspection & Equipment')}</h2>
+                <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center gap-2">
+                  <FileText size={14} className="text-gray-600" />
+                  <h2 className="text-xs font-black text-gray-800">{t('قائمة الفحص والمعدات', 'Inspection & Equipment')}</h2>
                 </div>
                 <div className="grid grid-cols-2 divide-x rtl:divide-x-reverse divide-gray-100 bg-white">
                   {items.map((item, i) => {
@@ -296,38 +286,44 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
 
               {/* Remarks */}
               {notes && (
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                  <div className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-2">{isRTL ? `ملاحظات ${personRole === 'sender' ? config.senderLabelAr : config.receiverLabelAr}` : `${personRole === 'sender' ? config.senderLabelEn : config.receiverLabelEn} Remarks`}</div>
-                  <p className="text-sm font-bold text-blue-900">{notes}</p>
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+                  <div className="text-[9px] font-bold text-blue-500 uppercase tracking-wider mb-1">{isRTL ? `ملاحظات ${personRole === 'sender' ? config.senderLabelAr : config.receiverLabelAr}` : `${personRole === 'sender' ? config.senderLabelEn : config.receiverLabelEn} Remarks`}</div>
+                  <p className="text-xs font-bold text-blue-900">{notes}</p>
                 </div>
               )}
 
               {/* Signature */}
-              <div className="border border-blue-200 rounded-xl overflow-hidden bg-white shadow-sm mt-8">
-                <div className="bg-blue-50 px-4 py-3 border-b border-blue-200 flex items-center gap-2">
-                  <User size={16} className="text-blue-600" />
-                  <span className="text-sm font-black text-blue-800">{isRTL ? (personRole === 'sender' ? config.senderLabelAr : config.receiverLabelAr) : (personRole === 'sender' ? config.senderLabelEn : config.receiverLabelEn)}</span>
+              <div className="border border-blue-200 rounded-xl overflow-hidden bg-white shadow-sm mt-4">
+                <div className="bg-blue-50 px-3 py-2 border-b border-blue-200 flex items-center gap-2">
+                  <User size={14} className="text-blue-600" />
+                  <span className="text-xs font-black text-blue-800">{isRTL ? (personRole === 'sender' ? config.senderLabelAr : config.receiverLabelAr) : (personRole === 'sender' ? config.senderLabelEn : config.receiverLabelEn)}</span>
                 </div>
-                <div className="p-5 space-y-4">
+                <div className="p-4 space-y-3">
                   <div>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('الاسم', 'Name')}</div>
-                    <div className="text-base font-black text-gray-900">{personName}</div>
+                    <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('الاسم', 'Name')}</div>
+                    <div className="text-sm font-black text-gray-900">{personName}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{t('التوقيع', 'Signature')}</div>
+                    <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('التوقيع', 'Signature')}</div>
                     {renderSig(signature)}
                   </div>
-                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 mt-2">
-                    <Clock size={12} />
+                  <div className="flex items-center gap-1.5 text-[9px] font-bold text-gray-400 mt-2">
+                    <Clock size={10} />
                     {formatDate(date)}
                   </div>
                 </div>
               </div>
 
             </div>
-            <ReportPageFooter showText={true} isRTL={isRTL} />
           </div>
         </ScaledPreview>
+      </div>
+
+      {/* Hidden footer template for Smart PDF Engine */}
+      <div id="pdf-footer-template" className="absolute -left-[9999px] top-0 opacity-0 bg-white w-[794px] py-4 text-center">
+        <p className="text-[10px] font-bold text-gray-400" style={{ fontFamily: 'Cairo, sans-serif' }}>
+          {isRTL ? 'تم إنشاء هذا التقرير إلكترونياً بواسطة نظام فحص المركبات (VIS)' : 'This report was generated electronically by the Vehicle Inspection System (VIS)'}
+        </p>
       </div>
 
       {/* ===== ACTION BUTTONS ===== */}
