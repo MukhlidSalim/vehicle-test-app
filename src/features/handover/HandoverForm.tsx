@@ -226,7 +226,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
   const progressPercent = step === 0 ? 0 : (currentStepNum / totalSteps) * 100;
 
   return (
-    <div className="space-y-6 animate-fade-in" dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className="space-y-6 relative pb-20 animate-fade-in" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Toast */}
       {uiAlert.show && typeof document !== 'undefined' && createPortal(
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[300] w-11/12 max-w-md pointer-events-none no-print animate-fade-in-down">
@@ -761,6 +761,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
           {/* Next Button */}
           <div className="pt-2">
             <button
+              type="button"
               onClick={() => { if (validateData()) setStep(2); }}
               className="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-black text-lg transition-all flex items-center justify-center gap-3">
               {isRTL ? 'التالي: عرض التقرير النهائي' : 'Next: View Final Report'}
