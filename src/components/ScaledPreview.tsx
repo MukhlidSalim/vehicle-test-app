@@ -16,12 +16,14 @@ export const ScaledPreview: React.FC<React.PropsWithChildren> = ({ children }) =
   useEffect(() => {
     const handleResize = () => {
       if (wrapperRef.current) {
-        const parentWidth = wrapperRef.current.offsetWidth;
-        const a4WidthInPx = 793.7;
+        // Use getBoundingClientRect for more accurate float width, fallback to offsetWidth
+        const rect = wrapperRef.current.getBoundingClientRect();
+        const parentWidth = rect.width || wrapperRef.current.offsetWidth;
+        const a4WidthInPx = 794; // Exactly match 794px
         const padding = 16;
-        const availableWidth = parentWidth - padding;
+        const availableWidth = Math.max(0, parentWidth - padding);
         
-        if (availableWidth < a4WidthInPx) {
+        if (availableWidth > 0 && availableWidth < a4WidthInPx) {
           setScale(availableWidth / a4WidthInPx);
         } else {
           setScale(1);
@@ -30,8 +32,17 @@ export const ScaledPreview: React.FC<React.PropsWithChildren> = ({ children }) =
     };
 
     handleResize();
+    
+    const ro = new ResizeObserver(() => handleResize());
+    if (wrapperRef.current) {
+      ro.observe(wrapperRef.current);
+    }
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      ro.disconnect();
+    };
   }, []);
 
   // Measure content height BEFORE paint (useLayoutEffect) to prevent Layout Shift.
@@ -85,8 +96,8 @@ export const ScaledPreview: React.FC<React.PropsWithChildren> = ({ children }) =
         style={{ 
           transform: `scale(${scale})`, 
           transformOrigin: 'top center',
-          width: '210mm',
-          minHeight: '297mm',
+          width: '794px',
+          minHeight: '1123px',
           height: 'fit-content'
         }}
         className="flex-shrink-0"

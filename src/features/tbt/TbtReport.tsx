@@ -85,9 +85,9 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
             ref={reportRef}
             className="bg-white mx-auto shadow-2xl relative"
             style={{ 
-              width: '210mm', 
-              minHeight: '297mm', 
-              padding: '20mm',
+              width: '794px', 
+              minHeight: '1123px', 
+              padding: '20px 40px', // Adjusted padding from mm to px (roughly 20mm -> ~75px, but 20px 40px is safer for visuals)
               color: '#000',
               fontFamily: isRTL ? 'Cairo, sans-serif' : 'Arial, sans-serif'
             }}
