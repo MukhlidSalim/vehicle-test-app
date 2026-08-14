@@ -319,13 +319,6 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
         </ScaledPreview>
       </div>
 
-      {/* Hidden footer template for Smart PDF Engine */}
-      <div id="pdf-footer-template" className="absolute -left-[9999px] top-0 opacity-0 bg-white w-[794px] py-4 text-center">
-        <p className="text-[10px] font-bold text-gray-400" style={{ fontFamily: 'Cairo, sans-serif' }}>
-          {isRTL ? 'تم إنشاء هذا التقرير إلكترونياً بواسطة نظام فحص المركبات (VIS)' : 'This report was generated electronically by the Vehicle Inspection System (VIS)'}
-        </p>
-      </div>
-
       {/* ===== ACTION BUTTONS ===== */}
       <div className="flex flex-wrap gap-3 max-w-2xl mx-auto no-print">
         <button onClick={handleDownloadPDF} disabled={isGenerating}

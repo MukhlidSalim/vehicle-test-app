@@ -225,13 +225,6 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
         </ScaledPreview>
       </div>
 
-      {/* Hidden footer template for Smart PDF Engine */}
-      <div id="pdf-footer-template" className="absolute -left-[9999px] top-0 opacity-0 bg-white w-[794px] py-4 text-center">
-        <p className="text-[10px] font-bold text-gray-400" style={{ fontFamily: 'Cairo, sans-serif' }}>
-          {isRTL ? 'تم إنشاء هذا التقرير إلكترونياً بواسطة نظام فحص المركبات (VIS)' : 'This report was generated electronically by the Vehicle Inspection System (VIS)'}
-        </p>
-      </div>
-
       {/* Bottom Action Bar (Hidden in PDF) */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
         <button 
