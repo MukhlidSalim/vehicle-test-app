@@ -317,6 +317,21 @@ export const generateSmartPdf = async ({
   const container = containerRef.current;
 
   try {
+    onProgress?.({ phase: isRTL ? 'تهيئة سريعة للصور...' : 'Warming up images...' });
+
+    // === Warm-up Capture for iOS/Safari WebKit ===
+    try {
+      await captureNode(container);
+    } catch {
+      // Ignore warm-up errors
+    }
+
+    // Adaptive pause for mobile
+    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    await new Promise((r) => setTimeout(r, isMobile ? 600 : 300));
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
     onProgress?.({ phase: isRTL ? 'جاري تجهيز بيانات التقرير...' : 'Capturing report data...' });
 
     // 1. Capture the entire container as one giant canvas
@@ -411,6 +426,14 @@ export const generateSmartPdf = async ({
       // Ensure we don't exceed remaining height
       sliceHeight = Math.min(sliceHeight, sourceHeight - currentSourceY);
 
+      // Failsafe: Ensure sliceHeight is strictly positive to prevent infinite loops!
+      if (isNaN(sliceHeight) || sliceHeight <= 0) {
+        console.warn("Failsafe triggered: sliceHeight is zero or NaN. Forcing progress.");
+        sliceHeight = maxSliceHeightPx > 0 ? maxSliceHeightPx : 100;
+        // If it's still <= 0 (e.g. maxSliceHeightPx is 0), force a positive increment
+        if (sliceHeight <= 0) sliceHeight = 100;
+      }
+
       // If the remaining slice is extremely small (e.g. 1-2 pixels of border/white space), ignore it to prevent a blank extra page.
       if (sliceHeight < 5 && currentSourceY > 0) {
         break;
@@ -433,7 +456,11 @@ export const generateSmartPdf = async ({
       if (currentSourceY > 0) pdf.addPage();
 
       // The height in mm of this specific slice on the A4 page
-      const sliceHeight_mm = (sliceHeight / sourceWidth) * a4W_mm;
+      let sliceHeight_mm = (sliceHeight / sourceWidth) * a4W_mm;
+      if (isNaN(sliceHeight_mm) || sliceHeight_mm <= 0) {
+        sliceHeight_mm = a4H_mm;
+      }
+      
       pdf.addImage(croppedDataUrl, 'JPEG', 0, 0, a4W_mm, sliceHeight_mm, undefined, 'FAST');
 
       currentSourceY += sliceHeight;

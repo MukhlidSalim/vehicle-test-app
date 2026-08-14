@@ -19,7 +19,11 @@ export const LowerBar: React.FC = () => (
         >
           Maklad.alrawahi@bp.com
         </a>
-        <div className="text-[9px] opacity-60 font-bold tracking-[0.2em] mt-0.5">2026</div>
+        <div className="text-[10px] font-bold tracking-[0.2em] mt-1 flex items-center justify-center gap-2">
+          <span className="opacity-60">2026</span>
+          <span className="opacity-30">|</span>
+          <span className="text-primary-300 drop-shadow-sm">VERSION 2.0</span>
+        </div>
      </div>
   </footer>
 );
