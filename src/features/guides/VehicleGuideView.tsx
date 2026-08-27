@@ -21,6 +21,7 @@ export const VehicleGuideView: React.FC<VehicleGuideViewProps> = ({
       <div className="flex items-center justify-between border-b border-gray-400 pb-4">
         <div className="flex items-center gap-3">
           <button 
+            type="button"
             onClick={onBack} 
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             aria-label={isRTL ? 'عودة' : 'Back'}

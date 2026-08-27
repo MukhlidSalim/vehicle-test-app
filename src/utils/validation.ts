@@ -10,11 +10,11 @@ export const validateBasicInfo = (data: InspectionData): ValidationResult => {
   const { name, plateNumber, phoneNumber, currentOdometer, odometer, vehicleType, departure, destination, vehicleExpiryDate, opalExpiryDate, vocExpiryDate } = data.driverInfo;
   
   // Common required fields
-  let isValid = Boolean(name && phoneNumber && plateNumber && currentOdometer && odometer && vehicleType);
+  let isValid = Boolean(name?.trim() && phoneNumber?.trim() && plateNumber?.trim() && currentOdometer?.trim() && odometer?.trim() && vehicleType?.trim());
   
   // Mode specific required fields
   if (data.mode === 'full' || data.mode === 'driver_only') {
-    if (!departure || !destination) isValid = false;
+    if (!departure?.trim() || !destination?.trim()) isValid = false;
   } else if (data.mode === 'maintenance') {
     if (!vehicleExpiryDate || !vocExpiryDate) isValid = false;
   } else {
@@ -41,7 +41,7 @@ export const validateChecklist = (data: InspectionData, isRTL: boolean): Validat
     return !i.notes || String(i.notes).trim().length === 0;
   });
 
-  const fireExtItem = data.checklist.find((i) => i.key === 'fire_ext');
+  const fireExtItem = data.checklist.find((i) => i.key.startsWith('fire_ext'));
   const missingFireExpiry = fireExtItem && fireExtItem.status !== 'unchecked' && !fireExtItem.expiryDate;
 
   const safetyKitItem = data.checklist.find((i) => i.key === 'safety_kit');

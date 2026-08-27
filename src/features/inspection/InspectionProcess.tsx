@@ -103,7 +103,7 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
   const progressPercent = currentStepIndex === -1 ? 0 : ((currentStepIndex + 1) / totalSteps) * 100;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in pb-20">
        {/* Validation Alerts (Fixed Toast via Portal) */}
        {uiAlert.show && typeof document !== 'undefined' && createPortal(
          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[300] w-11/12 max-w-md pointer-events-none no-print animate-fade-in-down">
@@ -134,9 +134,18 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
           <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
             <div className="bg-primary-600 h-full transition-all duration-1000 ease-out" style={{ width: `${progressPercent}%` }}></div>
           </div>
-          <div className="flex justify-end pt-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-            <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ml-1.5 ${saveStatus === 'saving' ? 'bg-amber-400 animate-pulse' : 'bg-green-400'}`}></div>
-            {saveStatus === 'saving' ? t.saving : t.auto_saved}
+          <div className="flex justify-end pt-1 text-[10px] font-bold uppercase tracking-wider">
+            {saveStatus === 'error' ? (
+              <div className="flex items-center text-red-500">
+                <div className="w-1.5 h-1.5 rounded-full mr-1.5 ml-1.5 bg-red-500 animate-pulse"></div>
+                {isRTL ? 'خطأ: مساحة التخزين ممتلئة!' : 'Error: Storage Full!'}
+              </div>
+            ) : (
+              <div className="flex items-center text-gray-400">
+                <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ml-1.5 ${saveStatus === 'saving' ? 'bg-amber-400 animate-pulse' : 'bg-green-400'}`}></div>
+                {saveStatus === 'saving' ? t.saving : t.auto_saved}
+              </div>
+            )}
           </div>
        </div>
 
@@ -182,7 +191,7 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
 
        {/* Bottom Pagination Controls (Hidden on summary preview step 5) */}
        {step < 5 && (
-          <div className="space-y-6 pb-10 no-print">
+          <div className="space-y-6 pb-20 no-print">
             {/* Signature Section (Always shown at the end of the last active step) */}
             {currentStepIndex === totalSteps - 2 && (
               <section className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
@@ -339,12 +348,14 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
               </p>
               <div className="flex gap-3 w-full pt-4">
                 <button 
+                  type="button"
                   onClick={() => setShowOdoWarning(false)}
                   className="flex-1 py-3.5 rounded-xl font-black text-gray-700 bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all"
                 >
                   {isRTL ? 'تعديل الرقم' : 'Edit Number'}
                 </button>
                 <button 
+                  type="button"
                   onClick={handleConfirmOdo}
                   className="flex-1 py-3.5 rounded-xl font-black text-white bg-orange-500 hover:bg-orange-600 active:scale-95 transition-all"
                 >

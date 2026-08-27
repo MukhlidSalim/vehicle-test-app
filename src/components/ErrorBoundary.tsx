@@ -31,13 +31,13 @@ export class ErrorBoundary extends React.Component<Props, State> {
       return (
         <div style={{ padding: '20px', background: '#fee2e2', color: '#991b1b', border: '2px solid #b91c1c', borderRadius: '8px', margin: '20px' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>حدث خطأ في النظام</h2>
-          <p>يرجى تصوير هذه الشاشة وإرسالها للمطور:</p>
-          <pre style={{ background: '#fef2f2', padding: '10px', marginTop: '10px', overflowX: 'auto', direction: 'ltr' }}>
-            {this.state.error && this.state.error.toString()}
+          <p className="text-sm text-gray-500 mt-2">
+            حدث خطأ غير متوقع. يرجى تحديث الصفحة.
             <br />
-            {this.state.errorInfo && this.state.errorInfo.componentStack}
-          </pre>
+            An unexpected error occurred. Please try refreshing the page.
+          </p>
           <button 
+            type="button"
             onClick={() => window.location.href = '/'}
             style={{ marginTop: '15px', padding: '10px 20px', background: '#991b1b', color: 'white', borderRadius: '5px' }}
           >

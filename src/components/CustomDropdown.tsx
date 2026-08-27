@@ -29,6 +29,7 @@ export const CustomDropdown: React.FC<CustomDropdownProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownDirection, setDropdownDirection] = useState<'down' | 'up'>('down');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -39,6 +40,18 @@ export const CustomDropdown: React.FC<CustomDropdownProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (isOpen && dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < 250) {
+        setDropdownDirection('up');
+      } else {
+        setDropdownDirection('down');
+      }
+    }
+  }, [isOpen]);
 
   const selectedOption = options.find(o => o.value === value);
 
@@ -64,7 +77,7 @@ export const CustomDropdown: React.FC<CustomDropdownProps> = ({
       </button>
 
       {isOpen && (
-        <div className={`absolute z-50 w-full mt-2 bg-white/95 backdrop-blur-md border border-gray-100 rounded-xl shadow-xl overflow-hidden animate-fade-in-up origin-top`}>
+        <div className={`absolute z-50 w-full bg-white/95 backdrop-blur-md border border-gray-100 rounded-xl shadow-xl overflow-hidden animate-fade-in-up ${dropdownDirection === 'up' ? 'bottom-full mb-2 origin-bottom' : 'top-full mt-2 origin-top'}`}>
           <div className="max-h-60 overflow-y-auto py-2 scrollbar-hide">
             {options.map((opt) => (
               <button

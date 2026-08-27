@@ -8,6 +8,7 @@ import { TBT_TOPICS } from './tbtConfig';
 import { SignaturePad } from '../../components/SignaturePad';
 import { CustomDatePicker } from '../../components/CustomDatePicker';
 import { CustomTimePicker } from '../../components/CustomTimePicker';
+import { scrollToFirstError } from '../../utils/validationScroll';
 import { TbtReport } from './TbtReport';
 
 export interface DriverInfo {
@@ -39,6 +40,15 @@ interface Props {
 export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
   const [showReport, setShowReport] = useState(false);
   const [data, setData] = useState<TbtData>(() => {
+    try {
+      const saved = localStorage.getItem('tbt_session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.timestamp && (Date.now() - parsed.timestamp < 60 * 60 * 1000)) {
+          return parsed.data;
+        }
+      }
+    } catch(e) {}
     const now = new Date();
     return {
       date: now.toISOString().split('T')[0],
@@ -56,6 +66,13 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
   });
 
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      localStorage.setItem('tbt_session', JSON.stringify({ data, timestamp: Date.now() }));
+    }, 1000);
+    return () => clearTimeout(handler);
+  }, [data]);
   const [alertMsg, setAlertMsg] = useState('');
 
   const t = (ar: string, en: string) => isRTL ? ar : en;
@@ -99,55 +116,36 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
 
   const validateForm = () => {
     setAttemptedSubmit(true);
-    if (!data.date) {
-      showAlert(t('يرجى إدخال التاريخ.', 'Please enter date.'));
-      return false;
-    }
+    let isValid = true;
+    
+    if (!data.date) isValid = false;
+    
     if (data.date > new Date().toISOString().split('T')[0]) {
       showAlert(t('لا يمكن تسجيل استمارة بتاريخ مستقبلي.', 'Cannot submit form with a future date.'));
       return false;
     }
     
-    if (!data.routeFrom.trim() || !data.routeTo.trim()) {
-      showAlert(t('الرجاء إدخال مسار الرحلة كاملاً.', 'Please enter the complete journey route.'));
-      return false;
-    }
+    if (!data.routeFrom.trim() || !data.routeTo.trim()) isValid = false;
 
     // Validate Topic
-    if (!data.selectedTopicId) {
-      showAlert(t('الرجاء اختيار موضوع TBT.', 'Please select a TBT topic.'));
-      return false;
-    }
+    if (!data.selectedTopicId) isValid = false;
     
-    if (data.selectedTopicId === 'other' && !data.otherTopicDetails.trim()) {
-      showAlert(t('الرجاء كتابة تفاصيل الموضوع الإضافي.', 'Please enter details for the other topic.'));
-      return false;
-    }
+    if (data.selectedTopicId === 'other' && !data.otherTopicDetails.trim()) isValid = false;
     
     // Validate Drivers
-    if (data.drivers.length === 0) {
-      showAlert(t('يجب إضافة سائق واحد على الأقل.', 'At least one driver is required.'));
-      return false;
-    }
+    if (data.drivers.length === 0) isValid = false;
     for (let i = 0; i < data.drivers.length; i++) {
-      if (!data.drivers[i].name.trim()) {
-        showAlert(t(`الرجاء إدخال اسم السائق رقم ${i + 1}.`, `Please enter name for driver #${i + 1}.`));
-        return false;
-      }
-      if (data.type === 'face_to_face' && (!data.drivers[i].signature || data.drivers[i].signature.length < 500)) {
-        showAlert(t(`الرجاء توقيع السائق: ${data.drivers[i].name}`, `Please provide signature for: ${data.drivers[i].name}`));
-        return false;
-      }
+      if (!data.drivers[i].name.trim()) isValid = false;
+      if (data.type === 'face_to_face' && (!data.drivers[i].signature || data.drivers[i].signature.length < 500)) isValid = false;
     }
 
     // Validate Manager
-    if (!data.managerName.trim()) {
-      showAlert(t('الرجاء إدخال اسم مسؤول الرحلة.', 'Please enter Journey Manager name.'));
-      return false;
-    }
+    if (!data.managerName.trim()) isValid = false;
     
-    if (!data.managerSignature || data.managerSignature.length < 500) {
-      showAlert(t('الرجاء توقيع مسؤول الرحلة.', 'Journey Manager signature is required.'));
+    if (!data.managerSignature || data.managerSignature.length < 500) isValid = false;
+
+    if (!isValid) {
+      scrollToFirstError();
       return false;
     }
 
@@ -175,7 +173,7 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
       {/* Header */}
       <div className="bg-white/80 backdrop-blur rounded-2xl border border-gray-200 p-4 shadow-lg">
         <div className="flex items-center justify-between">
-          <button onClick={onExit} className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-red-500 transition-colors">
+          <button type="button" onClick={onExit} className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-red-500 transition-colors">
             <ArrowLeft size={16} className={isRTL ? 'rotate-180' : ''} />
             {isRTL ? 'العودة للرئيسية' : 'Back to Home'}
           </button>
@@ -210,16 +208,20 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
               <CustomDatePicker
                 value={data.date}
                 onChange={val => setData({...data, date: val})}
+                error={attemptedSubmit && !data.date}
                 isRTL={isRTL}
               />
+              {attemptedSubmit && !data.date && <div data-error="true" className="hidden"></div>}
             </div>
             <div className="space-y-2">
               <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('الوقت', 'Time')}</label>
               <CustomTimePicker
                 value={data.time}
                 onChange={val => setData({...data, time: val})}
+                error={attemptedSubmit && !data.time}
                 isRTL={isRTL}
               />
+              {attemptedSubmit && !data.time && <div data-error="true" className="hidden"></div>}
             </div>
             
             <div className="space-y-2 md:col-span-2">
@@ -239,9 +241,9 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
             <div className="space-y-2 md:col-span-2">
               <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('مسار الرحلة', 'Journey Route')}</label>
               <div className="flex flex-col md:flex-row gap-4 items-center">
-                <input type="text" placeholder={t('من (نقطة الانطلاق)', 'From (Starting Point)')} value={data.routeFrom} onChange={e => setData({...data, routeFrom: e.target.value})} className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !data.routeFrom ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
+                <input type="text" data-error={attemptedSubmit && !data.routeFrom ? "true" : undefined} placeholder={t('من (نقطة الانطلاق)', 'From (Starting Point)')} value={data.routeFrom} onChange={e => setData({...data, routeFrom: e.target.value})} className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !data.routeFrom ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
                 <ArrowLeftRight size={20} className="text-gray-400 hidden md:block" />
-                <input type="text" placeholder={t('إلى (الوجهة)', 'To (Destination)')} value={data.routeTo} onChange={e => setData({...data, routeTo: e.target.value})} className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !data.routeTo ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
+                <input type="text" data-error={attemptedSubmit && !data.routeTo ? "true" : undefined} placeholder={t('إلى (الوجهة)', 'To (Destination)')} value={data.routeTo} onChange={e => setData({...data, routeTo: e.target.value})} className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !data.routeTo ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
               </div>
             </div>
 
@@ -260,7 +262,7 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
               <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('اختر الموضوع *', 'Select Topic *')}</label>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {TBT_TOPICS.map(topic => (
-                  <button
+                  <button type="button"
                     key={topic.id}
                     onClick={() => setData({...data, selectedTopicId: topic.id})}
                     className={`p-4 rounded-xl border-2 text-start font-black transition-all flex items-center justify-between group ${data.selectedTopicId === topic.id ? 'border-primary-600 bg-primary-50 text-primary-800' : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-white hover:border-primary-300'}`}
@@ -271,7 +273,7 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
                 ))}
               </div>
               {attemptedSubmit && !data.selectedTopicId && (
-                 <p className="text-red-500 text-xs font-bold mt-2">{t('يجب اختيار موضوع واحد على الأقل.', 'You must select at least one topic.')}</p>
+                 <p data-error="true" className="text-red-500 text-xs font-bold mt-2">{t('يجب اختيار موضوع واحد على الأقل.', 'You must select at least one topic.')}</p>
               )}
             </div>
 
@@ -282,6 +284,7 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
                 <textarea 
                   value={data.otherTopicDetails}
                   onChange={e => setData({...data, otherTopicDetails: e.target.value})}
+                  data-error={attemptedSubmit && !data.otherTopicDetails.trim() ? "true" : undefined}
                   placeholder={t('اكتب تفاصيل الموضوع الذي تمت مناقشته...', 'Type the details of the discussed topic...')}
                   className={`w-full p-3.5 border rounded-xl font-bold transition-all outline-none min-h-[100px] resize-y ${attemptedSubmit && !data.otherTopicDetails.trim() ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20'}`}
                 />
@@ -364,7 +367,7 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
         <section className="space-y-4">
           <div className="flex items-center justify-between px-2">
             <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start">{t('السائقين', 'Participants (Drivers)')}</h2>
-            <button onClick={addDriver} className="px-4 py-2 bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
+            <button type="button" onClick={addDriver} className="px-4 py-2 bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
               <Plus size={16} /> {t('إضافة سائق', 'Add Driver')}
             </button>
           </div>
@@ -373,14 +376,14 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
             {data.drivers.map((driver, idx) => (
               <div key={driver.id} className="p-5 bg-gray-50 border border-gray-200 rounded-2xl space-y-4 relative">
                 {data.drivers.length > 1 && (
-                  <button onClick={() => removeDriver(driver.id)} className="absolute top-4 rtl:left-4 ltr:right-4 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                  <button type="button" onClick={() => removeDriver(driver.id)} className="absolute top-4 rtl:left-4 ltr:right-4 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                     <Trash2 size={18} />
                   </button>
                 )}
                 
                 <div className="space-y-2 max-w-md">
                   <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t(`السائق رقم ${idx + 1}`, `Driver #${idx + 1}`)}</label>
-                  <input type="text" placeholder={t('اسم السائق', 'Driver Name')} value={driver.name} onChange={e => updateDriver(driver.id, 'name', e.target.value)} className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !driver.name ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
+                  <input type="text" data-error={attemptedSubmit && !driver.name ? "true" : undefined} placeholder={t('اسم السائق', 'Driver Name')} value={driver.name} onChange={e => updateDriver(driver.id, 'name', e.target.value)} className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !driver.name ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
                 </div>
 
                 {data.type === 'face_to_face' && (
@@ -408,19 +411,20 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
 
         {/* Section 4: Manager Approval */}
         <section className="space-y-4">
-          <h2 className="text-lg font-black text-gray-800 v-center-cairo justify-start px-2">
-            {t('اعتماد مسؤول الرحلة (JM)', 'Journey Manager Approval')}
-          </h2>
+          <h3 className="text-lg font-black text-gray-900 mb-6 flex items-center gap-2 border-b-2 border-gray-100 pb-2">
+            <span className="w-1.5 h-6 bg-indigo-500 rounded-full inline-block"></span>
+            {t('اعتماد مسؤول الرحلة', 'Journey Manager Approval')}
+          </h3>
           
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300 space-y-6">
             <div className="space-y-2">
-              <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('اسم مسؤول الرحلة (JM) *', 'Journey Manager Name *')}</label>
-              <input type="text" placeholder={t('اكتب اسم المسؤول...', 'Enter manager name...')} value={data.managerName} onChange={e => setData({...data, managerName: e.target.value})} className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !data.managerName ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
+              <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('اسم مسؤول الرحلة *', 'Journey Manager Name *')}</label>
+              <input type="text" data-error={attemptedSubmit && !data.managerName ? "true" : undefined} placeholder={t('اكتب اسم المسؤول...', 'Enter manager name...')} value={data.managerName} onChange={e => setData({...data, managerName: e.target.value})} className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !data.managerName ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
             </div>
 
             <div className="pt-4 border-t border-gray-100">
               <SignaturePad
-                label={t('توقيع مسؤول الرحلة (JM) *', 'Journey Manager Signature *')}
+                label={t('توقيع مسؤول الرحلة *', 'Journey Manager Signature *')}
                 onSave={(sig) => setData({...data, managerSignature: sig})}
                 onClear={() => setData({...data, managerSignature: ''})}
                 error={attemptedSubmit && !data.managerSignature}
@@ -433,7 +437,7 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
 
       {/* Action Area */}
       <div className="pt-6">
-        <button 
+        <button type="button"
           onClick={handleGenerateReport}
           className="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-black text-lg transition-all flex items-center justify-center gap-3"
         >

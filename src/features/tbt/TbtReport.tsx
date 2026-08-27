@@ -26,9 +26,10 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
     if (!reportRef.current) return;
     setIsGenerating(true);
     const dateStr = data.date;
-    const cleanName = data.managerName.trim().replace(/\s+/g, '_');
-    const reportName = isRTL ? 'تقرير TBT' : 'TBT Report';
-    const baseFilename = `[TBT] [${dateStr}] [${reportName}] [${cleanName}]`;
+    const cleanFrom = (data.routeFrom || '').trim().replace(/[/\\?%*:|"<>]/g, '-');
+    const cleanTo = (data.routeTo || '').trim().replace(/[/\\?%*:|"<>]/g, '-');
+    const routeStr = cleanFrom && cleanTo ? `${cleanFrom}-${cleanTo}` : (cleanFrom || cleanTo || 'Unknown Route');
+    const baseFilename = `[TBT] [${dateStr}] [${routeStr}]`;
 
     await generateSmartPdf({
       containerRef: reportRef,
@@ -49,9 +50,10 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
     if (!reportRef.current) return;
     setIsGenerating(true);
     const dateStr = data.date;
-    const cleanName = data.managerName.trim().replace(/\s+/g, '_');
-    const reportName = isRTL ? 'تقرير TBT' : 'TBT Report';
-    const baseFilename = `[TBT] [${dateStr}] [${reportName}] [${cleanName}]`;
+    const cleanFrom = (data.routeFrom || '').trim().replace(/[/\\?%*:|"<>]/g, '-');
+    const cleanTo = (data.routeTo || '').trim().replace(/[/\\?%*:|"<>]/g, '-');
+    const routeStr = cleanFrom && cleanTo ? `${cleanFrom}-${cleanTo}` : (cleanFrom || cleanTo || 'Unknown Route');
+    const baseFilename = `[TBT] [${dateStr}] [${routeStr}]`;
 
     await generateSmartPdf({
       containerRef: reportRef,
@@ -110,7 +112,7 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
             {/* General Info Table */}
             <div className="border border-gray-300 rounded-lg overflow-hidden">
               <div className="grid grid-cols-4 bg-gray-100 font-bold text-xs uppercase tracking-wider">
-                <div className="col-span-1 p-3 border-b border-gray-300">{t('مسؤول الرحلة (JM)', 'Journey Manager')}</div>
+                <div className="col-span-1 p-3 border-b border-gray-300">{t('مسؤول الرحلة', 'Journey Manager')}</div>
                 <div className="col-span-1 p-3 border-b border-l rtl:border-l-0 rtl:border-r border-gray-300">{t('مسار الرحلة', 'Journey Route')}</div>
                 <div className="col-span-2 p-3 border-b border-l rtl:border-l-0 rtl:border-r border-gray-300">{t('نوع الاجتماع', 'Meeting Type')}</div>
               </div>
@@ -207,7 +209,7 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
             <div className="pt-4 border-t-2 border-gray-200 border-dashed mt-6 flex justify-between items-end">
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
-                  {t('اعتماد مسؤول الرحلة (Journey Manager)', 'Journey Manager Approval')}
+                  {t('اعتماد مسؤول الرحلة', 'Journey Manager Approval')}
                 </p>
                 <div className="font-black text-lg text-gray-900">{data.managerName}</div>
 
@@ -219,6 +221,7 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
               </div>
             </div>
           </div>
+            <ReportPageFooter pageNumber={1} totalPages={1} isRTL={isRTL} lang={isRTL ? 'ar' : 'en'} />
           
 
           </div>
@@ -227,7 +230,7 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
 
       {/* Bottom Action Bar (Hidden in PDF) */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
-        <button 
+        <button type="button"
           onClick={onEdit}
           disabled={isGenerating}
           className="flex items-center gap-2 px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors disabled:opacity-50"
@@ -237,7 +240,7 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
         </button>
         <div className="flex gap-3 w-full sm:w-auto">
           {navigator.share && (
-            <button 
+            <button type="button"
               onClick={handleShare}
               disabled={isGenerating}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold rounded-xl transition-colors disabled:opacity-50"
@@ -246,7 +249,7 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
               {t('مشاركة', 'Share')}
             </button>
           )}
-          <button 
+          <button type="button"
             onClick={handleDownloadPDF}
             disabled={isGenerating}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"

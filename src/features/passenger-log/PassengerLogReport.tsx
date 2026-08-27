@@ -167,7 +167,7 @@ export const PassengerLogReport: React.FC<Props> = ({ dayInfo, trips, isRTL }) =
   };
 
   return (
-    <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className="space-y-6 pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Report Content */}
       <div className="flex justify-center w-full pb-4">
         <ScaledPreview>
@@ -283,14 +283,14 @@ export const PassengerLogReport: React.FC<Props> = ({ dayInfo, trips, isRTL }) =
             )}
             
           </div>
-          <ReportPageFooter showText={true} isRTL={isRTL} />
+          <ReportPageFooter pageNumber={1} totalPages={1} isRTL={isRTL} lang={isRTL ? 'ar' : 'en'} />
           </div>
         </ScaledPreview>
       </div>
 
       {/* Action Buttons */}
       <div className="flex max-w-2xl mx-auto no-print">
-        <button onClick={handleExportExcel} disabled={isGenerating}
+        <button type="button" onClick={handleExportExcel} disabled={isGenerating}
           className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-bold text-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:transform-none">
           <FileText size={18} />
           {t('تصدير التقرير كملف Excel', 'Export Report as Excel')}

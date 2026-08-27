@@ -11,6 +11,7 @@ import { SignaturePad } from '../../components/SignaturePad';
 import { OmanPlateInput } from '../../components/OmanPlateInput';
 import { OdometerInput } from '../../components/OdometerInput';
 import { CustomDropdown } from '../../components/CustomDropdown';
+import { scrollToFirstError } from '../../utils/validationScroll';
 
 import { HandoverReport } from './HandoverReport';
 import {
@@ -107,6 +108,44 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
   
   const [uiAlert, setUiAlert] = useState({ show: false, message: '', type: 'warning' as 'warning' | 'fail' });
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('handover_session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.timestamp && (Date.now() - parsed.timestamp < 60 * 60 * 1000)) {
+          setStep(parsed.step ?? 0);
+          setAction(parsed.action ?? null);
+          setPersonName(parsed.personName ?? '');
+          setVehiclePlate(parsed.vehiclePlate ?? '');
+          setVehicleType(parsed.vehicleType ?? 'light_bus');
+          setLocation(parsed.location ?? '');
+          setOdometer(parsed.odometer ?? '');
+          setOpalExpiry(parsed.opalExpiry ?? '');
+          setRopExpiry(parsed.ropExpiry ?? '');
+          setNotes(parsed.notes ?? '');
+          setSignature(parsed.signature ?? '');
+          setFormDate(parsed.formDate ?? new Date().toISOString().split('T')[0]);
+          setExtraFields(parsed.extraFields ?? {});
+          if (parsed.items) setItems(parsed.items);
+        }
+      }
+    } catch(e) {}
+    setIsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    const handler = setTimeout(() => {
+      localStorage.setItem('handover_session', JSON.stringify({
+        step, action, personName, vehiclePlate, vehicleType, location, odometer, opalExpiry, ropExpiry, notes, signature, formDate, extraFields, items,
+        timestamp: Date.now()
+      }));
+    }, 1000);
+    return () => clearTimeout(handler);
+  }, [isLoaded, step, action, personName, vehiclePlate, vehicleType, location, odometer, opalExpiry, ropExpiry, notes, signature, formDate, extraFields, items]);
   
   const showAlert = (message: string, type: 'warning' | 'fail' = 'warning') => {
     setUiAlert({ show: true, message, type });
@@ -136,6 +175,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
   };
   
   const handleReset = () => {
+    localStorage.removeItem('handover_session');
     setStep(0);
     setAction(null);
     setPersonName('');
@@ -174,50 +214,38 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
   
   const validateData = (): boolean => {
     setAttemptedSubmit(true);
-    if (!personName.trim()) {
-      showAlert(isRTL ? `يرجى إدخال اسم ${action === 'sender' ? 'المسلم' : 'المستلم'}.` : `Please enter ${action === 'sender' ? 'sender' : 'receiver'} name.`);
-      return false;
-    }
-    if (!vehiclePlate.trim()) {
-      showAlert(isRTL ? 'يرجى إدخال رقم اللوحة.' : 'Please enter plate number.');
-      return false;
-    }
-    if (!location.trim()) {
-      showAlert(isRTL ? 'يرجى إدخال الموقع.' : 'Please enter location.');
-      return false;
-    }
-    if (!odometer.trim()) {
-      showAlert(isRTL ? 'يرجى إدخال عداد المسافة.' : 'Please enter odometer reading.');
-      return false;
-    }
-    if (!ropExpiry) {
-      showAlert(isRTL ? 'يرجى إدخال تاريخ انتهاء الملكية.' : 'Please enter ROP expiry date.');
-      return false;
-    }
+    let isValid = true;
+
+    if (!personName.trim()) isValid = false;
+    if (!vehiclePlate.trim()) isValid = false;
+    if (!location.trim()) isValid = false;
+    if (!odometer.trim()) isValid = false;
+    if (!ropExpiry) isValid = false;
 
     const today = new Date().toISOString().split('T')[0];
-    if (ropExpiry < today) {
+    if (ropExpiry && ropExpiry < today) {
       showAlert(isRTL ? 'تنبيه: ملكية المركبة منتهية الصلاحية!' : 'Warning: Vehicle registration is expired!');
+      return false;
     }
     if (opalExpiry && opalExpiry < today) {
       showAlert(isRTL ? `تنبيه: ${config.expiryLabel2Ar} منتهي الصلاحية!` : `Warning: ${config.expiryLabel2En} is expired!`);
-    }
-    if (!signature || signature.length < 5000) {
-      showAlert(isRTL ? 'يرجى رسم توقيع واضح وصحيح.' : 'Please draw a clear and valid signature.');
       return false;
     }
-    if (items.some(i => i.status === null)) {
-      showAlert(isRTL ? 'يرجى الإجابة على جميع عناصر قائمة الفحص.' : 'Please answer all checklist items.');
+
+    // Check required extra fields
+    const missingExtra = config.extraFields?.filter(f => f.required && !extraFields[f.id]?.trim());
+    if (missingExtra && missingExtra.length > 0) isValid = false;
+
+    if (!signature || signature.length < 5000) isValid = false;
+    if (items.some(i => i.status === null)) isValid = false;
+    if (items.some(i => i.status === 'bad' && !i.note.trim())) isValid = false;
+    if (items.some(i => i.hasCount && i.status === 'good' && !i.count.trim())) isValid = false;
+
+    if (!isValid) {
+      scrollToFirstError();
       return false;
     }
-    if (items.some(i => i.status === 'bad' && !i.note.trim())) {
-      showAlert(isRTL ? 'يرجى كتابة ملاحظة للعناصر التالفة أو المفقودة.' : 'Please write a note for damaged or missing items.');
-      return false;
-    }
-    if (items.some(i => i.hasCount && i.status === 'good' && !i.count.trim())) {
-      showAlert(isRTL ? 'يرجى إدخال العدد لجميع العناصر المتوفرة.' : 'Please enter the count for all available items.');
-      return false;
-    }
+
     return true;
   };
   
@@ -245,7 +273,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
       {/* Progress Bar */}
       <div className="bg-white/80 backdrop-blur rounded-2xl border border-gray-200 p-4 shadow-lg">
         <div className="flex items-center justify-between mb-3">
-          <button onClick={onExit} className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-red-500 transition-colors">
+          <button type="button" onClick={onExit} className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-red-500 transition-colors">
             <ArrowLeft size={16} className={isRTL ? 'rotate-180' : ''} />
             {isRTL ? 'العودة للرئيسية' : 'Back to Home'}
           </button>
@@ -277,7 +305,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
              <p className="text-gray-500 font-bold text-sm">{isRTL ? 'الرجاء تحديد العملية المراد تنفيذها لتوثيق حالة المركبة' : 'Please select the operation you want to perform to document vehicle condition'}</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <button 
+            <button type="button"
               onClick={() => { setAction('sender'); setStep(1); }}
               className="bg-white rounded-2xl border border-gray-200 hover:border-primary-500 hover:bg-primary-50/50 p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col sm:flex-row items-center sm:items-start gap-5 group text-center sm:text-start relative overflow-hidden"
             >
@@ -290,7 +318,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
                 <p className="text-xs font-bold text-gray-500 leading-relaxed max-w-[200px] sm:max-w-none">{isRTL ? 'توثيق الحالة العامة للمركبة والتحقق من المستندات والأدوات الأساسية قبل تسليمها.' : 'Document general vehicle condition and verify basic documents and tools before handover.'}</p>
               </div>
             </button>
-            <button 
+            <button type="button"
               onClick={() => { setAction('receiver'); setStep(1); }}
               className="bg-white rounded-2xl border border-gray-200 hover:border-primary-500 hover:bg-primary-50/50 p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col sm:flex-row items-center sm:items-start gap-5 group text-center sm:text-start relative overflow-hidden"
             >
@@ -322,6 +350,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
                 <div className="relative">
                   <Hash size={16} className="absolute top-3.5 rtl:right-3 ltr:left-3 text-gray-400" />
                   <input value={vehiclePlate} onChange={e => setVehiclePlate(e.target.value.toUpperCase())}
+                    data-error={attemptedSubmit && !vehiclePlate.trim() ? "true" : undefined}
                     className={`w-full rtl:pr-10 ltr:pl-10 py-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !vehiclePlate.trim() ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
                 </div>
               </div>
@@ -343,6 +372,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
                     error={attemptedSubmit && !odometer.trim() ? true : false}
                     isRTL={isRTL}
                   />
+                  {attemptedSubmit && !odometer.trim() && <div data-error="true" className="hidden"></div>}
                 </div>
               </div>
               <div className="space-y-2">
@@ -350,6 +380,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
                 <div className="relative">
                   <MapPin size={16} className="absolute top-3.5 rtl:right-3 ltr:left-3 text-gray-400" />
                   <input value={location} onChange={e => setLocation(e.target.value)}
+                    data-error={attemptedSubmit && !location.trim() ? "true" : undefined}
                     className={`w-full rtl:pr-10 ltr:pl-10 py-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !location.trim() ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
                 </div>
               </div>
@@ -369,6 +400,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
                   isRTL={isRTL}
                   isExpiryDate={true}
                 />
+                {attemptedSubmit && !ropExpiry && <div data-error="true" className="hidden"></div>}
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
@@ -427,6 +459,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
               <div className="space-y-2">
                 <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{isRTL ? 'الاسم الكامل *' : 'Full Name *'}</label>
                 <input value={personName} onChange={e => setPersonName(e.target.value)}
+                  data-error={attemptedSubmit && !personName.trim() ? "true" : undefined}
                   className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !personName.trim() ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`} />
               </div>
             </div>
@@ -691,7 +724,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
                 };
 
                 return (
-                  <div key={item.id} className={`p-4 rounded-xl border transition-all duration-200 ${attemptedSubmit && item.status === null ? 'border-red-400 bg-red-50/50 shadow-[0_0_0_1px_rgba(248,113,113,0.5)]' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
+                  <div key={item.id} data-error={attemptedSubmit && item.status === null ? "true" : undefined} className={`p-4 rounded-xl border transition-all duration-200 ${attemptedSubmit && item.status === null ? 'border-red-400 bg-red-50/50 shadow-[0_0_0_1px_rgba(248,113,113,0.5)]' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                       <span className="text-sm font-black text-gray-800 flex items-center gap-2">
                         {item.icon ? (
@@ -711,6 +744,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
                       <div className="mt-3 animate-fade-in bg-gray-50 p-3 rounded-lg border border-gray-100">
                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">{isRTL ? 'العدد *' : 'Count *'}</label>
                         <input type="number" min="0" value={item.count} onChange={e => setItemCount(item.id, e.target.value)}
+                          data-error={attemptedSubmit && !item.count.trim() ? "true" : undefined}
                           placeholder={isRTL ? 'أدخل العدد' : 'Enter count'}
                           className={`w-32 py-1.5 px-3 rounded-lg border text-xs font-bold focus:ring-2 focus:ring-primary-300 outline-none transition ${attemptedSubmit && !item.count.trim() ? 'border-red-500 bg-white' : 'border-gray-300 bg-white'}`} />
                       </div>
@@ -720,6 +754,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
                     {item.status === 'bad' && (
                       <div className="mt-3 animate-fade-in">
                         <input type="text"
+                          data-error={attemptedSubmit && !item.note.trim() ? "true" : undefined}
                           placeholder={isRTL ? 'يرجى كتابة ملاحظة (سبب التلف أو الفقدان) *' : 'Please write a note (reason for damage/loss) *'}
                           value={item.note} onChange={e => setItemNote(item.id, e.target.value)}
                           className={`w-full py-2 px-3 rounded-lg border text-xs font-bold focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none transition ${attemptedSubmit && !item.note.trim() ? 'border-red-500 bg-white' : 'border-gray-300 bg-white'}`} />
@@ -762,7 +797,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
           <div className="pt-2">
             <button
               type="button"
-              onClick={() => { if (validateData()) setStep(2); }}
+              onClick={() => { if (validateData()) setStep(2); else setAttemptedSubmit(true); }}
               className="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-black text-lg transition-all flex items-center justify-center gap-3">
               {isRTL ? 'التالي: عرض التقرير النهائي' : 'Next: View Final Report'}
               {isRTL ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
@@ -777,19 +812,19 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
           <HandoverReport data={buildFullHandoverData()} isRTL={isRTL} />
           
           <div className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto no-print pt-4 border-t border-gray-200">
-            <button
+            <button type="button"
               onClick={() => setStep(1)}
               className="flex-1 py-3.5 bg-white border border-gray-300 text-gray-700 rounded-xl font-black text-sm shadow-sm hover:bg-gray-50 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               {isRTL ? 'تعديل البيانات' : 'Edit Information'}
             </button>
-            <button
+            <button type="button"
               onClick={handleReset}
               className="flex-1 py-3.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl font-black text-sm shadow-sm hover:bg-blue-100 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               {isRTL ? 'فحص جديد' : 'New Inspection'}
             </button>
-            <button
+            <button type="button"
               onClick={onExit}
               className="flex-1 py-3.5 bg-gray-800 text-white rounded-xl font-black text-sm shadow-sm hover:bg-gray-900 active:scale-95 transition-all flex items-center justify-center gap-2"
             >

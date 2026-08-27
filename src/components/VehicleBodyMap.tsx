@@ -133,6 +133,7 @@ export const VehicleBodyMap: React.FC<VehicleBodyMapProps> = ({
             </span>
           </div>
           <button
+            type="button"
             onClick={() => {
               setIsExpanded(true);
               resetView();
@@ -179,6 +180,7 @@ export const VehicleBodyMap: React.FC<VehicleBodyMapProps> = ({
               </p>
             </div>
             <button
+              type="button"
               onClick={() => setIsExpanded(false)}
               className="p-3 bg-white/10 text-white rounded-2xl hover:bg-red-600 transition-all"
             >
@@ -189,18 +191,21 @@ export const VehicleBodyMap: React.FC<VehicleBodyMapProps> = ({
           <div className="flex-1 bg-white/5 rounded-3xl border border-white/10 relative overflow-hidden flex items-center justify-center shadow-inner">
             <div className="absolute top-4 right-4 z-[210] flex flex-col gap-2 no-print">
               <button 
+                type="button"
                 onClick={handleZoomIn} 
                 className="p-3 bg-white text-primary-900 rounded-xl shadow-xl active:scale-90 transition-transform"
               >
                 <ZoomIn size={24} />
               </button>
               <button 
+                type="button"
                 onClick={handleZoomOut} 
                 className="p-3 bg-white text-primary-900 rounded-xl shadow-xl active:scale-90 transition-transform"
               >
                 <ZoomOut size={24} />
               </button>
               <button 
+                type="button"
                 onClick={resetView} 
                 className="p-3 bg-white text-primary-900 rounded-xl shadow-xl active:scale-90 transition-transform"
               >
@@ -244,6 +249,7 @@ export const VehicleBodyMap: React.FC<VehicleBodyMapProps> = ({
 
           <div className="mt-4 flex justify-center gap-3 shrink-0">
             <button
+              type="button"
               onClick={() => setIsExpanded(false)}
               className="w-full py-4 rounded-2xl bg-primary-600 text-white font-black text-xl shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
             >

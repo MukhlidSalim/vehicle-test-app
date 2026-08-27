@@ -20,7 +20,7 @@ export const OmanPlateInput: React.FC<OmanPlateInputProps> = ({ value, onChange,
     
     // Extract numbers and letters
     const numbers = raw.replace(/[^0-9]/g, '').slice(0, 5);
-    const letters = raw.replace(/[^A-Z]/g, '').slice(0, 2);
+    const letters = raw.replace(/[^A-Z\u0600-\u06FF]/g, '').slice(0, 2);
     
     let formatted = numbers;
     
@@ -40,23 +40,15 @@ export const OmanPlateInput: React.FC<OmanPlateInputProps> = ({ value, onChange,
 
   return (
     <div className="relative flex items-center">
-      <Hash size={16} className={`absolute ${isRTL ? 'right-3' : 'left-3'} text-gray-400 pointer-events-none`} />
-      
-      {/* Oman License Plate Side Badge */}
-      <div className={`absolute ${isRTL ? 'left-2' : 'right-2'} h-9 w-6 bg-yellow-400 rounded-md flex flex-col items-center justify-center border-2 border-yellow-500/80 shadow-sm pointer-events-none`}>
-        <span className="text-[5px] font-black text-black leading-tight">OMAN</span>
-        <span className="text-[5px] font-black text-black leading-tight mt-1">عمان</span>
-      </div>
-      
       <input
         type="text"
         value={displayValue}
         onChange={handleChange}
         dir="ltr"
-        className={`w-full ${isRTL ? 'pr-10 pl-12' : 'pl-10 pr-12'} py-3 border rounded-xl outline-none font-black text-lg tracking-[0.2em] text-gray-800 transition-all duration-300 uppercase ${
+        className={`w-full p-3 border rounded-xl outline-none font-bold text-sm text-gray-800 transition-all duration-300 uppercase ${
           error ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-200 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'
         }`}
-        placeholder="12345 AB"
+        placeholder=""
       />
     </div>
   );

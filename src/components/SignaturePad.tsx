@@ -81,10 +81,12 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, lab
   };
 
   useEffect(() => {
+    let isMounted = true;
     // Preload initial signature image if available
     if (initialSignature && !initialLoadedRef.current) {
       const img = new Image();
       img.onload = () => {
+        if (!isMounted) return;
         savedImageRef.current = img;
         initialLoadedRef.current = true;
         redraw();
@@ -115,6 +117,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, lab
     const timer = setTimeout(resizeCanvas, 100);
 
     return () => {
+      isMounted = false;
       observer.disconnect();
       clearTimeout(timer);
     };
@@ -134,7 +137,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, lab
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (e.button !== 0 && e.pointerType === 'mouse') return; // Only left click
     const canvas = canvasRef.current;
-    if (canvas) canvas.setPointerCapture(e.pointerId);
+    
 
     isDrawingRef.current = true;
     const { x, y, pressure } = getCoordinates(e);
@@ -154,7 +157,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, lab
     isDrawingRef.current = false;
     
     const canvas = canvasRef.current;
-    if (canvas) canvas.releasePointerCapture(e.pointerId);
+    
 
     if (currentStrokeRef.current.length > 0) {
       strokesRef.current.push([...currentStrokeRef.current]);
@@ -219,6 +222,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, lab
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
+          onPointerLeave={handlePointerUp}
         />
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-20 transition-opacity z-0">
           <span className="font-bold text-gray-400 select-none text-2xl tracking-widest uppercase">{isRTL ? 'التوقيع' : 'SIGNATURE'}</span>

@@ -170,7 +170,7 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
                   <div className="p-3 bg-white">
                     <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">{isRTL ? config.expiryLabel2Ar : config.expiryLabel2En}</div>
                     <div className="text-xs font-bold text-gray-900 flex items-center gap-2">
-                      {formatStringDDMMYYYY(opalExpiry) || (isRTL ? 'لا توجد رخصة أوبال لهذه المركبة' : 'No OPAL license for this vehicle')}
+                      {formatStringDDMMYYYY(opalExpiry) || (isRTL ? 'المركبة لا تملك تصريح أوبال' : 'No OPAL permit for vehicle')}
                       {opalExpiry && opalExpiry < new Date().toISOString().split('T')[0] && (
                         <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 whitespace-nowrap">
                           {isRTL ? '(منتهي)' : '(Expired)'}
@@ -316,17 +316,18 @@ export const HandoverReport: React.FC<Props> = ({ data, isRTL }) => {
 
             </div>
           </div>
+          <ReportPageFooter pageNumber={1} totalPages={1} isRTL={isRTL} lang={isRTL ? 'ar' : 'en'} />
         </ScaledPreview>
       </div>
 
       {/* ===== ACTION BUTTONS ===== */}
       <div className="flex flex-wrap gap-3 max-w-2xl mx-auto no-print">
-        <button onClick={handleDownloadPDF} disabled={isGenerating}
+        <button type="button" onClick={handleDownloadPDF} disabled={isGenerating}
           className="flex-1 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-bold text-sm shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:transform-none">
           <Download size={18} />
           {t('تحميل PDF', 'Download PDF')}
         </button>
-        <button onClick={handleShare} disabled={isGenerating}
+        <button type="button" onClick={handleShare} disabled={isGenerating}
           className="flex-1 py-3.5 bg-blue-600 text-white rounded-xl font-bold text-sm shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:transform-none">
           <Share2 size={18} />
           {t('مشاركة', 'Share')}

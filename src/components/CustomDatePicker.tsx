@@ -77,7 +77,7 @@ export const CustomDatePicker: React.FC<Props> = ({
     : 'border-gray-200 bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-500 text-gray-900 hover:border-gray-300';
 
   return (
-    <div className="flex gap-2 w-full" dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className="flex gap-2 w-full" dir={isRTL ? 'rtl' : 'ltr'} data-error={error ? "true" : undefined}>
       <select
         className={`${baseSelectClass} ${stateClass}`}
         value={day}

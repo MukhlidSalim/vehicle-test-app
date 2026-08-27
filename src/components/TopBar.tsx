@@ -32,6 +32,7 @@ export const TopBar: React.FC<TopBarProps> = ({
     } else {
       document.body.style.overflow = 'auto';
     }
+    return () => { document.body.style.overflow = 'auto'; };
   }, [menuOpen]);
 
   const handleNavigate = (view: View) => {
@@ -48,6 +49,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
   const DrawerItem = ({ icon: Icon, label, isActive, onClick, colorClass }: { icon: any, label: string, isActive?: boolean, onClick: () => void, colorClass?: string }) => (
     <button 
+      type="button"
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-sm font-bold ${
         isActive 
@@ -68,6 +70,7 @@ export const TopBar: React.FC<TopBarProps> = ({
       <header className="fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-lg border-b border-gray-200/50 shadow-sm z-[40] flex items-center justify-between px-4 md:px-8 no-print transition-all">
         <div className="flex items-center gap-3">
           <button 
+            type="button"
             onClick={() => setMenuOpen(true)} 
             className="p-2 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors active:scale-95"
             title={isRTL ? 'القائمة' : 'Menu'}
@@ -82,12 +85,14 @@ export const TopBar: React.FC<TopBarProps> = ({
         
         <div className="flex items-center gap-3">
            <button 
+             type="button"
              onClick={() => handleNavigate('home')}
              className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors"
            >
              <Home size={16} /> {t.home}
            </button>
            <button 
+             type="button"
              onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} 
              className="flex items-center gap-2 text-[11px] font-black bg-gray-900 text-white px-4 py-1.5 rounded-full hover:bg-primary-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-md"
            >
@@ -116,6 +121,7 @@ export const TopBar: React.FC<TopBarProps> = ({
              <BrandLogo onClick={() => handleNavigate('home')} />
           </div>
           <button 
+            type="button"
             onClick={() => setMenuOpen(false)}
             className="p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 rounded-full transition-colors"
           >

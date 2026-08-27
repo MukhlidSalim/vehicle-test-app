@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ClipboardCheck, Wrench, ShieldCheck, CheckCircle, XCircle, AlertTriangle, ChevronLeft, ChevronRight, Hash, User, Calendar, FileText, ArrowLeft,
+  ClipboardCheck, Wrench, ShieldCheck, CheckCircle, XCircle, RefreshCw, AlertTriangle, ChevronLeft, ChevronRight, Hash, User, Calendar, FileText, ArrowLeft,
   Truck
 } from 'lucide-react';
 import { SignaturePad } from '../../components/SignaturePad';
 import { PostMaintenanceReport } from './PostMaintenanceReport';
-import { SECTION_A_ITEMS, SECTION_B_ITEMS, SECTION_C_ITEMS, getInitialData, PostMaintenanceConfigItem } from './postMaintenanceConfig';
+import { SECTION_A_ITEMS, SECTION_B_ITEMS, getInitialData, PostMaintenanceConfigItem } from './postMaintenanceConfig';
 import { PostMaintenanceData, PostMaintenanceStatus } from '../../types';
 import { CustomDatePicker } from '../../components/CustomDatePicker';
 import { OmanPlateInput } from '../../components/OmanPlateInput';
 import { OdometerInput } from '../../components/OdometerInput';
+import { scrollToFirstError } from '../../utils/validationScroll';
 interface Props {
   initialData?: PostMaintenanceData;
   onSubmit?: (data: PostMaintenanceData) => void;
@@ -30,8 +31,38 @@ export const PostMaintenanceForm: React.FC<Props> = ({
   
   useEffect(() => { setLang(appLang); }, [appLang]);
   
-  const [step, setStep] = useState(0);
-  const [data, setData] = useState<PostMaintenanceData>(getInitialData());
+  const [step, setStep] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pm_session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.timestamp && (Date.now() - parsed.timestamp < 60 * 60 * 1000)) {
+          return parsed.step;
+        }
+      }
+    } catch(e) {}
+    return 0;
+  });
+  
+  const [data, setData] = useState<PostMaintenanceData>(() => {
+    try {
+      const saved = localStorage.getItem('pm_session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.timestamp && (Date.now() - parsed.timestamp < 60 * 60 * 1000)) {
+          return parsed.data;
+        }
+      }
+    } catch(e) {}
+    return getInitialData();
+  });
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      localStorage.setItem('pm_session', JSON.stringify({ step, data, timestamp: Date.now() }));
+    }, 1000);
+    return () => clearTimeout(handler);
+  }, [step, data]);
   const [uiAlert, setUiAlert] = useState({ show: false, message: '', type: 'warning' as 'warning' | 'fail' });
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   
@@ -44,14 +75,14 @@ export const PostMaintenanceForm: React.FC<Props> = ({
     setData(prev => ({ ...prev, [field]: value }));
   };
 
-  const updateItem = (section: 'sectionA' | 'sectionB' | 'sectionC', id: string, field: 'status' | 'remarks', value: any) => {
+  const updateItem = (section: 'sectionA' | 'sectionB', id: string, field: 'status' | 'remarks', value: any) => {
     setData(prev => ({
       ...prev,
       [section]: prev[section].map(item => item.id === id ? { ...item, [field]: value } : item)
     }));
   };
 
-  const updateSignature = (role: 'driver' | 'operations' | 'workshop', sig: string) => {
+  const updateSignature = (role: 'driver' | 'inspector' | 'workshop', sig: string) => {
     const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
     setData(prev => ({
       ...prev,
@@ -62,15 +93,27 @@ export const PostMaintenanceForm: React.FC<Props> = ({
       }
     }));
   };
+
+  const updateSignatureName = (role: 'driver' | 'inspector' | 'workshop', name: string) => {
+    setData(prev => ({
+      ...prev,
+      signatures: {
+        ...prev.signatures,
+        [`${role}Name`]: name
+      }
+    }));
+  };
   
   const validateStep0 = () => {
     setAttemptedSubmit(true);
     const requiredStr = (str?: string) => str && str.trim().length > 0;
     
-    if (!requiredStr(data.vehicleRegNo) || !requiredStr(data.workshop) || !requiredStr(data.jobCardNo) || !requiredStr(data.inspectorName) || !data.priority) {
-      showAlert(isRTL ? 'يرجى تعبئة جميع الحقول الإلزامية (*) المحددة باللون الأحمر.' : 'Please fill all required fields marked in red.');
-      return false;
-    }
+    let isValid = true;
+    if (!requiredStr(data.vehicleRegNo)) isValid = false;
+    if (!requiredStr(data.workshop)) isValid = false;
+    if (!requiredStr(data.jobCardNo)) isValid = false;
+    if (!requiredStr(data.inspectorName)) isValid = false;
+    if (!data.priority) isValid = false;
     
     if (data.dateSent && data.dateReturned) {
       if (data.dateReturned < data.dateSent) {
@@ -84,44 +127,56 @@ export const PostMaintenanceForm: React.FC<Props> = ({
       return false;
     }
     
+    if (!isValid) {
+      scrollToFirstError();
+      return false;
+    }
+    
     return true;
   };
   
-  const validateSection = (section: 'sectionA' | 'sectionB' | 'sectionC') => {
+  const validateSection = (section: 'sectionA' | 'sectionB') => {
+    setAttemptedSubmit(true);
     const uncompleted = data[section].find(item => item.status === null);
     if (uncompleted) {
-      setAttemptedSubmit(true);
-      showAlert(isRTL ? 'يرجى الإجابة على جميع العناصر' : 'Please answer all items');
+      setTimeout(() => scrollToFirstError(), 100);
       return false;
     }
-    const missingRemarks = data[section].find(item => (item.status === 'fail' || item.status === 'na') && !item.remarks);
+    const missingRemarks = data[section].find(item => item.status === 'fail' && !item.remarks);
     if (missingRemarks) {
-      showAlert(isRTL ? 'يرجى كتابة ملاحظة للعناصر التي فشلت أو لا تنطبق' : 'Please provide remarks for Fail / N/A items');
+      setTimeout(() => scrollToFirstError(), 100);
       return false;
     }
     return true;
   };
 
   const validateSignOff = () => {
-    if (!data.finalStatus) {
-      showAlert(isRTL ? 'يرجى تحديد حالة القبول النهائية' : 'Please select a final status');
-      return false;
-    }
-    if (!data.signatures.driver || !data.signatures.operations || !data.signatures.workshop) {
-      showAlert(isRTL ? 'يرجى توقيع جميع الأطراف المعنية' : 'Please provide all signatures');
+    setAttemptedSubmit(true);
+    let isValid = true;
+    if (!data.finalStatus) isValid = false;
+    if (
+      !data.signatures.driver || data.signatures.driver.length < 500 ||
+      !data.signatures.driverName || data.signatures.driverName.trim().length === 0 ||
+      !data.signatures.inspector || data.signatures.inspector.length < 500 ||
+      !data.signatures.inspectorName || data.signatures.inspectorName.trim().length === 0 ||
+      !data.signatures.workshop || data.signatures.workshop.length < 500 ||
+      !data.signatures.workshopName || data.signatures.workshopName.trim().length === 0
+    ) isValid = false;
+
+    if (!isValid) {
+      scrollToFirstError();
       return false;
     }
     return true;
   };
 
   const handleNext = () => {
-    setAttemptedSubmit(false);
     if (step === 0 && !validateStep0()) return;
     if (step === 1 && !validateSection('sectionA')) return;
     if (step === 2 && !validateSection('sectionB')) return;
-    if (step === 3 && !validateSection('sectionC')) return;
-    if (step === 4 && !validateSignOff()) return;
+    if (step === 3 && !validateSignOff()) return;
     
+    setAttemptedSubmit(false);
     setStep(s => s + 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -133,23 +188,25 @@ export const PostMaintenanceForm: React.FC<Props> = ({
   };
 
   const handleReset = () => {
+    localStorage.removeItem('pm_session');
     setData(getInitialData());
     setStep(0);
     setAttemptedSubmit(false);
   };
 
   const renderRadio = (
-    options: { value: string, labelAr: string, labelEn: string, color: string }[], 
+    options: { value: string, labelAr: string, labelEn: string, color: string, disabled?: boolean }[], 
     currentValue: any, 
     onChange: (val: any) => void
   ) => {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="flex bg-gray-100 rounded-xl p-1 gap-1 h-full w-full">
         {options.map(opt => (
-          <button
+          <button type="button"
             key={opt.value}
-            onClick={() => onChange(opt.value)}
-            className={`flex items-center justify-center py-3 px-4 rounded-xl border-2 font-black transition-all ${currentValue === opt.value ? opt.color + ' shadow-md scale-[1.02]' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+            disabled={opt.disabled}
+            onClick={() => !opt.disabled && onChange(opt.value)}
+            className={`flex-1 flex items-center justify-center rounded-lg font-black text-xs md:text-sm transition-all ${currentValue === opt.value ? opt.color + ' shadow-sm scale-[1.02]' : (opt.disabled ? 'text-gray-300 cursor-not-allowed opacity-50 bg-gray-50' : 'text-gray-500 hover:bg-gray-200')}`}
           >
             {isRTL ? opt.labelAr : opt.labelEn}
           </button>
@@ -159,15 +216,15 @@ export const PostMaintenanceForm: React.FC<Props> = ({
   };
 
   const renderStatusButtons = (status: PostMaintenanceStatus, onChange: (st: PostMaintenanceStatus) => void) => (
-    <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
-      <button onClick={() => onChange('pass')} className={`flex-1 py-2 px-3 rounded-lg font-black text-sm transition-all ${status === 'pass' ? 'bg-emerald-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>
-        {isRTL ? 'ناجح' : 'Pass'}
+    <div className="flex bg-gray-100 rounded-xl p-1 gap-1 w-full md:w-auto min-w-[240px]">
+      <button type="button" onClick={() => onChange('pass')} className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-black text-xs md:text-sm transition-all ${status === 'pass' ? 'bg-emerald-500 text-white shadow-md scale-[1.05] z-10' : 'text-gray-500 hover:bg-gray-200 hover:scale-105 hover:z-10'}`}>
+        <CheckCircle size={14} className={status === 'pass' ? 'text-white' : 'text-emerald-500 opacity-50'} /> {isRTL ? 'ناجح' : 'Pass'}
       </button>
-      <button onClick={() => onChange('fail')} className={`flex-1 py-2 px-3 rounded-lg font-black text-sm transition-all ${status === 'fail' ? 'bg-red-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>
-        {isRTL ? 'راسب' : 'Fail'}
+      <button type="button" onClick={() => onChange('fail')} className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-black text-xs md:text-sm transition-all ${status === 'fail' ? 'bg-red-500 text-white shadow-md scale-[1.05] z-10' : 'text-gray-500 hover:bg-gray-200 hover:scale-105 hover:z-10'}`}>
+        <XCircle size={14} className={status === 'fail' ? 'text-white' : 'text-red-500 opacity-50'} /> {isRTL ? 'راسب' : 'Fail'}
       </button>
-      <button onClick={() => onChange('na')} className={`flex-1 py-2 px-3 rounded-lg font-black text-sm transition-all ${status === 'na' ? 'bg-amber-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>
-        {isRTL ? 'غير ذلك' : 'N/A'}
+      <button type="button" onClick={() => onChange('na')} className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-black text-xs md:text-sm transition-all ${status === 'na' ? 'bg-gray-500 text-white shadow-md scale-[1.05] z-10' : 'text-gray-500 hover:bg-gray-200 hover:scale-105 hover:z-10'}`}>
+        {isRTL ? 'غير مطبق' : 'N/A'}
       </button>
     </div>
   );
@@ -175,44 +232,61 @@ export const PostMaintenanceForm: React.FC<Props> = ({
   const renderListSection = (
     titleAr: string, titleEn: string, 
     items: PostMaintenanceConfigItem[], 
-    sectionKey: 'sectionA' | 'sectionC'
+    sectionKey: 'sectionA' | 'sectionB'
   ) => {
     return (
-      <div className="space-y-5 animate-fade-in">
-        <h3 className="text-xl font-black text-primary-900 border-b border-primary-200 pb-3">{isRTL ? titleAr : titleEn}</h3>
-        <div className="space-y-4">
-          {items.map((conf, index) => {
-            const dataItem = data[sectionKey].find(i => i.id === conf.id)!;
-            const hasError = attemptedSubmit && dataItem.status === null;
-            return (
-              <div key={conf.id} className={`bg-white rounded-2xl p-4 border-2 shadow-sm transition-all ${hasError ? 'border-red-400 bg-red-50' : 'border-gray-100'}`}>
-                <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-                  <div className="flex gap-3">
-                    <span className="flex-shrink-0 w-8 h-8 bg-primary-100 text-primary-700 font-black rounded-full flex items-center justify-center shadow-inner">{index + 1}</span>
-                    <span className="font-bold text-gray-800 leading-relaxed text-sm md:text-base">{isRTL ? conf.labelAr : conf.labelEn}</span>
-                  </div>
-                  <div className="w-full md:w-auto flex-shrink-0">
-                    {renderStatusButtons(dataItem.status, (st) => updateItem(sectionKey, conf.id, 'status', st))}
+      <div className="space-y-4 animate-fade-in">
+        <h2 className="text-2xl font-black text-gray-800 mb-6 px-2">{isRTL ? titleAr : titleEn}</h2>
+        {items.map((conf, index) => {
+          const itemData = data[sectionKey].find(i => i.id === conf.id)!;
+          const isError = attemptedSubmit && itemData.status === null;
+          
+          return (
+            <div key={conf.id} className={`bg-white rounded-[20px] p-4 md:p-5 shadow-sm border transition-all ${isError ? 'border-red-400 shadow-red-100 ring-2 ring-red-100' : 'border-gray-200'}`}>
+              <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                
+                {/* Header/Title */}
+                <div className="flex-1 flex gap-3 w-full">
+                  <span className="flex-shrink-0 w-8 h-8 bg-primary-100 text-primary-700 font-black rounded-full flex items-center justify-center shadow-inner">
+                    {conf.icon ? <conf.icon size={18} /> : index + 1}
+                  </span>
+                  <span className="font-bold text-gray-800 leading-relaxed text-sm md:text-base pt-1 md:pt-2">
+                    {isRTL ? conf.labelAr : conf.labelEn}
+                  </span>
+                </div>
+
+                {/* Status Segmented Control */}
+                <div className="w-full md:w-auto shrink-0 flex flex-col gap-3">
+                  <div className="flex bg-gray-100/80 p-1 rounded-2xl w-full md:min-w-[280px]">
+                    <button type="button" onClick={() => updateItem(sectionKey, conf.id, 'status', 'pass')} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-black text-sm transition-all ${itemData.status === 'pass' ? 'bg-white text-emerald-600 shadow-sm border border-emerald-100' : 'text-gray-500 hover:text-emerald-600'}`}>
+                      <CheckCircle size={16} /> {isRTL ? 'ناجح' : 'Pass'}
+                    </button>
+                    <button type="button" onClick={() => updateItem(sectionKey, conf.id, 'status', 'fail')} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-black text-sm transition-all ${itemData.status === 'fail' ? 'bg-white text-red-600 shadow-sm border border-red-100' : 'text-gray-500 hover:text-red-600'}`}>
+                      <XCircle size={16} /> {isRTL ? 'راسب' : 'Fail'}
+                    </button>
+                    <button type="button" onClick={() => updateItem(sectionKey, conf.id, 'status', 'na')} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-black text-sm transition-all ${itemData.status === 'na' ? 'bg-white text-gray-800 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-800'}`}>
+                      {isRTL ? 'غير مطبق' : 'N/A'}
+                    </button>
                   </div>
                 </div>
-                {(dataItem.status === 'fail' || dataItem.status === 'na' || dataItem.remarks.length > 0) && (
-                  <div className="mt-4 animate-fade-in">
-                    <textarea 
-                      placeholder={isRTL ? "ملاحظات / إجراءات تصحيحية (مطلوب إذا تم اختيار Fail أو N/A)" : "Remarks / Corrective Action (Required for Fail/N/A)"}
-                      className="w-full bg-gray-50 border border-gray-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary-500 font-medium"
-                      rows={2}
-                      value={dataItem.remarks}
-                      onChange={(e) => updateItem(sectionKey, conf.id, 'remarks', e.target.value)}
-                    />
-                  </div>
-                )}
               </div>
-            );
-          })}
-        </div>
+              
+              {/* Remarks Box */}
+              {(itemData.status === 'fail' || itemData.status === 'na' || itemData.remarks) && (
+                <div className="mt-4 pt-4 border-t border-gray-100 animate-fade-in-down">
+                  <textarea 
+                    className={`w-full bg-gray-50 border rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary-500 focus:bg-white font-bold transition-all placeholder:text-gray-400 ${attemptedSubmit && itemData.status === 'fail' && !itemData.remarks ? 'border-red-500 bg-red-50' : 'border-gray-200'}`} 
+                    placeholder={isRTL ? 'الملاحظات أو الإجراء التصحيحي...' : 'Remarks / Corrective Action...'}
+                    rows={2}
+                    value={itemData.remarks} onChange={e => updateItem(sectionKey, conf.id, 'remarks', e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
-    );
-  };
+    );};
 
   const renderIconSectionB = () => {
     return (
@@ -223,7 +297,7 @@ export const PostMaintenanceForm: React.FC<Props> = ({
             const dataItem = data.sectionB.find(i => i.id === conf.id)!;
             const hasError = attemptedSubmit && dataItem.status === null;
             return (
-              <div key={conf.id} className={`bg-white rounded-2xl p-4 border-2 shadow-sm transition-all flex flex-col gap-4 ${hasError ? 'border-red-400 bg-red-50' : 'border-gray-100'}`}>
+              <div key={conf.id} data-error={hasError ? "true" : undefined} className={`bg-white rounded-2xl p-4 border-2 shadow-sm transition-all flex flex-col gap-4 ${hasError ? 'border-red-400 bg-red-50' : 'border-gray-100'}`}>
                 <div className="flex items-start gap-4">
                   {conf.icon && (
                     <div className={`p-2 rounded-xl border shadow-inner flex-shrink-0 ${hasError ? 'bg-red-100 border-red-200 text-red-600' : 'bg-gray-50 border-gray-200 text-primary-600'}`}>
@@ -240,11 +314,19 @@ export const PostMaintenanceForm: React.FC<Props> = ({
                   {renderStatusButtons(dataItem.status, (st) => updateItem('sectionB', conf.id, 'status', st))}
                 </div>
                 
-                {(dataItem.status === 'fail' || dataItem.status === 'na' || dataItem.remarks.length > 0) && (
-                  <div className="animate-fade-in">
+                {(dataItem.status === 'fail' || dataItem.remarks.length > 0) && (
+                  <div className="animate-fade-in origin-top">
+                    <div className="flex gap-1 flex-wrap mb-2">
+                      {(isRTL ? ['تالف', 'مفقود', 'يحتاج صيانة'] : ['Damaged', 'Missing', 'Needs Service']).map(tag => (
+                        <button key={tag} type="button" onClick={() => updateItem('sectionB', conf.id, 'remarks', dataItem.remarks ? `${dataItem.remarks}, ${tag}` : tag)} className="text-[9px] font-bold bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded-md hover:bg-primary-100 transition-colors">
+                          + {tag}
+                        </button>
+                      ))}
+                    </div>
                     <textarea 
-                      placeholder={isRTL ? "ملاحظات (مطلوب لـ Fail/NA)" : "Remarks (Required for Fail/NA)"}
-                      className="w-full bg-gray-50 border border-gray-300 rounded-xl p-2 text-xs focus:ring-2 focus:ring-primary-500 font-medium"
+                      placeholder={isRTL ? "ملاحظات (مطلوب لـ Fail)" : "Remarks (Required for Fail)"}
+                      data-error={attemptedSubmit && dataItem.status === 'fail' && !dataItem.remarks ? "true" : undefined}
+                      className={`w-full bg-gray-50 border rounded-xl p-2 text-xs focus:ring-2 focus:ring-primary-500 focus:bg-white font-medium transition-all shadow-inner ${attemptedSubmit && dataItem.status === 'fail' && !dataItem.remarks ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'border-gray-200'}`}
                       rows={2}
                       value={dataItem.remarks}
                       onChange={(e) => updateItem('sectionB', conf.id, 'remarks', e.target.value)}
@@ -260,24 +342,29 @@ export const PostMaintenanceForm: React.FC<Props> = ({
   };
 
   return (
-    <div className="animate-fade-in pb-8 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between bg-white p-4 md:p-6 rounded-3xl shadow-sm border border-gray-100 mb-6">
-        <div className="flex items-center gap-4">
-          <button onClick={onExit} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
-            {isRTL ? <ArrowLeft size={24} className="rotate-180" /> : <ArrowLeft size={24} />}
-          </button>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-primary-100 text-primary-700 rounded-xl flex items-center justify-center shadow-inner">
-              <ClipboardCheck size={28} strokeWidth={2.5} />
-            </div>
-            <div>
-              <h2 className="text-lg md:text-xl font-black text-gray-900">{isRTL ? 'استلام الحافلات بعد الصيانة' : 'Post-Maintenance Acceptance'}</h2>
-              {step > 0 && step < 5 && <p className="text-sm font-bold text-primary-600">{isRTL ? `خطوة ${step} من 4` : `Step ${step} of 4`}</p>}
-            </div>
+    <div className="animate-fade-in pb-20 max-w-4xl mx-auto">
+      {/* Header with Exit */}
+      <div className="flex items-center gap-4 mb-4">
+        <button type="button" onClick={onExit} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 bg-white shadow-sm border border-gray-100">
+          <ArrowLeft size={20} className={isRTL ? "rotate-180" : ""} />
+        </button>
+        <h2 className="text-lg font-black text-gray-900">{isRTL ? 'استمارة فحص الحافلة بعد الصيانة' : 'Post-Maintenance Acceptance'}</h2>
+      </div>
+
+      {/* Progress Tracker Bar */}
+      {step < 4 && (
+        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-400 space-y-3 mb-6 no-print">
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] font-black text-primary-900 uppercase tracking-widest opacity-60">
+              {isRTL ? `المرحلة ${step + 1} من 4` : `Step ${step + 1} of 4`}
+            </span>
+            <span className="text-xs font-black text-primary-600 font-mono">{Math.round(((step + 1) / 4) * 100)}%</span>
+          </div>
+          <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+            <div className="bg-primary-600 h-full transition-all duration-1000 ease-out" style={{ width: `${((step + 1) / 4) * 100}%` }}></div>
           </div>
         </div>
-      </div>
+      )}
 
       {uiAlert.show && (
         <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 font-bold text-sm shadow-sm animate-fade-in border ${
@@ -291,108 +378,118 @@ export const PostMaintenanceForm: React.FC<Props> = ({
       {/* Steps */}
       {step === 0 && (
         <div className="space-y-6">
-          <div className="bg-white/80 backdrop-blur-lg rounded-[2rem] p-6 shadow-xl border border-gray-200 space-y-6">
-            <h3 className="text-xl font-black text-primary-900 border-b border-gray-100 pb-3">{isRTL ? 'معلومات صيانة الحافلة' : 'Bus Maintenance Information'}</h3>
-            
+          {/* Card 1: Vehicle & Inspector Details */}
+          <div className="bg-white/80 backdrop-blur-lg rounded-[2rem] p-6 shadow-xl border border-gray-200 space-y-5">
+            <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center"><Truck size={18} /></div>
+              <h3 className="text-lg font-black text-gray-900">{isRTL ? 'بيانات المركبة والمفتش' : 'Vehicle & Inspector Details'}</h3>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="text-sm font-black text-gray-700 flex items-center gap-2"><Truck size={16} className="text-primary-500"/> {isRTL ? 'رقم اللوحة' : 'Vehicle Reg. No'} *</label>
-                <input type="text" className={`w-full bg-white border rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary-500 font-bold transition-all shadow-sm ${attemptedSubmit && !data.vehicleRegNo.trim() ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'border-gray-200'}`}
-                       value={data.vehicleRegNo} onChange={e => updateMeta('vehicleRegNo', e.target.value)} dir="ltr" />
+                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">{isRTL ? 'رقم اللوحة' : 'Vehicle Reg. No'} *</label>
+                <OmanPlateInput value={data.vehicleRegNo} onChange={val => updateMeta('vehicleRegNo', val)} error={attemptedSubmit && !data.vehicleRegNo.trim()} isRTL={isRTL} />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-black text-gray-700 flex items-center gap-2"><Wrench size={16} className="text-primary-500"/> {isRTL ? 'الورشة' : 'Workshop'} *</label>
-                <input type="text" className={`w-full bg-white border rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary-500 font-bold transition-all shadow-sm ${attemptedSubmit && !data.workshop.trim() ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'border-gray-200'}`}
-                       value={data.workshop} onChange={e => updateMeta('workshop', e.target.value)} />
+                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">{isRTL ? 'الورشة' : 'Workshop'} *</label>
+                <div className="relative">
+                  <Wrench size={16} className={`absolute top-3.5 ${isRTL ? 'right-3' : 'left-3'} text-gray-400`} />
+                  <input type="text" data-error={attemptedSubmit && !data.workshop.trim() ? "true" : undefined} className={`w-full bg-gray-50 border rounded-xl p-3 ${isRTL ? 'pr-10' : 'pl-10'} text-sm focus:ring-2 focus:ring-primary-500 focus:bg-white font-bold transition-all shadow-inner ${attemptedSubmit && !data.workshop.trim() ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'border-gray-200'}`}
+                         value={data.workshop} onChange={e => updateMeta('workshop', e.target.value)} />
+                </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-black text-gray-700 flex items-center gap-2"><Calendar size={16} className="text-primary-500"/> {isRTL ? 'تاريخ الإرسال' : 'Date Sent'}</label>
-                <CustomDatePicker
-                  value={data.dateSent}
-                  onChange={val => updateMeta('dateSent', val)}
-                  error={attemptedSubmit && data.dateSent && data.dateReturned && data.dateReturned < data.dateSent ? true : false}
-                  isRTL={isRTL}
-                  isRecentDate={true}
-                />
+                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">{isRTL ? 'رقم كرت العمل' : 'Job Card No'} *</label>
+                <div className="relative w-full">
+                  <Hash size={16} className={`absolute top-3.5 ${isRTL ? 'right-3' : 'left-3'} text-gray-400`} />
+                  <input type="text" data-error={attemptedSubmit && !data.jobCardNo.trim() ? "true" : undefined} className={`w-full bg-gray-50 border rounded-xl p-3 ${isRTL ? 'pr-10' : 'pl-10'} text-sm focus:ring-2 focus:ring-primary-500 focus:bg-white font-bold transition-all shadow-inner ${attemptedSubmit && !data.jobCardNo.trim() ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'border-gray-200'}`}
+                         value={data.jobCardNo} onChange={e => updateMeta('jobCardNo', e.target.value)} dir="ltr" />
+                </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-black text-gray-700 flex items-center gap-2"><Calendar size={16} className="text-primary-500"/> {isRTL ? 'تاريخ الاسترجاع' : 'Date Returned'}</label>
-                <CustomDatePicker
-                  value={data.dateReturned}
-                  onChange={val => updateMeta('dateReturned', val)}
-                  error={attemptedSubmit && data.dateSent && data.dateReturned && data.dateReturned < data.dateSent ? true : false}
-                  isRTL={isRTL}
-                  isRecentDate={true}
-                />
+                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">{isRTL ? 'اسم المفتش' : 'Inspector Name'} *</label>
+                <div className="relative">
+                  <User size={16} className={`absolute top-3.5 ${isRTL ? 'right-3' : 'left-3'} text-gray-400`} />
+                  <input type="text" data-error={attemptedSubmit && !data.inspectorName.trim() ? "true" : undefined} className={`w-full bg-gray-50 border rounded-xl p-3 ${isRTL ? 'pr-10' : 'pl-10'} text-sm focus:ring-2 focus:ring-primary-500 focus:bg-white font-bold transition-all shadow-inner ${attemptedSubmit && !data.inspectorName.trim() ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'border-gray-200'}`}
+                         value={data.inspectorName} onChange={e => updateMeta('inspectorName', e.target.value)} />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-black text-gray-700 flex items-center gap-2"><Hash size={16} className="text-primary-500"/> {isRTL ? 'رقم كرت العمل' : 'Job Card No'} *</label>
-                <input type="text" className={`w-full bg-white border rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary-500 font-bold transition-all shadow-sm ${attemptedSubmit && !data.jobCardNo.trim() ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'border-gray-200'}`}
-                       value={data.jobCardNo} onChange={e => updateMeta('jobCardNo', e.target.value)} dir="ltr" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-black text-gray-700 flex items-center gap-2"><Hash size={16} className="text-primary-500"/> {isRTL ? 'قراءة العداد (كم)' : 'KM Reading'}</label>
-                <OdometerInput
-                  value={data.kmReading}
-                  onChange={val => updateMeta('kmReading', val)}
-                  error={attemptedSubmit && !data.kmReading.trim() ? true : false}
-                  isRTL={isRTL}
-                />
-              </div>
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-sm font-black text-gray-700 flex items-center gap-2"><User size={16} className="text-primary-500"/> {isRTL ? 'اسم المفتش' : 'Inspector Name'} *</label>
-                <input type="text" className={`w-full bg-white border rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary-500 font-bold transition-all shadow-sm ${attemptedSubmit && !data.inspectorName.trim() ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'border-gray-200'}`}
-                       value={data.inspectorName} onChange={e => updateMeta('inspectorName', e.target.value)} />
-              </div>
-            </div>
-            
-            <div className="space-y-3 pt-4 border-t border-gray-100">
-              <label className="text-sm font-black text-gray-700">{isRTL ? 'الأولوية' : 'Priority'} *</label>
-              <div className={`p-1.5 rounded-2xl transition-all ${attemptedSubmit && !data.priority ? 'border border-red-500 bg-red-50' : 'border border-transparent'}`}>
-                {renderRadio([
-                  { value: 'A', labelAr: 'أولوية أ (A)', labelEn: 'Priority A', color: 'bg-red-50 border-red-500 text-red-700' },
-                  { value: 'B', labelAr: 'أولوية ب (B)', labelEn: 'Priority B', color: 'bg-amber-50 border-amber-500 text-amber-700' },
-                  { value: 'C', labelAr: 'أولوية ج (C)', labelEn: 'Priority C', color: 'bg-emerald-50 border-emerald-500 text-emerald-700' },
-                ], data.priority, (val) => updateMeta('priority', val))}
-              </div>
-            </div>
 
+            </div>
           </div>
 
-          <div className="bg-white/80 backdrop-blur-lg rounded-[2rem] p-6 shadow-xl border border-gray-200 space-y-4">
-            <h3 className="text-xl font-black text-primary-900 border-b border-gray-100 pb-3">{isRTL ? 'تفاصيل الإصلاح المُبلغ عنه' : 'Reported Repair Details'}</h3>
-            <div className="space-y-1.5">
-              <label className="text-sm font-black text-gray-700">{isRTL ? 'العطل المُبلغ عنه' : 'Reported Defect'}</label>
-              <textarea className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary-500 font-bold transition-all shadow-sm" rows={3}
-                     value={data.reportedDefect} onChange={e => updateMeta('reportedDefect', e.target.value)} />
+          {/* Card 2: Timeline & Status */}
+          <div className="bg-white/80 backdrop-blur-lg rounded-[2rem] p-6 shadow-xl border border-gray-200 space-y-5">
+            <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center"><Calendar size={18} /></div>
+              <h3 className="text-lg font-black text-gray-900">{isRTL ? 'السجل الزمني والمسافة' : 'Timeline & Status'}</h3>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-black text-gray-700">{isRTL ? 'تفاصيل الإصلاح' : 'Repair Details'}</label>
-              <textarea className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary-500 font-bold transition-all shadow-sm" rows={3}
-                     value={data.repairDetails} onChange={e => updateMeta('repairDetails', e.target.value)} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">{isRTL ? 'تاريخ الإرسال' : 'Date Sent'}</label>
+                <CustomDatePicker value={data.dateSent} onChange={val => updateMeta('dateSent', val)} error={attemptedSubmit && data.dateSent && data.dateReturned && data.dateReturned < data.dateSent ? true : false} isRTL={isRTL} isRecentDate={true} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">{isRTL ? 'تاريخ الاسترجاع' : 'Date Returned'}</label>
+                <CustomDatePicker value={data.dateReturned} onChange={val => updateMeta('dateReturned', val)} error={attemptedSubmit && data.dateSent && data.dateReturned && data.dateReturned < data.dateSent ? true : false} isRTL={isRTL} isRecentDate={true} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">{isRTL ? 'قراءة العداد (كم)' : 'KM Reading'}</label>
+                <OdometerInput value={data.kmReading} onChange={val => updateMeta('kmReading', val)} error={attemptedSubmit && !data.kmReading.trim() ? true : false} isRTL={isRTL} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">{isRTL ? 'الأولوية' : 'Priority'} *</label>
+                <div data-error={attemptedSubmit && !data.priority ? "true" : undefined} className={`rounded-xl transition-all h-[46px] ${attemptedSubmit && !data.priority ? 'border border-red-500 bg-red-50 p-1' : ''}`}>
+                  {renderRadio([
+                    { value: 'A', labelAr: 'أولوية أ', labelEn: 'Priority A', color: 'bg-red-500 border-red-500 text-white' },
+                    { value: 'B', labelAr: 'أولوية ب', labelEn: 'Priority B', color: 'bg-amber-500 border-amber-500 text-white' },
+                    { value: 'C', labelAr: 'أولوية ج', labelEn: 'Priority C', color: 'bg-emerald-500 border-emerald-500 text-white' },
+                  ], data.priority, (val) => updateMeta('priority', val))}
+                </div>
+              </div>
             </div>
           </div>
+
+          {/* Card 3: Defect Report */}
+          <div className="bg-white/80 backdrop-blur-lg rounded-[2rem] p-6 shadow-xl border border-gray-200 space-y-5">
+            <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+              <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center"><AlertTriangle size={18} /></div>
+              <h3 className="text-lg font-black text-gray-900">{isRTL ? 'بطاقة تفاصيل الأعطال' : 'Reported Defect Details'}</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">{isRTL ? 'العطل المُبلغ عنه' : 'Reported Defect'}</label>
+                <textarea className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary-500 focus:bg-white font-bold transition-all shadow-inner" rows={4}
+                       value={data.reportedDefect} onChange={e => updateMeta('reportedDefect', e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">{isRTL ? 'تفاصيل الإصلاح' : 'Repair Details'}</label>
+                <textarea className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary-500 focus:bg-white font-bold transition-all shadow-inner" rows={4}
+                       value={data.repairDetails} onChange={e => updateMeta('repairDetails', e.target.value)} />
+              </div>
+            </div>
+          </div>
+
+
         </div>
       )}
 
-      {step === 1 && renderListSection(isRTL ? 'أ. التحقق من تصحيح الإصلاح' : 'A. Repair Rectification Verification', isRTL ? 'أ. التحقق من تصحيح الإصلاح' : 'A. Repair Rectification Verification', SECTION_A_ITEMS, 'sectionA')}
-      
-      {step === 2 && renderIconSectionB()}
-
-      {step === 3 && renderListSection(isRTL ? 'ج. اختبار الطريق والقبول النهائي' : 'C. Road Test and Final Acceptance', isRTL ? 'ج. اختبار الطريق والقبول النهائي' : 'C. Road Test and Final Acceptance', SECTION_C_ITEMS, 'sectionC')}
-
-      {step === 4 && (
+      {step === 1 && renderListSection(isRTL ? 'أ. التحقق من إصلاح الأعطال' : 'A. Repair Rectification Verification', isRTL ? 'أ. التحقق من إصلاح الأعطال' : 'A. Repair Rectification Verification', SECTION_A_ITEMS, 'sectionA')}
+      {step === 2 && renderListSection(isRTL ? 'ب. الفحوصات التشغيلية بعد الصيانة' : 'B. Post-Maintenance Functional Checks', isRTL ? 'ب. الفحوصات التشغيلية بعد الصيانة' : 'B. Post-Maintenance Functional Checks', SECTION_B_ITEMS, 'sectionB')}
+      {step === 3 && (() => {
+        return (
         <div className="bg-white/80 backdrop-blur-lg rounded-[2rem] p-6 shadow-xl border border-white/40 space-y-8 animate-fade-in">
-          <h3 className="text-xl font-black text-primary-900 border-b border-primary-100 pb-4">{isRTL ? 'القرار النهائي والتوقيع' : 'Final Decision and Sign-Off'}</h3>
+          <h3 className="text-xl font-black text-gray-900 border-b border-gray-100 pb-4">{isRTL ? 'القرار النهائي والتوقيع' : 'Final Decision and Sign-Off'}</h3>
           
           <div className="space-y-4">
             <label className="text-sm font-black text-gray-700">{isRTL ? 'الحالة النهائية' : 'Final Status'} *</label>
-            {renderRadio([
-              { value: 'Accepted', labelAr: 'مقبولة (Accepted)', labelEn: 'Accepted', color: 'bg-emerald-50 border-emerald-500 text-emerald-700' },
-              { value: 'Conditional Acceptance', labelAr: 'قبول مشروط', labelEn: 'Conditional Acceptance', color: 'bg-amber-50 border-amber-500 text-amber-700' },
-              { value: 'Reinspection', labelAr: 'إعادة فحص', labelEn: 'Reinspection', color: 'bg-blue-50 border-blue-500 text-blue-700' },
-              { value: 'Rejected', labelAr: 'مرفوضة (Rejected)', labelEn: 'Rejected', color: 'bg-red-50 border-red-500 text-red-700' },
-            ], data.finalStatus, (val) => updateMeta('finalStatus', val))}
+            <div data-error={attemptedSubmit && !data.finalStatus ? "true" : undefined} className={`rounded-xl transition-all h-[52px] ${attemptedSubmit && !data.finalStatus ? 'border border-red-500 bg-red-50 p-1' : ''}`}>
+              {renderRadio([
+                { value: 'Accepted', labelAr: 'مقبولة', labelEn: 'Accepted', color: 'bg-emerald-500 border-emerald-500 text-white' },
+                { value: 'Conditional Acceptance', labelAr: 'قبول مشروط', labelEn: 'Conditional Acceptance', color: 'bg-amber-500 border-amber-500 text-white' },
+                { value: 'Reinspection', labelAr: 'إعادة فحص', labelEn: 'Reinspection', color: 'bg-blue-500 border-blue-500 text-white' },
+                { value: 'Rejected', labelAr: 'مرفوضة', labelEn: 'Rejected', color: 'bg-red-500 border-red-500 text-white' },
+              ], data.finalStatus, (val) => updateMeta('finalStatus', val))}
+            </div>
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl mt-2 text-xs font-bold text-red-800">
               <span className="text-red-600 font-black">{isRTL ? 'قاعدة القبول: ' : 'Acceptance rule: '}</span>
               {isRTL ? 'أي عطل يمس السلامة لم يتم حله أو تكرار العطل الأصلي يتطلب الرفض وإعادة الصيانة.' : 'Any unresolved safety-critical defect or recurrence of the original defect requires rejection and return to maintenance.'}
@@ -405,70 +502,85 @@ export const PostMaintenanceForm: React.FC<Props> = ({
                      value={data.outstandingItems} onChange={e => updateMeta('outstandingItems', e.target.value)} />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 pt-6 border-t border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-gray-200">
              <div className="space-y-3">
+                <label className="block text-sm font-black text-gray-700">{isRTL ? 'اسم السائق *' : 'Driver Name *'}</label>
+                <input type="text" data-error={attemptedSubmit && !data.signatures.driverName ? "true" : undefined} className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 font-bold transition-all shadow-sm ${attemptedSubmit && !data.signatures.driverName ? 'border-red-400 ring-2 ring-red-100' : 'border-gray-200'}`} value={data.signatures.driverName || ''} onChange={e => updateSignatureName('driver', e.target.value)} />
+                
                 <SignaturePad 
-                  label={isRTL ? 'توقيع السائق / المفتش *' : 'Driver / Inspector Signature *'}
+                  label={isRTL ? 'التوقيع *' : 'Signature *'}
                   initialSignature={data.signatures.driver}
                   onSave={(sig) => updateSignature('driver', sig)} 
                   onClear={() => updateSignature('driver', '')}
-                  error={attemptedSubmit && !data.signatures.driver}
+                  error={attemptedSubmit && (!data.signatures.driver || data.signatures.driver.length < 500)}
                   isRTL={isRTL}
                 />
              </div>
              <div className="space-y-3">
+                <label className="block text-sm font-black text-gray-700">{isRTL ? 'اسم المفتش *' : 'Inspector Name *'}</label>
+                <input type="text" data-error={attemptedSubmit && !data.signatures.inspectorName ? "true" : undefined} className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 font-bold transition-all shadow-sm ${attemptedSubmit && !data.signatures.inspectorName ? 'border-red-400 ring-2 ring-red-100' : 'border-gray-200'}`} value={data.signatures.inspectorName || ''} onChange={e => updateSignatureName('inspector', e.target.value)} />
+
                 <SignaturePad 
-                  label={isRTL ? 'توقيع ممثل العمليات *' : 'Operations Rep. Signature *'}
-                  initialSignature={data.signatures.operations}
-                  onSave={(sig) => updateSignature('operations', sig)} 
-                  onClear={() => updateSignature('operations', '')}
-                  error={attemptedSubmit && !data.signatures.operations}
+                  label={isRTL ? 'التوقيع *' : 'Signature *'}
+                  initialSignature={data.signatures.inspector}
+                  onSave={(sig) => updateSignature('inspector', sig)} 
+                  onClear={() => updateSignature('inspector', '')}
+                  error={attemptedSubmit && (!data.signatures.inspector || data.signatures.inspector.length < 500)}
                   isRTL={isRTL}
                 />
              </div>
              <div className="space-y-3">
+                <label className="block text-sm font-black text-gray-700">{isRTL ? 'اسم ممثل الورشة *' : 'Workshop Rep. Name *'}</label>
+                <input type="text" data-error={attemptedSubmit && !data.signatures.workshopName ? "true" : undefined} className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 font-bold transition-all shadow-sm ${attemptedSubmit && !data.signatures.workshopName ? 'border-red-400 ring-2 ring-red-100' : 'border-gray-200'}`} value={data.signatures.workshopName || ''} onChange={e => updateSignatureName('workshop', e.target.value)} />
+
                 <SignaturePad 
-                  label={isRTL ? 'توقيع ممثل الورشة *' : 'Workshop Rep. Signature *'}
+                  label={isRTL ? 'التوقيع *' : 'Signature *'}
                   initialSignature={data.signatures.workshop}
                   onSave={(sig) => updateSignature('workshop', sig)} 
                   onClear={() => updateSignature('workshop', '')}
-                  error={attemptedSubmit && !data.signatures.workshop}
+                  error={attemptedSubmit && (!data.signatures.workshop || data.signatures.workshop.length < 500)}
                   isRTL={isRTL}
                 />
              </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
-      {step === 5 && (
+      {step === 4 && (
         <PostMaintenanceReport data={data} isRTL={isRTL} onNewForm={handleReset} onEdit={() => {
           setStep(0);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }} />
       )}
 
-      {/* Navigation Footer */}
-      {step < 5 && (
-        <div className="mt-8 pt-4 border-t border-gray-200 flex justify-between items-center gap-4">
-            <button
-              onClick={handlePrev}
-              disabled={step === 0}
-              className={`flex-1 py-3.5 md:py-4 rounded-xl font-black text-sm md:text-base flex items-center justify-center gap-2 transition-all ${
-                step === 0 
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50' 
-                  : 'bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
-              }`}
-            >
-              <ChevronLeft size={20} className={isRTL ? 'rotate-180' : ''} />
-              {isRTL ? 'السابق' : 'Previous'}
-            </button>
-            <button
-              onClick={handleNext}
-              className="flex-1 py-3.5 md:py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-black text-sm md:text-base flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary-600/30"
-            >
-              {step === 4 ? (isRTL ? 'إصدار التقرير' : 'Generate Report') : (isRTL ? 'التالي' : 'Next')}
-              <ChevronRight size={20} className={isRTL ? 'rotate-180' : ''} />
-            </button>
+            {step < 4 && (
+        <div className="flex gap-4 border-t border-gray-300 pt-8 mt-8">
+          <button 
+            type="button" 
+            onClick={handlePrev} 
+            className="px-8 py-4 rounded-xl text-gray-400 font-black text-base bg-white border border-gray-300 hover:bg-gray-50 active:scale-95 v-center-cairo"
+          >
+            {isRTL ? 'السابق' : 'Back'}
+          </button>
+          
+          <button 
+            type="button" 
+            onClick={handleNext} 
+            className="flex-1 py-4 rounded-xl bg-primary-600 text-white font-black text-xl disabled:bg-gray-200 shadow-xl active:scale-[0.99] transition-all flex items-center justify-center gap-3"
+          >
+            {step === 3 ? (
+              <> 
+                <CheckCircle size={24} /> 
+                <span className="v-center-cairo">{isRTL ? 'التقرير النهائي' : 'View Report'}</span> 
+              </>
+            ) : (
+              <> 
+                <span className="v-center-cairo">{isRTL ? 'التالي' : 'Next'}</span> 
+                {isRTL ? <ChevronLeft size={24} /> : <ChevronRight size={24} />} 
+              </>
+            )}
+          </button>
         </div>
       )}
     </div>

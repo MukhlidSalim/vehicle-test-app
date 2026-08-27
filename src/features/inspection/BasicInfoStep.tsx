@@ -7,6 +7,7 @@ import { CustomDatePicker } from '../../components/CustomDatePicker';
 import { PhoneInput } from '../../components/PhoneInput';
 import { OmanPlateInput } from '../../components/OmanPlateInput';
 import { OdometerInput } from '../../components/OdometerInput';
+
 interface BasicInfoStepProps {
   t: any;
   isRTL: boolean;
@@ -27,6 +28,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
   attemptedStep2,
 }) => {
   const [dateWarning, setDateWarning] = React.useState({ show: false, msg: '' });
+  
   const showDateWarning = (msg: string) => {
     setDateWarning({ show: true, msg });
     setTimeout(() => setDateWarning({ show: false, msg: '' }), 4000);
@@ -74,11 +76,8 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                     id="driver-name"
                     data-error={attemptedStep2 && !data.driverInfo.name ? 'true' : undefined}
                     className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${getInputStateClass(data.driverInfo.name, attemptedStep2 && !data.driverInfo.name)}`}
-                    value={data.driverInfo.name}
-                    onChange={e => setData((p) => ({ 
-                      ...p, 
-                      driverInfo: { ...p.driverInfo, name: e.target.value } 
-                    }))}
+                    value={data.driverInfo.name || ''}
+                    onChange={e => setData(p => ({ ...p, driverInfo: { ...p.driverInfo, name: e.target.value } }))} 
                   />
                   {data.driverInfo.name && data.driverInfo.name.trim().length > 0 && <CheckIcon />}
                 </div>
@@ -91,8 +90,8 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                 </label>
                 <div className="relative">
                   <PhoneInput 
-                    value={data.driverInfo.phoneNumber} 
-                    onChange={val => setData((p) => ({ ...p, driverInfo: { ...p.driverInfo, phoneNumber: val } }))}
+                    value={data.driverInfo.phoneNumber || ''} 
+                    onChange={val => setData(p => ({ ...p, driverInfo: { ...p.driverInfo, phoneNumber: val } }))}
                     error={attemptedStep2 && !data.driverInfo.phoneNumber ? true : false}
                     isRTL={isRTL}
                   />
@@ -109,10 +108,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                   <input 
                     className="w-full p-3.5 border border-gray-300 rounded-xl bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white outline-none font-bold text-base transition-all duration-300" 
                     value={data.driverInfo.assistantName || ''} 
-                    onChange={e => setData((p) => ({ 
-                      ...p, 
-                      driverInfo: { ...p.driverInfo, assistantName: e.target.value } 
-                    }))} 
+                    onChange={e => setData(p => ({ ...p, driverInfo: { ...p.driverInfo, assistantName: e.target.value } }))} 
                   />
                </div>
              )}
@@ -125,7 +121,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                   </label>
                   <PhoneInput 
                     value={data.driverInfo.assistantPhone || ''} 
-                    onChange={val => setData((p) => ({ ...p, driverInfo: { ...p.driverInfo, assistantPhone: val } }))}
+                    onChange={val => setData(p => ({ ...p, driverInfo: { ...p.driverInfo, assistantPhone: val } }))}
                     isRTL={isRTL}
                   />
                </div>
@@ -141,11 +137,8 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                     id="plate-number"
                     data-error={attemptedStep2 && !data.driverInfo.plateNumber ? 'true' : undefined}
                     className={`w-full p-3.5 border rounded-xl outline-none font-mono font-bold text-xl uppercase transition-all duration-300 ${getInputStateClass(data.driverInfo.plateNumber, attemptedStep2 && !data.driverInfo.plateNumber)}`}
-                    value={data.driverInfo.plateNumber}
-                    onChange={e => setData((p) => ({ 
-                      ...p, 
-                      driverInfo: { ...p.driverInfo, plateNumber: e.target.value } 
-                    }))}
+                    value={data.driverInfo.plateNumber || ''}
+                    onChange={e => setData(p => ({ ...p, driverInfo: { ...p.driverInfo, plateNumber: e.target.value } }))} 
                   />
                   {data.driverInfo.plateNumber && data.driverInfo.plateNumber.trim().length > 0 && <CheckIcon />}
                 </div>
@@ -165,10 +158,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                         data-error={attemptedStep2 && !data.driverInfo.departure ? 'true' : undefined}
                         className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${getInputStateClass(data.driverInfo.departure, attemptedStep2 && !data.driverInfo.departure)}`} 
                         value={data.driverInfo.departure || ''} 
-                        onChange={e => setData((p) => ({ 
-                          ...p, 
-                          driverInfo: { ...p.driverInfo, departure: e.target.value } 
-                        }))} 
+                        onChange={e => setData(p => ({ ...p, driverInfo: { ...p.driverInfo, departure: e.target.value } }))} 
                       />
                       {data.driverInfo.departure && data.driverInfo.departure.trim().length > 0 && <CheckIcon />}
                     </div>
@@ -182,10 +172,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                         data-error={attemptedStep2 && !data.driverInfo.destination ? 'true' : undefined}
                         className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${getInputStateClass(data.driverInfo.destination, attemptedStep2 && !data.driverInfo.destination)}`} 
                         value={data.driverInfo.destination || ''} 
-                        onChange={e => setData((p) => ({ 
-                          ...p, 
-                          driverInfo: { ...p.driverInfo, destination: e.target.value } 
-                        }))} 
+                        onChange={e => setData(p => ({ ...p, driverInfo: { ...p.driverInfo, destination: e.target.value } }))} 
                       />
                       {data.driverInfo.destination && data.driverInfo.destination.trim().length > 0 && <CheckIcon />}
                     </div>
@@ -296,8 +283,8 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                 </label>
                 <div className="relative">
                   <OdometerInput 
-                    value={data.driverInfo.currentOdometer ? String(data.driverInfo.currentOdometer) : ''} 
-                    onChange={val => setData((p) => ({ ...p, driverInfo: { ...p.driverInfo, currentOdometer: val } }))}
+                    value={data.driverInfo.currentOdometer || ''} 
+                    onChange={val => setData(p => ({ ...p, driverInfo: { ...p.driverInfo, currentOdometer: val } }))}
                     error={(attemptedStep2 && !data.driverInfo.currentOdometer) || (isOdoInvalid && !!data.driverInfo.currentOdometer) ? true : false}
                     isRTL={isRTL}
                   />
@@ -312,11 +299,8 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                 </label>
                 <div className="relative">
                   <OdometerInput 
-                    value={data.driverInfo.odometer ? String(data.driverInfo.odometer) : ''} 
-                    onChange={val => setData((p) => ({ 
-                      ...p, 
-                      driverInfo: { ...p.driverInfo, odometer: val } 
-                    }))}
+                    value={data.driverInfo.odometer || ''} 
+                    onChange={val => setData(p => ({ ...p, driverInfo: { ...p.driverInfo, odometer: val } }))}
                     error={(attemptedStep2 && !data.driverInfo.odometer) || (isOdoInvalid && !!data.driverInfo.odometer) ? true : false}
                     isRTL={isRTL}
                   />
@@ -339,12 +323,24 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                   const isSelected = data.driverInfo.vehicleType === vt.value;
                   return (
                     <button 
+                      type="button"
                       key={vt.value} 
-                      onClick={() => setData((p) => ({ 
-                        ...p, 
-                        driverInfo: { ...p.driverInfo, vehicleType: vt.value },
-                        checklist: getChecklistForType(vt.value, p.mode)
-                      }))} 
+                      onClick={() => {
+                        const hasExistingData = data.checklist?.some(item => item.status !== undefined && item.status !== '');
+                        if (hasExistingData && data.driverInfo.vehicleType !== vt.value) {
+                          const confirmed = window.confirm(
+                            isRTL 
+                              ? 'تغيير نوع المركبة سيؤدي إلى مسح جميع بيانات الفحص. هل تريد المتابعة؟'
+                              : 'Changing vehicle type will clear all inspection data. Continue?'
+                          );
+                          if (!confirmed) return;
+                        }
+                        setData((p) => ({ 
+                          ...p, 
+                          driverInfo: { ...p.driverInfo, vehicleType: vt.value },
+                          checklist: getChecklistForType(vt.value, p.mode)
+                        }));
+                      }}
                       className={`relative group flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-200 ${
                         isSelected 
                           ? 'border-primary-500 bg-primary-50 shadow-md' 
@@ -370,3 +366,4 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
     </div>
   );
 };
+

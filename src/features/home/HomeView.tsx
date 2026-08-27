@@ -58,7 +58,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   }, []);
 
   return (
-    <div className="animate-fade-in space-y-8">
+    <div className="animate-fade-in space-y-8 pb-20">
       {/* Hero Welcome Banner */}
       <div className="bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900 text-white p-6 md:p-10 rounded-[1.5rem] shadow-2xl shadow-primary-900/20 relative overflow-hidden flex flex-col gap-5 border border-white/10 transition-all duration-500 hover:shadow-primary-900/40 hover:-translate-y-0.5">
          <div className="absolute top-0 right-0 w-[40%] h-full bg-gradient-to-l from-primary-600/30 to-transparent skew-x-[-15deg] translate-x-20"></div>
@@ -92,6 +92,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
              { mode: 'maintenance', icon: Wrench, label: isRTL ? 'قسم الصيانة' : 'Maintenance', desc: isRTL ? 'فحص المركبة من قبل الفني المختص' : 'Vehicle inspection by technician', color: 'orange', bg: 'bg-orange-50', text: 'text-orange-600' }
            ].map((item: any) => (
             <button 
+              type="button"
               key={item.mode} 
               onClick={() => startInspection(item.mode as InspectionMode)} 
               className="group bg-white/80 backdrop-blur-lg p-5 rounded-[1.25rem] border border-gray-200/60 shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-primary-500/10 hover:border-primary-300 hover:-translate-y-1 transition-all duration-300 text-start flex flex-col h-full"
@@ -122,6 +123,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Vehicle Handover Form Card */}
             <button 
+              type="button"
               onClick={() => setCurrentView('bus_handover')}
               className="group bg-white/80 backdrop-blur-lg p-5 rounded-[1.25rem] border border-gray-200/60 shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-primary-500/10 hover:border-primary-300 hover:-translate-y-1 transition-all duration-300 text-start flex flex-col h-full"
             >
@@ -144,6 +146,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
             {/* Passenger Registration Log Card */}
             <button 
+              type="button"
               onClick={() => setCurrentView('passenger_log')}
               className="group bg-white/80 backdrop-blur-lg p-5 rounded-[1.25rem] border border-gray-200/60 shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-teal-500/10 hover:border-teal-300 hover:-translate-y-1 transition-all duration-300 text-start flex flex-col h-full"
             >
@@ -166,6 +169,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
             {/* TBT Form Card */}
             <button 
+              type="button"
               onClick={() => setCurrentView('tbt_form')}
               className="group bg-white/80 backdrop-blur-lg p-5 rounded-[1.25rem] border border-gray-200/60 shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-indigo-500/10 hover:border-indigo-300 hover:-translate-y-1 transition-all duration-300 text-start flex flex-col h-full"
             >
@@ -188,6 +192,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
             {/* Post-Maintenance Acceptance Form Card */}
             <button 
+              type="button"
               onClick={() => setCurrentView('post_maintenance')}
               className="group bg-white/80 backdrop-blur-lg p-5 rounded-[1.25rem] border border-gray-200/60 shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-amber-500/10 hover:border-amber-300 hover:-translate-y-1 transition-all duration-300 text-start flex flex-col h-full"
             >
@@ -196,10 +201,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
               <div className="space-y-1.5 flex-1">
                 <h3 className="text-base font-black text-gray-900 group-hover:text-amber-600 transition-colors">
-                  {isRTL ? 'استلام حافلة بعد الصيانة' : 'Post-Maintenance Acceptance'}
+                  {isRTL ? 'استمارة فحص الحافلة بعد الصيانة' : 'Post-Maintenance Acceptance'}
                 </h3>
                 <p className="text-[11px] text-gray-400 font-bold leading-relaxed">
-                  {isRTL ? 'فحص استلام الحافلات بعد الصيانة' : 'Post-maintenance bus acceptance checklist'}
+                  {isRTL ? 'التحقق من إصلاح الأعطال والفحص الشامل للمركبة' : 'Post-maintenance bus acceptance checklist'}
                 </p>
               </div>
               <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-amber-600 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 uppercase tracking-widest">
@@ -249,6 +254,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
            <button 
+             type="button"
              onClick={() => setCurrentView('driver_safety')} 
              className="flex items-center gap-4 p-4 bg-white rounded-xl hover:bg-gray-50/80 border border-gray-200 hover:border-primary-300 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group shadow-sm"
            >
@@ -261,6 +267,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
            </button>
            <button 
+             type="button"
              onClick={() => setCurrentView('vehicle_safety')} 
              className="flex items-center gap-4 p-4 bg-white rounded-xl hover:bg-gray-50/80 border border-gray-200 hover:border-amber-300 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group shadow-sm"
            >
@@ -273,6 +280,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
            </button>
            <button 
+             type="button"
              onClick={() => setCurrentView('emergency_procedures')} 
              className="flex items-center gap-4 p-4 bg-white rounded-xl hover:bg-gray-50/80 border border-gray-200 hover:border-red-300 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group shadow-sm"
            >
@@ -285,6 +293,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
            </button>
            <button 
+             type="button"
              onClick={() => setCurrentView('pre_trip_tips')} 
              className="flex items-center gap-4 p-4 bg-white rounded-xl hover:bg-gray-50/80 border border-gray-200 hover:border-indigo-300 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group shadow-sm"
            >

@@ -106,6 +106,7 @@ export const DriverReadinessStep: React.FC<DriverReadinessStepProps> = ({
                    <div className="flex gap-4 md:w-64">
                       {/* Yes Button */}
                       <button 
+                        type="button"
                         onClick={() => handleReadinessAnswer(q.id, true)} 
                         className={`flex-1 py-3 rounded-xl font-black text-sm border-2 transition-all flex items-center justify-center gap-2 ${
                           data.readiness.answers[q.id] === true 
@@ -118,6 +119,7 @@ export const DriverReadinessStep: React.FC<DriverReadinessStepProps> = ({
                       </button>
                       {/* No Button */}
                       <button 
+                        type="button"
                         onClick={() => handleReadinessAnswer(q.id, false)} 
                         className={`flex-1 py-3 rounded-xl font-black text-sm border-2 transition-all flex items-center justify-center gap-2 ${
                           data.readiness.answers[q.id] === false 

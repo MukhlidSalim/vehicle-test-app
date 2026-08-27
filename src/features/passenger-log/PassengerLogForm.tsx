@@ -10,6 +10,7 @@ import { PassengerLogReport } from './PassengerLogReport';
 import { CustomDatePicker } from '../../components/CustomDatePicker';
 import { CustomTimePicker } from '../../components/CustomTimePicker';
 import { OmanPlateInput } from '../../components/OmanPlateInput';
+import { scrollToFirstError } from '../../utils/validationScroll';
 
 // Fixed locations (always English)
 const LOCATIONS = ['EPCM', 'KRC', 'KOB', 'CPF'];
@@ -63,11 +64,24 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
   // ---- SETUP VALIDATION ----
   const validateSetup = (): boolean => {
     setAttemptedSubmit(true);
-    if (!dayInfo.date) { showAlert(t('يرجى إدخال التاريخ', 'Please enter date')); return false; }
-    if (dayInfo.date > new Date().toISOString().split('T')[0]) { showAlert(t('لا يمكن تسجيل السجل بتاريخ مستقبلي', 'Cannot record log with a future date')); return false; }
-    if (!dayInfo.vehiclePlate.trim()) { showAlert(t('يرجى إدخال رقم المركبة', 'Please enter vehicle plate')); return false; }
-    if (!dayInfo.driverName.trim()) { showAlert(t('يرجى إدخال اسم السائق', 'Please enter driver name')); return false; }
-    if (!dayInfo.vehicleClass) { showAlert(t('يرجى اختيار رمز التصنيف', 'Please select vehicle class')); return false; }
+    let isValid = true;
+
+    if (!dayInfo.date) isValid = false;
+    if (!dayInfo.vehiclePlate.trim()) isValid = false;
+    if (!dayInfo.driverName.trim()) isValid = false;
+    if (!dayInfo.vehicleClass) isValid = false;
+
+    const today = new Date();
+    const localToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    if (dayInfo.date > localToday) { 
+      showAlert(t('لا يمكن تسجيل السجل بتاريخ مستقبلي', 'Cannot record log with a future date')); 
+      return false; 
+    }
+
+    if (!isValid) {
+      scrollToFirstError();
+      return false;
+    }
     return true;
   };
 
@@ -80,6 +94,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
 
   // ---- TRIP FORM ----
   const resetTripForm = () => {
+    setAttemptedSubmit(false);
     setNewTrip({
       type: '',
       pickupLocation: '',
@@ -92,11 +107,18 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
   };
 
   const validateTrip = (): boolean => {
-    if (!newTrip.type) { showAlert(t('يرجى اختيار نوع النقلة', 'Please select trip type')); return false; }
-    if (!newTrip.pickupLocation) { showAlert(t('يرجى اختيار مكان الركوب', 'Please select pickup location')); return false; }
-    if (!newTrip.dropoffLocation) { showAlert(t('يرجى اختيار مكان التنزيل', 'Please select drop-off location')); return false; }
-    if (!newTrip.passengerCount || parseInt(newTrip.passengerCount) < 1) { showAlert(t('يرجى إدخال عدد الركاب', 'Please enter passenger count')); return false; }
-    if (!newTrip.time) { showAlert(t('يرجى إدخال التوقيت', 'Please enter time')); return false; }
+    setAttemptedSubmit(true);
+    let isValid = true;
+    if (!newTrip.type) isValid = false;
+    if (!newTrip.pickupLocation) isValid = false;
+    if (!newTrip.dropoffLocation) isValid = false;
+    if (!newTrip.passengerCount || parseInt(newTrip.passengerCount) < 1) isValid = false;
+    if (!newTrip.time) isValid = false;
+
+    if (!isValid) {
+      scrollToFirstError();
+      return false;
+    }
     return true;
   };
 
@@ -156,7 +178,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto" dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className="space-y-6 max-w-4xl mx-auto pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
 
       {/* Alert */}
       {alertMsg && (
@@ -170,7 +192,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
       {/* Header */}
       <div className="bg-white/80 backdrop-blur rounded-2xl border border-gray-200 p-4 shadow-lg">
         <div className="flex items-center justify-between">
-          <button onClick={onExit} className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-red-500 transition-colors">
+          <button type="button" onClick={onExit} className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-red-500 transition-colors">
             <ArrowLeft size={16} className={isRTL ? 'rotate-180' : ''} />
             {isRTL ? 'العودة للرئيسية' : 'Back to Home'}
           </button>
@@ -199,6 +221,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
                   value={dayInfo.vehiclePlate}
                   onChange={e => setDayInfo({ ...dayInfo, vehiclePlate: e.target.value })}
                   placeholder={t('أدخل رقم اللوحة', 'Enter vehicle plate')}
+                  data-error={attemptedSubmit && !dayInfo.vehiclePlate.trim() ? "true" : undefined}
                   className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !dayInfo.vehiclePlate.trim() ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`}
                 />
               </div>
@@ -210,6 +233,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
                   value={dayInfo.driverName}
                   onChange={e => setDayInfo({ ...dayInfo, driverName: e.target.value })}
                   placeholder={t('أدخل اسم السائق', 'Enter driver name')}
+                  data-error={attemptedSubmit && !dayInfo.driverName.trim() ? "true" : undefined}
                   className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 ${attemptedSubmit && !dayInfo.driverName.trim() ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`}
                 />
               </div>
@@ -220,8 +244,10 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
                 <CustomDatePicker
                   value={dayInfo.date}
                   onChange={val => setDayInfo({ ...dayInfo, date: val })}
+                  error={attemptedSubmit && !dayInfo.date}
                   isRTL={isRTL}
                 />
+                {attemptedSubmit && !dayInfo.date && <div data-error="true" className="hidden"></div>}
               </div>
 
               {/* Vehicle Class */}
@@ -230,12 +256,14 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
                 <div className="grid grid-cols-4 gap-2 h-full items-start">
                   {VEHICLE_CLASSES.map(cls => (
                     <button
+                      type="button"
                       key={cls}
                       onClick={() => setDayInfo({ ...dayInfo, vehicleClass: cls })}
+                      data-error={attemptedSubmit && !dayInfo.vehicleClass ? "true" : undefined}
                       className={`py-3.5 rounded-xl font-black text-base border-2 transition-all duration-200 flex items-center justify-center ${
                         dayInfo.vehicleClass === cls
                           ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-md shadow-primary-500/20'
-                          : `border-gray-200 bg-white text-gray-600 hover:border-primary-300 hover:bg-gray-50 ${attemptedSubmit && !dayInfo.vehicleClass ? 'border-red-300' : ''}`
+                          : `border-gray-200 bg-white text-gray-600 hover:border-primary-300 hover:bg-gray-50 ${attemptedSubmit && !dayInfo.vehicleClass ? 'border-red-300 bg-red-50' : ''}`
                       }`}
                     >
                       {cls}
@@ -249,6 +277,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
           {/* Start Button */}
           <div className="pt-2">
             <button
+              type="button"
               onClick={handleStartDay}
               className="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-black text-lg transition-all flex items-center justify-center gap-3"
             >
@@ -348,6 +377,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
                         <td className="px-0.5 md:px-4 py-2 md:py-4">
                           <div className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2">
                             <button
+                              type="button"
                               onClick={() => handleEditTrip(trip)}
                               className="p-1 text-blue-600 rounded bg-blue-50 hover:bg-blue-100 transition-colors"
                               title={t('تعديل', 'Edit')}
@@ -355,6 +385,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
                               <Edit3 size={12} className="md:w-4 md:h-4" />
                             </button>
                             <button
+                              type="button"
                               onClick={() => setShowDeleteConfirm(trip.id)}
                               className="p-1 text-red-600 rounded bg-red-50 hover:bg-red-100 transition-colors"
                               title={t('حذف', 'Delete')}
@@ -398,14 +429,16 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
                 <div className="grid grid-cols-2 gap-4">
                   {TRIP_TYPES.map(tt => (
                       <button
+                      type="button"
                       key={tt.value}
                       onClick={() => setNewTrip({ ...newTrip, type: tt.value })}
+                      data-error={attemptedSubmit && !newTrip.type ? "true" : undefined}
                       className={`p-3.5 rounded-xl font-black text-sm border-2 transition-all duration-200 flex items-center justify-center gap-2 ${
                         newTrip.type === tt.value
                           ? tt.value === 'routine'
                             ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
                             : 'border-purple-500 bg-purple-50 text-purple-700 shadow-sm'
-                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                          : `border-gray-200 bg-white text-gray-600 hover:border-gray-300 ${attemptedSubmit && !newTrip.type ? 'border-red-400 bg-red-50' : ''}`
                       }`}
                     >
                       <span className="text-lg">{tt.icon}</span>
@@ -422,6 +455,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
                   <select
                     value={newTrip.pickupLocation}
                     onChange={e => setNewTrip({ ...newTrip, pickupLocation: e.target.value })}
+                    data-error={attemptedSubmit && !newTrip.pickupLocation ? "true" : undefined}
                     className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 bg-gray-50 appearance-none ${
                       !newTrip.pickupLocation ? 'text-gray-400' : 'text-gray-900'
                     } ${attemptedSubmit && !newTrip.pickupLocation ? 'border-red-500 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`}
@@ -435,6 +469,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
                   <select
                     value={newTrip.dropoffLocation}
                     onChange={e => setNewTrip({ ...newTrip, dropoffLocation: e.target.value })}
+                    data-error={attemptedSubmit && !newTrip.dropoffLocation ? "true" : undefined}
                     className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 bg-gray-50 appearance-none ${
                       !newTrip.dropoffLocation ? 'text-gray-400' : 'text-gray-900'
                     } ${attemptedSubmit && !newTrip.dropoffLocation ? 'border-red-500 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`}
@@ -455,7 +490,8 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
                     value={newTrip.passengerCount}
                     onChange={e => setNewTrip({ ...newTrip, passengerCount: e.target.value })}
                     placeholder="0"
-                    className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 bg-gray-50 ${attemptedSubmit && !newTrip.passengerCount ? 'border-red-500 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`}
+                    data-error={attemptedSubmit && (!newTrip.passengerCount || parseInt(newTrip.passengerCount) < 1) ? "true" : undefined}
+                    className={`w-full p-3.5 border rounded-xl outline-none font-bold text-base transition-all duration-300 bg-gray-50 ${attemptedSubmit && (!newTrip.passengerCount || parseInt(newTrip.passengerCount) < 1) ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-300 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'}`}
                   />
                 </div>
                 <div className="space-y-2">
@@ -464,19 +500,23 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
                     value={newTrip.time}
                     onChange={val => setNewTrip({ ...newTrip, time: val })}
                     isRTL={isRTL}
+                    error={attemptedSubmit && !newTrip.time}
                   />
+                  {attemptedSubmit && !newTrip.time && <div data-error="true" className="hidden"></div>}
                 </div>
               </div>
 
               {/* Form Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-gray-100">
                 <button
+                  type="button"
                   onClick={resetTripForm}
                   className="flex-1 py-3.5 bg-gray-100 text-gray-600 rounded-xl font-black text-sm hover:bg-gray-200 active:scale-95 transition-all"
                 >
                   {t('إلغاء', 'Cancel')}
                 </button>
                 <button
+                  type="button"
                   onClick={handleSaveTrip}
                   className="flex-1 py-3.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-black text-sm shadow-md transition-all flex items-center justify-center gap-2"
                 >
@@ -492,6 +532,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
           <div className="flex flex-col gap-3">
             {!showAddTrip && (
               <button
+                type="button"
                 onClick={() => { resetTripForm(); setShowAddTrip(true); }}
                 className="w-full py-4 border-2 border-dashed border-primary-300 text-primary-600 rounded-2xl font-black text-base hover:bg-primary-50 transition-all flex items-center justify-center gap-2 shadow-sm bg-white"
               >
@@ -502,6 +543,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
             
             {!showNoteForm && (
               <button
+                type="button"
                 onClick={() => setShowNoteForm(true)}
                 className="w-full py-3.5 border border-dashed border-gray-300 text-gray-500 rounded-2xl font-bold text-sm hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400 transition-all flex items-center justify-center gap-2 bg-white"
               >
@@ -530,6 +572,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
                 </div>
                 <div className="flex justify-end pt-2">
                   <button
+                    type="button"
                     onClick={() => setShowNoteForm(false)}
                     className="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-black text-sm hover:bg-gray-200 active:scale-95 transition-all"
                   >
@@ -544,6 +587,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
           <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200 mt-8">
             {trips.length > 0 && (
               <button
+                type="button"
                 onClick={() => setStep('report')}
                 className="flex-1 py-3.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-black text-sm shadow-md transition-all flex items-center justify-center gap-2"
               >
@@ -552,6 +596,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
               </button>
             )}
             <button
+              type="button"
               onClick={() => setShowResetConfirm(true)}
               className="flex-1 py-2.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg font-black text-xs hover:bg-amber-100 active:scale-95 transition-all flex items-center justify-center gap-1.5"
             >
@@ -559,6 +604,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
               {t('بدء يوم جديد', 'Start New Day')}
             </button>
             <button
+              type="button"
               onClick={onExit}
               className="flex-1 py-2.5 bg-gray-800 text-white rounded-lg font-black text-xs hover:bg-gray-900 active:scale-95 transition-all flex items-center justify-center gap-1.5"
             >
@@ -575,6 +621,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
           <PassengerLogReport dayInfo={dayInfo} trips={trips} isRTL={isRTL} />
           <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 mt-8">
             <button
+              type="button"
               onClick={() => setStep('log')}
               className="flex-1 py-3.5 bg-white border border-gray-300 text-gray-700 rounded-xl font-black text-sm shadow-sm hover:bg-gray-50 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
@@ -582,6 +629,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
               {t('العودة للتسجيل', 'Back to Log')}
             </button>
             <button
+              type="button"
               onClick={() => { resetTripForm(); setShowAddTrip(true); setStep('log'); }}
               className="flex-1 py-3.5 bg-primary-50 text-primary-700 border border-primary-200 rounded-xl font-black text-sm shadow-sm hover:bg-primary-100 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
@@ -589,6 +637,7 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
               {t('إضافة نقلة جديدة', 'Add New Trip')}
             </button>
             <button
+              type="button"
               onClick={() => setShowResetConfirm(true)}
               className="flex-1 py-3.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl font-black text-sm shadow-sm hover:bg-amber-100 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
@@ -611,10 +660,10 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
             <h3 className="text-base font-black text-gray-900 text-center">{t('حذف النقلة', 'Delete Trip')}</h3>
             <p className="text-sm text-gray-500 font-bold text-center">{t('هل أنت متأكد من حذف هذه النقلة؟', 'Are you sure you want to delete this trip?')}</p>
             <div className="flex gap-3">
-              <button onClick={() => setShowDeleteConfirm(null)} className="flex-1 py-3 rounded-xl font-black text-gray-700 bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all">
+              <button type="button" onClick={() => setShowDeleteConfirm(null)} className="flex-1 py-3 rounded-xl font-black text-gray-700 bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all">
                 {t('إلغاء', 'Cancel')}
               </button>
-              <button onClick={() => handleDeleteTrip(showDeleteConfirm)} className="flex-1 py-3 rounded-xl font-black text-white bg-red-600 hover:bg-red-700 active:scale-95 transition-all">
+              <button type="button" onClick={() => handleDeleteTrip(showDeleteConfirm)} className="flex-1 py-3 rounded-xl font-black text-white bg-red-600 hover:bg-red-700 active:scale-95 transition-all">
                 {t('حذف', 'Delete')}
               </button>
             </div>
@@ -637,10 +686,10 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
               )}
             </p>
             <div className="flex gap-3">
-              <button onClick={() => setShowResetConfirm(false)} className="flex-1 py-3 rounded-xl font-black text-gray-700 bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all">
+              <button type="button" onClick={() => setShowResetConfirm(false)} className="flex-1 py-3 rounded-xl font-black text-gray-700 bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all">
                 {t('إلغاء', 'Cancel')}
               </button>
-              <button onClick={handleNewDay} className="flex-1 py-3 rounded-xl font-black text-white bg-amber-600 hover:bg-amber-700 active:scale-95 transition-all">
+              <button type="button" onClick={handleNewDay} className="flex-1 py-3 rounded-xl font-black text-white bg-amber-600 hover:bg-amber-700 active:scale-95 transition-all">
                 {t('بدء يوم جديد', 'Start New Day')}
               </button>
             </div>

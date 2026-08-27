@@ -18,6 +18,7 @@ export const CustomTimePicker: React.FC<Props> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownDirection, setDropdownDirection] = useState<'down' | 'up'>('down');
   
   // State for internal logic
   const [hour12, setHour12] = useState<number>(12);
@@ -62,6 +63,18 @@ export const CustomTimePicker: React.FC<Props> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (isOpen && dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < 300) {
+        setDropdownDirection('up');
+      } else {
+        setDropdownDirection('down');
+      }
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -162,7 +175,7 @@ export const CustomTimePicker: React.FC<Props> = ({
 
       {/* Calendar-Style Grid Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-full min-w-[280px] bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up origin-top p-4 select-none" dir="ltr">
+        <div className={`absolute z-50 w-full min-w-[280px] bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up p-4 select-none ${dropdownDirection === 'up' ? 'bottom-full mb-2 origin-bottom' : 'top-full mt-2 origin-top'}`} dir="ltr">
           
           <div className="text-center mb-4 text-xs font-bold text-gray-400 uppercase tracking-widest">
             {mode === 'hours' 

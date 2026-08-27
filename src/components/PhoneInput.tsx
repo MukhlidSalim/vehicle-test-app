@@ -4,11 +4,12 @@ import { Phone } from 'lucide-react';
 interface PhoneInputProps {
   value: string;
   onChange: (val: string) => void;
+  onBlur?: () => void;
   error?: boolean;
   isRTL?: boolean;
 }
 
-export const PhoneInput: React.FC<PhoneInputProps> = ({ value, onChange, error, isRTL = true }) => {
+export const PhoneInput: React.FC<PhoneInputProps> = ({ value, onChange, onBlur, error, isRTL = true }) => {
   const [displayValue, setDisplayValue] = useState('');
 
   useEffect(() => {
@@ -39,8 +40,10 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({ value, onChange, error, 
       
       <input
         type="tel"
+        data-error={error ? "true" : undefined}
         value={displayValue}
         onChange={handleChange}
+        onBlur={onBlur}
         dir="ltr"
         className={`w-full pl-10 pr-4 ${isRTL ? 'text-right' : 'text-left'} py-3 border rounded-xl outline-none font-black text-lg tracking-wider text-gray-800 transition-all duration-300 ${
           error ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-200 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'

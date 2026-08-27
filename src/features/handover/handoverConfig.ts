@@ -170,7 +170,7 @@ export const getCategoryConfig = (category: VehicleCategory): VehicleCategoryCon
     case 'ambulance':
       return {
         items: AMBULANCE_ITEMS,
-        extraFields: [],
+        extraFields: AMBULANCE_EXTRA_FIELDS,
         ...defaultLabels,
         senderLabelAr: 'السائق',
         senderLabelEn: 'Driver',

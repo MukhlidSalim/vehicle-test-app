@@ -4,11 +4,12 @@ import { Gauge } from 'lucide-react';
 interface OdometerInputProps {
   value: string;
   onChange: (val: string) => void;
+  onBlur?: () => void;
   error?: boolean;
   isRTL?: boolean;
 }
 
-export const OdometerInput: React.FC<OdometerInputProps> = ({ value, onChange, error, isRTL = true }) => {
+export const OdometerInput: React.FC<OdometerInputProps> = ({ value, onChange, onBlur, error, isRTL = true }) => {
   const [displayValue, setDisplayValue] = useState('');
 
   useEffect(() => {
@@ -40,9 +41,11 @@ export const OdometerInput: React.FC<OdometerInputProps> = ({ value, onChange, e
       <Gauge size={16} className="absolute left-3 text-gray-400 pointer-events-none" />
       <input
         type="text"
+        data-error={error ? "true" : undefined}
         inputMode="numeric"
         value={displayValue}
         onChange={handleChange}
+        onBlur={onBlur}
         dir="ltr"
         className={`w-full pl-10 pr-14 ${isRTL ? 'text-right' : 'text-left'} py-3 border rounded-xl outline-none font-black text-lg tracking-wider text-gray-800 transition-all duration-300 ${
           error ? 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20' : 'border-gray-200 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white'

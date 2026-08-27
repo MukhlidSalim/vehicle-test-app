@@ -20,9 +20,9 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ onClick }) => (
         Added drop-shadow for depth, and scale transition for a premium interactive feel.
       */}
       <img 
-        src="/assest/vehicles/VIS logo.png" 
+        src="/assets/icons/VIS Logo.png" 
         alt="VIS System Logo" 
-        className="w-24 md:w-32 lg:w-36 scale-[1.3] md:scale-[1.5] object-contain drop-shadow-sm group-hover:drop-shadow-[0_4px_12px_rgba(2,132,199,0.3)] group-hover:scale-[1.4] md:group-hover:scale-[1.6] transition-all duration-500"
+        className="h-16 md:h-20 w-auto object-contain transition-transform duration-300 group-hover:scale-110"
       />
       
       {/* 

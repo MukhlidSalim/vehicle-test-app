@@ -26,6 +26,24 @@ interface ChecklistStepProps {
   attemptedStep4: boolean;
 }
 
+const DebouncedTextarea = React.memo(({ value, onChange, className, placeholder }: any) => {
+  const [localVal, setLocalVal] = useState(value || '');
+  
+  React.useEffect(() => {
+    setLocalVal(value || '');
+  }, [value]);
+  
+  return (
+    <textarea
+      value={localVal}
+      onChange={e => setLocalVal(e.target.value)}
+      onBlur={e => onChange(e.target.value)}
+      className={className}
+      placeholder={placeholder}
+    />
+  );
+});
+
 /**
  * ChecklistStep renders Step 4 of the inspection process: Vehicle Inspection Checklist.
  * Renders 24 checklist items, damage mapping on vehicle silhouette, photo attachments, and notes.
@@ -421,6 +439,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                    <>
                    <div className="grid grid-cols-4 gap-3">
                       <button 
+                        type="button"
                         onClick={() => updateItemStatus(item.id, 'pass')} 
                         className={`h-[64px] rounded-xl border font-black text-sm v-center-cairo transition-all ${
                           item.status === 'pass' 
@@ -431,6 +450,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                          {statusLabels.pass[lang as keyof typeof statusLabels.pass]}
                       </button>
                       <button 
+                        type="button"
                         onClick={() => updateItemStatus(item.id, 'warning')} 
                         className={`h-[64px] rounded-xl border font-black text-sm v-center-cairo transition-all ${
                           item.status === 'warning' 
@@ -441,6 +461,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                          {t.warning}
                       </button>
                       <button 
+                        type="button"
                         onClick={() => updateItemStatus(item.id, 'fail')} 
                         className={`h-[64px] rounded-xl border font-black text-sm v-center-cairo transition-all ${
                           item.status === 'fail' 
@@ -453,6 +474,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                       
                       <div className="flex flex-col gap-1.5 h-[64px]">
                           <button 
+                            type="button"
                             onClick={() => setPhotoMenu({ isOpen: true, itemId: item.id })} 
                             disabled={(item.photos?.length || (item.photo ? 1 : 0)) >= 3}
                             className={`flex-1 rounded-xl border font-black flex flex-col items-center justify-center transition-all ${
@@ -761,11 +783,11 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                               { key: 'rr' as const, ar: 'خلفي يمين', en: 'Rear Right' },
                             ];
                         
-                        const tyreFields = (data.mode === 'maintenance' && data.driverInfo.vehicleType !== 'electric_vehicle') 
+                        const tyreFields = ((data.mode === 'maintenance' || data.mode === 'vehicle_only') && data.driverInfo.vehicleType !== 'electric_vehicle') 
                           ? [
                               ...baseTyreFields,
-                              { key: 'st1' as const, ar: 'ضغط احتياطي 1', en: 'Spare Tyre 1 Pressure' },
-                              { key: 'st2' as const, ar: 'ضغط احتياطي 2', en: 'Spare Tyre 2 Pressure' }
+                              { key: 'st1' as const, ar: 'الاطار الاحتياطي الأول', en: 'Spare Tyre 1 Pressure' },
+                              { key: 'st2' as const, ar: 'الاطار الاحتياطي الثاني', en: 'Spare Tyre 2 Pressure' }
                             ]
                           : baseTyreFields;
 
@@ -773,7 +795,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                           <div className="p-4 rounded-xl border border-gray-300 bg-gray-50">
                             <div className="flex items-center justify-between mb-3">
                               <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">
-                                {isRTL ? `ضغط الإطارات (PSI) — ${is6Tyre ? '6 إطارات' : '4 إطارات'}` : `Tyre Pressure (PSI) — ${is6Tyre ? '6 Tyres' : '4 Tyres'}`}
+                                {isRTL ? `ضغط الإطارات (PSI) — ${tyreFields.length} إطارات` : `Tyre Pressure (PSI) — ${tyreFields.length} Tyres`}
                               </label>
                               <button
                                 type="button"
@@ -814,7 +836,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
 
                   {/* Notes Input Field (Visible if Fail/Warning or photo attached, not for body damage itself) */}
                   {(item.status === 'fail' || item.status === 'warning' || item.photo) && !isBody && (
-                    <textarea 
+                    <DebouncedTextarea 
                       placeholder={t.notes + (needsNotes ? ' *' : '')} 
                       className={`w-full p-4 border rounded-xl bg-gray-50 text-sm h-24 resize-none font-bold outline-none transition-all focus:bg-white ${
                         needsNotes && (!item.notes || item.notes.trim().length === 0) 
@@ -822,7 +844,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                           : 'border-gray-300 focus:border-primary-500'
                       }`} 
                       value={item.notes} 
-                      onChange={e => updateItemNote(item.id, e.target.value)} 
+                      onChange={(val: string) => updateItemNote(item.id, val)} 
                     />
                   )}
                 </div>
@@ -840,11 +862,11 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
               {isRTL ? 'ملاحظات إضافية (اختياري)' : 'Additional Notes (Optional)'}
             </h3>
           </div>
-          <textarea
+          <DebouncedTextarea
             placeholder={isRTL ? 'اكتب ملاحظاتك هنا...' : 'Type your notes here...'}
             className="w-full p-4 border border-gray-300 rounded-xl bg-gray-50 text-sm h-28 resize-none font-bold outline-none transition-all focus:bg-white focus:border-primary-500"
             value={data.additionalNotes || ''}
-            onChange={e => setData(p => ({ ...p, additionalNotes: e.target.value }))}
+            onChange={(val: string) => setData(p => ({ ...p, additionalNotes: val }))}
           />
         </div>
 

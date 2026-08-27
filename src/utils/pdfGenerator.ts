@@ -1,5 +1,4 @@
-import { toJpeg } from 'html-to-image';
-import { jsPDF } from 'jspdf';
+import type { jsPDF } from 'jspdf';
 import React from 'react';
 import { Language } from '../types';
 
@@ -22,6 +21,8 @@ export const convertImageToBase64 = (url: string): Promise<string> => {
       ctx.drawImage(img, 0, 0);
       try {
         const dataURL = canvas.toDataURL('image/png');
+        canvas.width = 0;
+        canvas.height = 0;
         resolve(dataURL);
       } catch (error) {
         // Fallback to original URL if drawing/conversion fails
@@ -38,7 +39,7 @@ export const convertImageToBase64 = (url: string): Promise<string> => {
  * Captures a DOM node as a JPEG data URL.
  * Automatically handles converting child image tags to base64 prior to capture.
  */
-export const captureNode = async (node: HTMLElement): Promise<{ dataUrl: string; incomplete: boolean }> => {
+export const captureNode = async (node: HTMLElement, forcePixelRatio?: number): Promise<{ dataUrl: string; incomplete: boolean }> => {
   let hadIncomplete = false;
   const restoreMap: Map<HTMLImageElement, string> = new Map();
 
@@ -84,13 +85,35 @@ export const captureNode = async (node: HTMLElement): Promise<{ dataUrl: string;
   await new Promise((resolve) => setTimeout(resolve, 300));
 
   try {
-    // 3. Render the node to JPEG
+    const { toJpeg } = await import('html-to-image');
+    
+    // MICRO-WARMUP: Fixes iOS/Safari <foreignObject> SVG rendering bug
+    // Renders the node at minimal resolution to force the browser to cache and paint SVGs.
+    // Extremely fast, saves us from duplicating the entire jsPDF pipeline.
+    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    if (isMobile) {
+      try {
+        await toJpeg(node, {
+          pixelRatio: 0.1,
+          quality: 0.1,
+          skipAutoScale: true,
+          style: { margin: '0', background: '#ffffff' },
+        } as any);
+        // Tiny paint frame delay to let the browser actually draw it
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      } catch (e) {
+        // ignore micro-warmup failure
+      }
+    }
+
+    // 3. Render the node to JPEG (Actual high-res capture)
     const dataUrl = await toJpeg(node, {
       quality: 0.95,
       // Fixed at 2× for consistent high-quality output on all devices.
       // Using window.devicePixelRatio caused desktop (1×) to produce
       // lower-resolution images than mobile (2-3×).
-      pixelRatio: 2,
+      // Fixed at 2× for consistent high-quality output on all devices, unless forced (e.g., to prevent mobile crashes).
+      pixelRatio: forcePixelRatio || 2,
       backgroundColor: '#ffffff',
       cacheBust: true,
       skipAutoScale: true,
@@ -152,6 +175,7 @@ export const generatePdfReport = async ({
   const startedAt = Date.now();
 
   const renderPdfOnce = async (forcePartial: boolean) => {
+    const { jsPDF } = await import('jspdf');
     const pdf = new jsPDF('p', 'mm', 'a4', true);
     let hadIncompleteCapture = false;
 
@@ -237,30 +261,8 @@ export const generatePdfReport = async ({
   };
 
   try {
-    // === Warm-up Capture for iOS/Safari WebKit ===
-    onAttempt(1);
-    onProgress({
-      percent: 0,
-      current: 0,
-      total: totalPages,
-      etaSec: null,
-      phase: isRTL ? 'تهيئة سريعة للصور...' : 'Warming up images...',
-    });
-
-    try {
-      await renderPdfOnce(true); // Silent run to prime image cache
-    } catch {
-      // Keep going, warm up failure should not block the main run
-    }
-
-    // Adaptive pause: mobile devices need extra time for fonts and layout paint
-    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-    await new Promise((r) => setTimeout(r, isMobile ? 600 : 300));
-    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-
     // === Main Capture ===
-    onAttempt(2);
+    onAttempt(1);
     onProgress({
       percent: 0,
       current: 0,
@@ -332,10 +334,15 @@ export const generateSmartPdf = async ({
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
+    // 1. Calculate safe pixel ratio to prevent iOS 16.7MP canvas crash
+    const containerHeight = container.getBoundingClientRect().height;
+    // If container is very tall (e.g. > 4000px) and we are on mobile, use 1x to stay under 16MP limit
+    const safePixelRatio = (isMobile && containerHeight > 4000) ? 1 : 2;
+
     onProgress?.({ phase: isRTL ? 'جاري تجهيز بيانات التقرير...' : 'Capturing report data...' });
 
-    // 1. Capture the entire container as one giant canvas
-    const { dataUrl } = await captureNode(container);
+    // 2. Capture the entire container as one giant canvas
+    const { dataUrl } = await captureNode(container, safePixelRatio);
 
     // 2. We need the original image dimensions to map DOM coordinates to image pixels
     const img = new Image();
@@ -345,8 +352,8 @@ export const generateSmartPdf = async ({
     const sourceWidth = img.width;
     const sourceHeight = img.height;
 
-    // We assume pixelRatio = 2 (as hardcoded in captureNode)
-    const pixelRatio = 2;
+    // We use the safePixelRatio calculated above
+    const pixelRatio = safePixelRatio;
 
     // 3. Find Boundaries in DOM (Auto-Detection)
     const containerRect = container.getBoundingClientRect();
@@ -370,6 +377,7 @@ export const generateSmartPdf = async ({
     const minorBoundaries = getBoundaries('tr, li, .border-b, .border-t, .divide-y > *');
 
     // 4. Initialize jsPDF
+    const { jsPDF } = await import('jspdf');
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
     const a4W_mm = pdf.internal.pageSize.getWidth();
     const a4H_mm = pdf.internal.pageSize.getHeight();
@@ -466,40 +474,11 @@ export const generateSmartPdf = async ({
       currentSourceY += sliceHeight;
     }
 
-    // 5. Append Footer to the VERY BOTTOM of the LAST PAGE
-    try {
-      const footerCanvas = document.createElement('canvas');
-      // Scale canvas for retina quality
-      const scale = 2;
-      footerCanvas.width = sourceWidth * scale;
-      footerCanvas.height = 60 * scale; 
-      const fCtx = footerCanvas.getContext('2d');
-      if (fCtx) {
-        fCtx.scale(scale, scale);
-        fCtx.fillStyle = '#ffffff';
-        fCtx.fillRect(0, 0, sourceWidth, 60);
-        
-        fCtx.fillStyle = '#9ca3af'; // Tailwind gray-400
-        fCtx.font = 'bold 12px Cairo, sans-serif';
-        fCtx.textAlign = 'center';
-        fCtx.textBaseline = 'middle';
-        fCtx.direction = isRTL ? 'rtl' : 'ltr';
-        
-        const footerText = isRTL 
-          ? 'تم إنشاء هذا التقرير إلكترونياً بواسطة نظام فحص المركبات (VIS)' 
-          : 'This report was generated electronically by the Vehicle Inspection System (VIS)';
-          
-        fCtx.fillText(footerText, sourceWidth / 2, 30);
-        
-        const footerDataUrl = footerCanvas.toDataURL('image/jpeg', 1.0);
-        const footerHeight_mm = (60 / sourceWidth) * a4W_mm;
-        
-        // Draw exactly at the bottom of the page (with 5mm margin from the absolute edge)
-        pdf.addImage(footerDataUrl, 'JPEG', 0, a4H_mm - footerHeight_mm - 5, a4W_mm, footerHeight_mm, undefined, 'FAST');
-      }
-    } catch (err) {
-      console.warn('Failed to draw footer', err);
-    }
+    
+
+    // Cleanup crop canvas
+    cropCanvas.width = 0;
+    cropCanvas.height = 0;
 
     if (shouldShare) {
       const pdfBlob = pdf.output('blob');

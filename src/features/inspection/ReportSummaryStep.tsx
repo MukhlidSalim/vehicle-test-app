@@ -462,12 +462,13 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
   
   const _hasDriverReadinessPage = (data.mode === 'full' || data.mode === 'driver_only');
 
-  const showFooterOnPage1 = _hasPage1 && !_hasPage2 && !_hasUnifiedEvidencePages && !_hasPhotoEvidencePages && !_hasTextNotesPage && !_hasDriverReadinessPage;
-  const showFooterOnPage2 = _hasPage2 && !_hasUnifiedEvidencePages && !_hasPhotoEvidencePages && !_hasTextNotesPage && !_hasDriverReadinessPage;
-  const isFooterOnUnified = (idx: number) => idx === unifiedEvidencePages.length - 1 && !_hasPhotoEvidencePages && !_hasTextNotesPage && !_hasDriverReadinessPage;
-  const isFooterOnPhoto = (idx: number) => idx === photoEvidencePages.length - 1 && !_hasTextNotesPage && !_hasDriverReadinessPage;
-  const showFooterOnText = _hasTextNotesPage && !_hasDriverReadinessPage;
-  const showFooterOnReadiness = _hasDriverReadinessPage;
+  const totalPages = (_hasPage1 ? 1 : 0) + (_hasPage2 ? 1 : 0) + (_hasUnifiedEvidencePages ? unifiedEvidencePages.length : 0) + (_hasPhotoEvidencePages ? photoEvidencePages.length : 0) + (_hasTextNotesPage ? 1 : 0) + (_hasDriverReadinessPage ? 1 : 0);
+  const page1Num = _hasPage1 ? 1 : 0;
+  const page2Num = _hasPage2 ? page1Num + 1 : page1Num;
+  const unifiedStart = page2Num;
+  const photoStart = unifiedStart + (_hasUnifiedEvidencePages ? unifiedEvidencePages.length : 0);
+  const textNotesNum = _hasTextNotesPage ? photoStart + 1 : photoStart;
+  const readinessNum = _hasDriverReadinessPage ? textNotesNum + 1 : textNotesNum;
 
   return (
     <div className="space-y-10 pb-20">
@@ -538,6 +539,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                </div>
                <div className="flex flex-col gap-3">
                   <button 
+                    type="button"
                     onClick={handleFinalShare}
                     className="w-full py-4 rounded-xl bg-primary-600 text-white font-black text-lg shadow-xl shadow-primary-200 active:scale-95 transition-all flex items-center justify-center gap-3"
                   >
@@ -545,6 +547,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                     <span className="v-center-cairo">{isRTL ? 'مشاركة التقرير' : 'Share Now'}</span>
                   </button>
                   <button 
+                    type="button"
                     onClick={() => { setReadyFile(null); setPdfHadIncomplete(false); setPdfWarnAck(false); setPdfWarning(null); }}
                     className="w-full py-3 text-gray-400 font-bold text-sm hover:text-gray-600 transition-colors"
                   >
@@ -566,6 +569,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                  {pdfWarning}
                </p>
                <button
+                 type="button"
                  onClick={() => { setPdfWarnAck(true); setPdfWarning(null); setTimeout(() => { handleFinalShare(); }, 0); }}
                  className="w-full py-4 rounded-xl bg-primary-600 text-white font-black text-lg shadow-xl shadow-primary-200 active:scale-95 transition-all"
                >
@@ -742,7 +746,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                       </div>
                     )}
                   </div>
-                  <ReportPageFooter showText={showFooterOnPage1} isRTL={isRTL} lang={lang} pageNumber={1} />
+                  <ReportPageFooter pageNumber={page1Num} totalPages={totalPages} isRTL={isRTL} lang={lang} />
                 </div>
               </div>
             </ScaledPreview>
@@ -881,7 +885,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                         </div>
                     </div>
                   </div>
-                  <ReportPageFooter showText={showFooterOnPage2} isRTL={isRTL} lang={lang} />
+                  <ReportPageFooter pageNumber={page2Num} totalPages={totalPages} isRTL={isRTL} lang={lang} />
                 </div>
               </div>
             </ScaledPreview>
@@ -1029,7 +1033,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                               { key: 'RL', value: data.tyrePressures?.rl },
                               { key: 'RR', value: data.tyrePressures?.rr },
                             ];
-                        const tyreItems = (data.mode === 'maintenance' && data.driverInfo.vehicleType !== 'electric_vehicle') 
+                        const tyreItems = ((data.mode === 'maintenance' || data.mode === 'vehicle_only') && data.driverInfo.vehicleType !== 'electric_vehicle') 
                           ? [
                               ...baseTyreItems,
                               { key: 'ST1', value: data.tyrePressures?.st1 },
@@ -1077,7 +1081,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                     })}
                   </div>
                   
-                  <ReportPageFooter showText={isFooterOnUnified(pageIndex)} isRTL={isRTL} lang={lang} />
+                  <ReportPageFooter pageNumber={unifiedStart + pageIndex + 1} totalPages={totalPages} isRTL={isRTL} lang={lang} />
                 </div>
               </div>
             </ScaledPreview>
@@ -1105,7 +1109,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                       <div className="flex-1 min-h-0 mt-4 grid grid-rows-2 gap-4">
                         {[0, 1].map((slotIdx) => {
                           const wrap = page.photos[slotIdx];
-                          if (!wrap) return <div key={`slot-empty-${pageIndex}-${slotIdx}`} className="min-h-0 border-2 border-dashed border-gray-100 rounded-2xl flex items-center justify-center opacity-50"><span className="text-gray-300 font-black tracking-widest text-[10px] uppercase">Empty Slot</span></div>;
+                          if (!wrap) return <div key={`slot-empty-${pageIndex}-${slotIdx}`} className="min-h-0 flex items-center justify-center"></div>;
 
                           if (wrap.kind === 'photo_checklist') {
                             const item = wrap.item;
@@ -1188,7 +1192,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                       </div>
 
                       {placeSigOnLastPhotoPage && pageIndex === photoEvidencePages.length - 1 && renderSummaryAndSignatures()}
-                      <ReportPageFooter showText={isFooterOnPhoto(pageIndex)} isRTL={isRTL} lang={lang} />
+                      <ReportPageFooter pageNumber={photoStart + pageIndex + 1} totalPages={totalPages} isRTL={isRTL} lang={lang} />
                     </div>
                   </div>
                 </ScaledPreview>
@@ -1311,18 +1315,18 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                   { label: isRTL ? 'خلفي يسار' : 'Rear Left', value: data.tyrePressures?.rl },
                                   { label: isRTL ? 'خلفي يمين' : 'Rear Right', value: data.tyrePressures?.rr },
                                 ];
-                            const tyreItems = (data.mode === 'maintenance' && data.driverInfo.vehicleType !== 'electric_vehicle') 
+                            const tyreItems = ((data.mode === 'maintenance' || data.mode === 'vehicle_only') && data.driverInfo.vehicleType !== 'electric_vehicle') 
                               ? [
                                   ...baseTyreItems,
-                                  { label: isRTL ? 'ضغط إطار احتياطي 1' : 'Spare Tyre 1 Pressure', value: data.tyrePressures?.st1 },
-                                  { label: isRTL ? 'ضغط إطار احتياطي 2' : 'Spare Tyre 2 Pressure', value: data.tyrePressures?.st2 },
+                                  { label: isRTL ? 'ضغط الاطار الاحتياطي الأول' : 'Spare Tyre 1 Pressure', value: data.tyrePressures?.st1 },
+                                  { label: isRTL ? 'ضغط الاطار الاحتياطي الثاني' : 'Spare Tyre 2 Pressure', value: data.tyrePressures?.st2 },
                                 ]
                               : baseTyreItems;
 
                             return (
                               <div className="border border-gray-300 rounded-xl p-4 bg-gray-50/50 shadow-sm">
                                 <h3 className="text-[12px] font-black text-primary-900 uppercase tracking-widest mb-3 pb-1.5 border-b border-gray-300 v-center-cairo justify-start">
-                                  {isRTL ? `ضغط الإطارات (PSI) — ${is6Tyre ? '6 إطارات' : '4 إطارات'}` : `Tyre Pressure (PSI) — ${is6Tyre ? '6 Tyres' : '4 Tyres'}`}
+                                  {isRTL ? `ضغط الإطارات (PSI) — ${tyreItems.length} إطارات` : `Tyre Pressure (PSI) — ${tyreItems.length} Tyres`}
                                 </h3>
                                 <div className={`grid ${tyreItems.length % 4 === 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-3`}>
                                   {tyreItems.map((tyre, idx) => (
@@ -1354,7 +1358,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
 
                         {placeSigOnTextNotesPage && renderSummaryAndSignatures()}
 
-                        <ReportPageFooter showText={showFooterOnText} isRTL={isRTL} lang={lang} />
+                        <ReportPageFooter pageNumber={textNotesNum} totalPages={totalPages} isRTL={isRTL} lang={lang} />
                       </div>
                     </div>
                   </ScaledPreview>
@@ -1405,7 +1409,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
 
                   {(data.mode === 'full' || data.mode === 'driver_only') && renderSignatures()}
 
-                  <ReportPageFooter showText={showFooterOnReadiness} isRTL={isRTL} lang={lang} />
+                  <ReportPageFooter pageNumber={readinessNum} totalPages={totalPages} isRTL={isRTL} lang={lang} />
                 </div>
               </div>
             </ScaledPreview>

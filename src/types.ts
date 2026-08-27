@@ -17,7 +17,8 @@ export type View =
   | "pre_trip_tips"
   | "bus_handover"
   | "passenger_log"
-  | "tbt_form";
+  | "tbt_form"
+  | "post_maintenance";
 
 export type VehicleType =
   | "light_vehicle"
@@ -184,4 +185,42 @@ export interface InspectionData {
 
   /** Optional free-text notes not tied to any specific checklist item */
   additionalNotes?: string;
+}
+
+export type PostMaintenanceStatus = "pass" | "fail" | "na" | null;
+
+export interface PostMaintenanceItem {
+  id: string;
+  status: PostMaintenanceStatus;
+  remarks?: string;
+}
+
+export interface PostMaintenanceData {
+  vehicleRegNo: string;
+  dateSent: string;
+  dateReturned: string;
+  kmReading: string;
+  workshop: string;
+  jobCardNo: string;
+  reportedDefect: string;
+  priority: 'A' | 'B' | 'C' | null;
+  repairDetails: string;
+  inspectorName: string;
+  
+  sectionA: PostMaintenanceItem[];
+  sectionB: PostMaintenanceItem[];
+  
+  finalStatus: "Accepted" | "Rejected" | "Conditional Acceptance" | "Reinspection" | null;
+  outstandingItems: string;
+  signatures: {
+    driverName?: string;
+    driver?: string;
+    driverDate?: string;
+    inspectorName?: string;
+    inspector?: string;
+    inspectorDate?: string;
+    workshopName?: string;
+    workshop?: string;
+    workshopDate?: string;
+  };
 }

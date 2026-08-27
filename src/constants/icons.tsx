@@ -380,3 +380,5 @@ export const EVDoorIcon = ({ size = 20, className = "" }: { size?: number, class
 export {
   BatteryFull, Volume2, ShieldCheck, Fuel, Waves, Lightbulb, ArrowLeftRight, Eye, CircleDot, IdCard, Car, Disc, Gauge, Droplets, Droplet, Flame, BriefcaseMedical, Wrench, Snowflake, Cctv, Moon, Coffee, Navigation, Stethoscope, MapPin, Siren, CloudLightning, Shield, Timer, FileCheck, CircleDashed, Radio, Package, PhoneOff, LifeBuoy, LogOut, DoorOpen, Settings, AlertTriangle, LightbulbOff, ShieldAlert, HelpCircle, Triangle, PhoneCall, UserCheck, Map, Thermometer, Smartphone, Anchor, Pill, CloudSunRain, ClipboardCheck, BedDouble, BatteryCharging, Zap, PlugZap
 };
+
+export const EngineIcon = ImageIcon("/assets/icons/Engine.png", "Engine");

@@ -104,7 +104,7 @@ export const CompactInfoGrid: React.FC<{ data: InspectionData; t: any; lang: Lan
             mono: true 
           },
           ...(data.mode === 'maintenance' ? [
-             { label: lang === 'ar' ? 'انتهاء تصريح أوبال' : 'OPAL Expiry Date', value: data.driverInfo.opalExpiryDate ? formatDisplayDate(data.driverInfo.opalExpiryDate, lang) : '-' },
+             { label: lang === 'ar' ? 'انتهاء تصريح أوبال' : 'OPAL Expiry Date', value: data.driverInfo.opalExpiryDate ? formatDisplayDate(data.driverInfo.opalExpiryDate, lang) : (lang === 'ar' ? 'المركبة لا تملك تصريح أوبال' : 'No OPAL permit for vehicle') },
              { label: lang === 'ar' ? 'انتهاء تصريح VOC' : 'VOC Expiry Date', value: data.driverInfo.vocExpiryDate ? formatDisplayDate(data.driverInfo.vocExpiryDate, lang) : '-' },
           ] : []),
         ].map((info, idx) => (
