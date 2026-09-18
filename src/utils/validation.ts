@@ -41,11 +41,13 @@ export const validateChecklist = (data: InspectionData, isRTL: boolean): Validat
     return !i.notes || String(i.notes).trim().length === 0;
   });
 
-  const fireExtItem = data.checklist.find((i) => i.key.startsWith('fire_ext'));
-  const missingFireExpiry = fireExtItem && fireExtItem.status !== 'unchecked' && !fireExtItem.expiryDate;
-
-  const safetyKitItem = data.checklist.find((i) => i.key === 'safety_kit');
-  const missingSafetyExpiry = safetyKitItem && safetyKitItem.status !== 'unchecked' && !safetyKitItem.expiryDate;
+  // Check ALL items that require expiry/manufacturing dates
+  const dateRequiredKeys = ['fire_ext', 'fire_ext_1', 'fire_ext_2', 'safety_kit', 'aed_device'];
+  const itemsMissingDates = data.checklist.filter((i) => {
+    const needsDate = dateRequiredKeys.some(k => i.key === k || i.key.startsWith(k + '_'));
+    return needsDate && i.status !== 'unchecked' && !i.expiryDate;
+  });
+  const hasMissingDates = itemsMissingDates.length > 0;
 
   if (uncheckedItems.length > 0) {
     return {
@@ -53,7 +55,7 @@ export const validateChecklist = (data: InspectionData, isRTL: boolean): Validat
       messageKey: isRTL ? 'يرجى فحص جميع العناصر المطلوبة قبل المتابعة.' : 'Please inspect all required items before proceeding.',
     };
   }
-  if (missingFireExpiry || missingSafetyExpiry) {
+  if (hasMissingDates) {
     return {
       isValid: false,
       messageKey: isRTL ? 'يرجى إدخال تاريخ انتهاء الصلاحية لجميع العناصر المطلوبة قبل المتابعة.' : 'Please enter all required expiry dates before proceeding.',
@@ -70,7 +72,7 @@ export const validateChecklist = (data: InspectionData, isRTL: boolean): Validat
 };
 
 export const validateDriverReadiness = (data: InspectionData, isRTL: boolean): ValidationResult => {
-  const allAnswered = Object.keys(data.readiness.answers).length >= READINESS_QUESTIONS.length;
+  const allAnswered = READINESS_QUESTIONS.every(q => data.readiness.answers[q.id] !== undefined);
   if (!allAnswered) {
     return {
       isValid: false,

@@ -51,7 +51,7 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
     } catch(e) {}
     const now = new Date();
     return {
-      date: now.toISOString().split('T')[0],
+      date: now.toLocaleDateString('en-CA'),
       time: now.toTimeString().slice(0, 5),
       type: 'face_to_face',
       managerName: '',
@@ -74,13 +74,14 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
     return () => clearTimeout(handler);
   }, [data]);
   const [alertMsg, setAlertMsg] = useState('');
+  const userEditedTimeRef = React.useRef(false);
 
   const t = (ar: string, en: string) => isRTL ? ar : en;
 
   // Auto-update time on load if not set
   useEffect(() => {
     const timer = setInterval(() => {
-      if (!attemptedSubmit && !showReport && data.managerName === '') {
+      if (!attemptedSubmit && !showReport && data.managerName === '' && !userEditedTimeRef.current) {
         const now = new Date();
         setData(prev => ({ ...prev, time: now.toTimeString().slice(0, 5) }));
       }
@@ -120,7 +121,7 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
     
     if (!data.date) isValid = false;
     
-    if (data.date > new Date().toISOString().split('T')[0]) {
+    if (data.date > new Date().toLocaleDateString('en-CA')) {
       showAlert(t('لا يمكن تسجيل استمارة بتاريخ مستقبلي.', 'Cannot submit form with a future date.'));
       return false;
     }
@@ -217,7 +218,7 @@ export const TbtForm: React.FC<Props> = ({ isRTL, onExit }) => {
               <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('الوقت', 'Time')}</label>
               <CustomTimePicker
                 value={data.time}
-                onChange={val => setData({...data, time: val})}
+                onChange={val => { userEditedTimeRef.current = true; setData({...data, time: val}); }}
                 error={attemptedSubmit && !data.time}
                 isRTL={isRTL}
               />

@@ -17,7 +17,7 @@ export const EmergencyProcView: React.FC<EmergencyProcViewProps> = ({
   onBack 
 }) => {
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="animate-fade-in space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="flex items-center justify-between border-b border-gray-400 pb-4">
         <div className="flex items-center gap-3">
           <button 

@@ -11,6 +11,7 @@ interface OdometerScannerProps {
 export const OdometerScanner: React.FC<OdometerScannerProps> = ({ onScan, onClose, isRTL }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const workerRef = useRef<any>(null);
   
   const [isScanning, setIsScanning] = useState(false);
   const [progress, setProgress] = useState('');
@@ -20,25 +21,40 @@ export const OdometerScanner: React.FC<OdometerScannerProps> = ({ onScan, onClos
   // Start Camera
   useEffect(() => {
     let stream: MediaStream | null = null;
+    let isMounted = true;
     
     const startCamera = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment' }
         });
+        if (!isMounted) {
+          // Component already unmounted — stop tracks immediately
+          mediaStream.getTracks().forEach(track => track.stop());
+          return;
+        }
+        stream = mediaStream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
       } catch (err) {
-        setErrorMsg(isRTL ? 'تعذر الوصول للكاميرا' : 'Camera access failed');
+        if (isMounted) {
+          setErrorMsg(isRTL ? 'تعذر الوصول للكاميرا' : 'Camera access failed');
+        }
       }
     };
     
     startCamera();
     
     return () => {
+      isMounted = false;
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
+      }
+      // Terminate any running OCR worker to prevent memory leak
+      if (workerRef.current) {
+        try { workerRef.current.terminate(); } catch {}
+        workerRef.current = null;
       }
     };
   }, [isRTL]);
@@ -147,12 +163,13 @@ export const OdometerScanner: React.FC<OdometerScannerProps> = ({ onScan, onClos
       
       setProgress(isRTL ? 'تهيئة المحرك...' : 'Initializing...');
       const worker = await createWorker('eng', 1, {
-        logger: m => {
+        logger: (m: any) => {
           if (m.status === 'recognizing text') {
             setProgress(`${isRTL ? 'جاري المسح:' : 'Scanning:'} ${Math.round(m.progress * 100)}%`);
           }
         }
       });
+      workerRef.current = worker;
       
       await worker.setParameters({
         tessedit_char_whitelist: '0123456789',
@@ -161,6 +178,7 @@ export const OdometerScanner: React.FC<OdometerScannerProps> = ({ onScan, onClos
       
       const { data: { text } } = await worker.recognize(imgData);
       await worker.terminate();
+      workerRef.current = null;
       
       const numbersOnly = text.replace(/[^0-9]/g, '');
       

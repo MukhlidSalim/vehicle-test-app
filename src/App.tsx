@@ -31,7 +31,9 @@ export default function App() {
     return browserLang === 'ar' ? 'ar' : 'en';
   });
   
-  const currentView = location.pathname === '/' ? 'home' : location.pathname.substring(1) as View;
+  const path = location.pathname === '/' ? 'home' : location.pathname.substring(1);
+  const validViews = ['home', 'driver_safety', 'vehicle_safety', 'emergency_procedures', 'pre_trip_tips', 'inspection_process', 'bus_handover', 'passenger_log', 'tbt_form', 'post_maintenance'];
+  const currentView = validViews.includes(path) ? (path as View) : 'home';
   
   const setCurrentView = (view: View) => {
     navigate(view === 'home' ? '/' : `/${view}`);
@@ -45,8 +47,16 @@ export default function App() {
     inspectionStep, setInspectionStep, 
     saveStatus, 
     startInspection: hookStartInspection, 
-    resetSession 
+    resetSession,
+    sessionExpired
   } = useInspectionSession();
+
+  useEffect(() => {
+    if (sessionExpired) {
+      resetSession();
+      setCurrentView('home');
+    }
+  }, [sessionExpired]);
 
   // Scroll to top on navigation/view change
   useEffect(() => {
@@ -69,9 +79,14 @@ export default function App() {
     setCurrentView('home');
   };
 
+  // Separate exit for standalone forms — does NOT destroy the main inspection session
+  const exitForm = () => {
+    setCurrentView('home');
+  };
+
   return (
     <ErrorBoundary>
-      <div className={`min-h-screen bg-white flex flex-col font-${isRTL ? 'cairo' : 'sans'}`} dir={isRTL ? 'rtl' : 'ltr'}>
+      <div className={`min-h-screen bg-white flex flex-col ${isRTL ? 'font-cairo' : 'font-sans'}`} dir={isRTL ? 'rtl' : 'ltr'}>
         <TopBar 
           t={t} 
           currentView={currentView} 
@@ -98,10 +113,10 @@ export default function App() {
                 <Route path="/emergency_procedures" element={<EmergencyProcView t={t} isRTL={isRTL} onBack={() => setCurrentView('home')} />} />
                 <Route path="/pre_trip_tips" element={<PreTripTipsView t={t} isRTL={isRTL} onBack={() => setCurrentView('home')} />} />
                 <Route path="/inspection_process" element={<InspectionProcess t={t} lang={lang} isRTL={isRTL} step={inspectionStep} setStep={setInspectionStep} data={data} setData={setData} onExit={resetApp} saveStatus={saveStatus} />} />
-                <Route path="/bus_handover" element={<HandoverForm lang={lang} isRTL={isRTL} onExit={resetApp} />} />
-                <Route path="/passenger_log" element={<PassengerLogForm lang={lang} isRTL={isRTL} onExit={resetApp} />} />
-                <Route path="/tbt_form" element={<TbtForm lang={lang} isRTL={isRTL} onExit={resetApp} />} />
-                <Route path="/post_maintenance" element={<PostMaintenanceForm lang={lang} isRTL={isRTL} onExit={resetApp} />} />
+                <Route path="/bus_handover" element={<HandoverForm lang={lang} isRTL={isRTL} onExit={exitForm} />} />
+                <Route path="/passenger_log" element={<PassengerLogForm lang={lang} isRTL={isRTL} onExit={exitForm} />} />
+                <Route path="/tbt_form" element={<TbtForm lang={lang} isRTL={isRTL} onExit={exitForm} />} />
+                <Route path="/post_maintenance" element={<PostMaintenanceForm lang={lang} isRTL={isRTL} onExit={exitForm} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </React.Suspense>

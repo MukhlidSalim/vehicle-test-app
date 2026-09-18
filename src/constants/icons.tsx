@@ -56,63 +56,75 @@ export const LuggageIcon = ImageIcon("/assets/icons/suitcase.png", "Luggage");
 export const DocumentsIcon = ImageIcon("/assets/icons/registration.png", "Documents");
 export const SteeringIcon = ImageIcon("/assets/icons/steering-wheel.png", "Steering");
 
-export const SmartImageIcon = (url: string, alt: string, zoom: number = 1.0) => ({ size = 20, className = "" }: { size?: number, className?: string }) => {
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
-  
-  React.useEffect(() => {
-    const img = new Image();
-    img.src = url;
-    img.onload = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      
-      // Target blue color: #0284c7 -> RGB(2, 132, 199)
-      const targetR = 2;
-      const targetG = 132;
-      const targetB = 199;
-      
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i+1];
-        const b = data[i+2];
-        const a = data[i+3];
-        
-        // If pixel is already fully transparent, ignore it
-        if (a < 10) continue;
-        
-        // Calculate brightness (0 to 255)
-        const brightness = (r + g + b) / 3;
-        
-        // Calculate darkness intensity for alpha masking
-        // Pure white (255) -> intensity 0 -> fully transparent
-        // Pure black (0) -> intensity 1 -> fully opaque
-        let intensity = 1 - (brightness / 255);
-        intensity = Math.max(0, intensity - 0.05); // threshold to ensure pure white bg is stripped
-        
-        data[i] = targetR;
-        data[i+1] = targetG;
-        data[i+2] = targetB;
-        data[i+3] = Math.round(intensity * 255 * 1.5); // Boost opacity of lines
+const smartIconCache: Record<string, string> = {};
+
+export const SmartImageIcon = (url: string, alt: string, zoom: number = 1.0) => {
+  const IconComponent = React.memo(({ size = 20, className = "" }: { size?: number, className?: string }) => {
+    const [processedSrc, setProcessedSrc] = React.useState<string | null>(smartIconCache[url] || null);
+
+    React.useEffect(() => {
+      if (smartIconCache[url]) {
+        if (processedSrc !== smartIconCache[url]) {
+          setProcessedSrc(smartIconCache[url]);
+        }
+        return;
       }
       
-      ctx.putImageData(imageData, 0, 0);
-    };
-  }, [url]);
+      const img = new Image();
+      img.src = url;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Target blue color: #0284c7 -> RGB(2, 132, 199)
+        const targetR = 2;
+        const targetG = 132;
+        const targetB = 199;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i+1];
+          const b = data[i+2];
+          const a = data[i+3];
+          
+          if (a < 10) continue;
+          
+          const brightness = (r + g + b) / 3;
+          let intensity = 1 - (brightness / 255);
+          intensity = Math.max(0, intensity - 0.05);
+          
+          data[i] = targetR;
+          data[i+1] = targetG;
+          data[i+2] = targetB;
+          data[i+3] = Math.round(intensity * 255 * 1.5);
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+        const dataUrl = canvas.toDataURL('image/png');
+        smartIconCache[url] = dataUrl;
+        setProcessedSrc(dataUrl);
+      };
+    }, []);
 
-  return (
-    <div style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1px' }} className={className}>
-      <canvas ref={canvasRef} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', transform: `scale(${zoom})` }} title={alt} />
-    </div>
-  );
+    return (
+      <div style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1px' }} className={className}>
+        {processedSrc ? (
+          <img src={processedSrc} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', transform: `scale(${zoom})` }} alt={alt} />
+        ) : null}
+      </div>
+    );
+  });
+  
+  IconComponent.displayName = `SmartImageIcon_${alt.replace(/\s+/g, '')}`;
+  return IconComponent;
 };
 
 export const ElectronicGearIcon = SmartImageIcon("/assets/icons/ElectronicGearButtons.png", "Electronic Gear", 1.3);

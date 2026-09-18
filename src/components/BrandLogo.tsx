@@ -12,6 +12,14 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ onClick }) => (
   <div 
     className="flex items-center justify-center cursor-pointer group select-none transition-transform duration-300 active:scale-95" 
     onClick={onClick}
+    role="button"
+    tabIndex={0}
+    onKeyDown={(e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onClick();
+      }
+    }}
     title="الرئيسية | Home"
   >
     <div className="relative flex items-center justify-center">

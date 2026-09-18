@@ -6,6 +6,7 @@ import { getChecklistForType } from '../utils/inspectionHelpers';
 export function useInspectionSession() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [inspectionStep, setInspectionStep] = useState<number>(1);
+  const [sessionExpired, setSessionExpired] = useState<boolean>(false);
   const [data, setData] = useState<InspectionData>({
     mode: 'full',
     driverInfo: {
@@ -97,8 +98,7 @@ export function useInspectionSession() {
             const EXPIRE_TIME = 60 * 60 * 1000; // 1 Hour
             if (parsed.timestamp && (now - parsed.timestamp > EXPIRE_TIME)) {
               resetSession();
-              // Optional reload to ensure fresh state if they were deep in a form
-              window.location.reload();
+              setSessionExpired(true);
             }
           } catch (e) {
             resetSession();
@@ -138,7 +138,7 @@ export function useInspectionSession() {
 
   // Initialize a new inspection session
   const startInspection = (mode: InspectionMode) => {
-    setData(prev => ({ 
+    setData((prev: InspectionData) => ({ 
       ...prev, 
       mode,
       checklist: getChecklistForType(prev.driverInfo.vehicleType, mode)
@@ -154,6 +154,7 @@ export function useInspectionSession() {
     setInspectionStep,
     saveStatus,
     startInspection,
-    resetSession
+    resetSession,
+    sessionExpired
   };
 }

@@ -367,7 +367,10 @@ export const generateSmartPdf = async ({
     // 2. We need the original image dimensions to map DOM coordinates to image pixels
     const img = new Image();
     img.src = dataUrl;
-    await new Promise((resolve) => { img.onload = resolve; });
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error('Failed to load captured image for PDF slicing'));
+    });
 
     const sourceWidth = img.width;
     const sourceHeight = img.height;

@@ -79,8 +79,7 @@ export const CustomTimePicker: React.FC<Props> = ({
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => {
-        const id = mode === 'hours' ? 'selected-hour' : 'selected-minute';
-        const el = document.getElementById(id);
+        const el = dropdownRef.current?.querySelector('[data-selected="true"]');
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
@@ -193,7 +192,7 @@ export const CustomTimePicker: React.FC<Props> = ({
                   return (
                     <div
                       key={`h-${h}`}
-                      id={isSelected ? 'selected-hour' : undefined}
+                      data-selected={isSelected ? "true" : undefined}
                       onClick={() => handleHourSelect(h)}
                       className={`h-12 rounded-lg flex items-center justify-center font-black text-lg cursor-pointer transition-all active:scale-95
                         ${isSelected ? 'bg-primary-500 text-white shadow-md' : 'bg-white text-gray-700 border border-gray-200 hover:border-primary-300 hover:bg-primary-50'}
@@ -216,7 +215,7 @@ export const CustomTimePicker: React.FC<Props> = ({
                   return (
                     <div
                       key={`m-${m}`}
-                      id={isSelected ? 'selected-minute' : undefined}
+                      data-selected={isSelected ? "true" : undefined}
                       onClick={() => handleMinuteSelect(m)}
                       className={`h-9 rounded-md flex items-center justify-center font-bold text-sm cursor-pointer transition-all active:scale-95
                         ${isSelected ? 'bg-primary-500 text-white shadow-md z-10 scale-110' : 'bg-white border hover:border-primary-300 hover:bg-primary-50'}

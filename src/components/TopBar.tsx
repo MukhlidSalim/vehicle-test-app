@@ -106,6 +106,15 @@ export const TopBar: React.FC<TopBarProps> = ({
         <div 
           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] animate-fade-in"
           onClick={() => setMenuOpen(false)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setMenuOpen(false);
+            }
+          }}
+          aria-label="Close menu"
         />
       )}
 
@@ -146,7 +155,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           {/* Inspections */}
           <div>
             <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-2">
-              {isRTL ? 'الفحوصات' : 'Inspections'}
+              {t.inspections}
             </h4>
             <div className="space-y-1">
               <DrawerItem 
@@ -172,7 +181,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               />
               <DrawerItem 
                 icon={Wrench} 
-                label={isRTL ? 'الفحص الفني' : 'Maintenance'} 
+                label={t.mode_maintenance} 
                 isActive={currentView === 'inspection_process' && currentMode === 'maintenance'} 
                 onClick={() => handleStartInspection('maintenance')}
                 colorClass="bg-orange-50 text-orange-500"
@@ -183,33 +192,33 @@ export const TopBar: React.FC<TopBarProps> = ({
           {/* Forms */}
           <div>
             <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-2">
-              {isRTL ? 'الاستمارات' : 'Forms'}
+              {t.forms}
             </h4>
             <div className="space-y-1">
               <DrawerItem 
                 icon={Truck} 
-                label={isRTL ? 'تسليم مركبة' : 'Vehicle Handover'} 
+                label={t.form_handover_short} 
                 isActive={currentView === 'bus_handover'} 
                 onClick={() => handleNavigate('bus_handover')}
                 colorClass="bg-emerald-50 text-emerald-500"
               />
               <DrawerItem 
                 icon={Users} 
-                label={isRTL ? 'سجل الركاب' : 'Passenger Log'} 
+                label={t.form_passenger_short} 
                 isActive={currentView === 'passenger_log'} 
                 onClick={() => handleNavigate('passenger_log')}
                 colorClass="bg-teal-50 text-teal-500"
               />
               <DrawerItem 
                 icon={FileText} 
-                label={isRTL ? 'تقرير TBT' : 'TBT Form'} 
+                label={t.form_tbt_short} 
                 isActive={currentView === 'tbt_form'} 
                 onClick={() => handleNavigate('tbt_form')}
                 colorClass="bg-indigo-50 text-indigo-500"
               />
               <DrawerItem 
                 icon={CheckCircle} 
-                label={isRTL ? 'اعتماد ما بعد الصيانة' : 'Post-Maintenance'} 
+                label={t.form_pm_short} 
                 isActive={currentView === 'post_maintenance'} 
                 onClick={() => handleNavigate('post_maintenance')}
                 colorClass="bg-rose-50 text-rose-500"

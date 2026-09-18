@@ -100,17 +100,27 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
   
   const [items, setItems] = useState<HandoverItem[]>(() => buildItemsFromConfig(config));
   
+  // Track if this is the initial vehicleType value (from session restore) vs a user change
+  const vehicleTypeInitRef = React.useRef(true);
+  const [isLoaded, setIsLoaded] = useState(false);
+  
   useEffect(() => {
+    if (!isLoaded) return;
+    
+    // Skip the first run after load to avoid wiping restored data
+    if (vehicleTypeInitRef.current) {
+      vehicleTypeInitRef.current = false;
+      return;
+    }
     const newConfig = getCategoryConfig(getVehicleCategory(vehicleType));
     setItems(buildItemsFromConfig(newConfig));
     setExtraFields({});
-  }, [vehicleType]);
+  }, [vehicleType, isLoaded]);
   
   const [uiAlert, setUiAlert] = useState({ show: false, message: '', type: 'warning' as 'warning' | 'fail' });
   const [showExpiryWarning, setShowExpiryWarning] = useState<string[] | null>(null);
   const [ignoreExpiry, setIgnoreExpiry] = useState<boolean>(false);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     try {
@@ -237,7 +247,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
     const missingExtra = config.extraFields?.filter(f => f.required && !extraFields[f.id]?.trim());
     if (missingExtra && missingExtra.length > 0) isValid = false;
 
-    if (!signature || signature.length < 5000) isValid = false;
+    if (!signature || signature.length < 500) isValid = false;
     if (items.some(i => i.status === null)) isValid = false;
     if (items.some(i => i.status === 'bad' && !i.note.trim())) isValid = false;
     if (items.some(i => i.hasCount && i.status === 'good' && !i.count.trim())) isValid = false;

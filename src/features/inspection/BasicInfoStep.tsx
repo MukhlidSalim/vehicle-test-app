@@ -15,6 +15,7 @@ interface BasicInfoStepProps {
   data: InspectionData;
   setData: React.Dispatch<React.SetStateAction<InspectionData>>;
   attemptedStep2: boolean;
+  odoAcknowledged?: boolean;
 }
 
 /**
@@ -27,9 +28,10 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
   data,
   setData,
   attemptedStep2,
+  odoAcknowledged,
 }) => {
   const [dateWarning, setDateWarning] = React.useState({ show: false, msg: '' });
-  const [pendingVehicleType, setPendingVehicleType] = React.useState<string | null>(null);
+  const [pendingVehicleType, setPendingVehicleType] = React.useState<VehicleType | null>(null);
   
   const showDateWarning = (msg: string) => {
     setDateWarning({ show: true, msg });
@@ -38,6 +40,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
 
   const isOdoInvalid = Boolean(
     attemptedStep2 && 
+    !odoAcknowledged &&
     data.driverInfo.currentOdometer && 
     data.driverInfo.odometer && 
     Number(data.driverInfo.currentOdometer) >= Number(data.driverInfo.odometer)
@@ -45,33 +48,34 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
 
   const getInputStateClass = (value: string | undefined | null, isError: boolean) => {
     if (isError) return 'border-red-500 bg-red-50 focus:ring-4 focus:ring-red-500/20';
-    if (value && value.trim().length > 0) return 'border-green-500 bg-green-50 text-green-900 focus:ring-4 focus:ring-green-500/20 pe-10';
+    if (value && value.trim().length > 0) return 'border-green-500 bg-green-50 focus:ring-4 focus:ring-green-500/20';
     return 'border-gray-300 bg-gray-50 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 focus:bg-white';
   };
 
   const CheckIcon = () => (
-    <div className="absolute end-3 top-1/2 -translate-y-1/2 text-green-600 bg-green-100 rounded-full p-0.5 animate-in zoom-in z-10 pointer-events-none">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    <div className="absolute top-1/2 -translate-y-1/2 ltr:right-4 rtl:left-4 text-green-500 bg-green-100 rounded-full p-0.5 shadow-sm">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
     </div>
   );
 
   return (
-    <div className="space-y-6 relative">
-       {dateWarning.show && (
-         <div className="fixed top-20 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-red-100 text-red-800 px-6 py-4 rounded-2xl shadow-2xl z-50 animate-in slide-in-from-top flex items-center gap-3 border border-red-300">
-           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600 animate-pulse flex-shrink-0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-           <span className="font-black text-sm v-center-cairo">{dateWarning.msg}</span>
-         </div>
-       )}
-       <h2 className="text-lg font-black text-gray-800 border-b border-gray-400 pb-3 v-center-cairo justify-start">
-         {data.mode === 'maintenance' ? (isRTL ? 'بيانات قسم الصيانة' : 'Maintenance Info') : t.driver_info}
-       </h2>
-       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-400 space-y-8">
-          <div className={`grid ${data.mode === 'maintenance' ? 'md:grid-cols-4' : 'md:grid-cols-2'} gap-6`}>
-             {/* Driver Name */}
+    <div className="space-y-8 pb-32" dir={isRTL ? 'rtl' : 'ltr'}>
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100/50 relative overflow-hidden">
+        <div className="flex items-center gap-3 mb-8 border-b border-gray-100 pb-4">
+          <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-600 shadow-sm border border-primary-100">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10.4 12.6a2 2 0 1 1 3 3L8 21l-4 1 1-4Z"/><path d="M18 18V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12"/></svg>
+          </div>
+          <h2 className="text-xl font-black text-gray-800 tracking-tight">
+            {t.driver_info}
+          </h2>
+        </div>
+
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
              <div className="space-y-2">
-                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">
-                  {data.mode === 'maintenance' || data.mode === 'vehicle_only' ? (isRTL ? 'اسم الفاحص' : 'Inspector Name') : t.driver_name} *
+                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest" htmlFor="driver-name">
+                  {data.mode === 'maintenance' ? (isRTL ? 'اسم الفاحص' : 'Inspector Name') : data.mode === 'vehicle_only' ? (isRTL ? 'اسم الشخص المتواصل' : 'Contact Person Name') : t.driver_name} *
                 </label>
                 <div className="relative">
                   <input
@@ -85,7 +89,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                 </div>
              </div>
 
-              {/* Driver Phone Number */}
+             {/* Driver Phone Number */}
              <div className="space-y-2">
                 <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">
                   {data.mode === 'maintenance' ? (isRTL ? 'رقم الفاحص' : 'Inspector Phone') : data.mode === 'vehicle_only' ? (isRTL ? 'رقم التواصل' : 'Contact Number') : t.phone_number} *
@@ -330,13 +334,14 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                       onClick={() => {
                         const hasExistingData = data.checklist?.some(item => item.status !== 'unchecked');
                         if (hasExistingData && data.driverInfo.vehicleType !== vt.value) {
-                            setPendingVehicleType(vt.value);
+                            setPendingVehicleType(vt.value as VehicleType);
                             return;
                           }
                         setData((p) => ({ 
                           ...p, 
-                          driverInfo: { ...p.driverInfo, vehicleType: vt.value },
-                          checklist: getChecklistForType(vt.value, p.mode)
+                          driverInfo: { ...p.driverInfo, vehicleType: vt.value as VehicleType },
+                          checklist: getChecklistForType(vt.value, p.mode),
+                          tyrePressures: {}
                         }));
                       }}
                       className={`relative group flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-200 ${
@@ -359,8 +364,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
             </div>
           </div>
        </div>
-
-
+      </div>
 
       {/* Confirm Vehicle Type Change Modal */}
       {pendingVehicleType && (
@@ -392,8 +396,9 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                     if (pendingVehicleType) {
                       setData((p) => ({ 
                         ...p, 
-                        driverInfo: { ...p.driverInfo, vehicleType: pendingVehicleType },
-                        checklist: getChecklistForType(pendingVehicleType, p.mode)
+                        driverInfo: { ...p.driverInfo, vehicleType: pendingVehicleType as VehicleType },
+                        checklist: getChecklistForType(pendingVehicleType, p.mode),
+                        tyrePressures: {}
                       }));
                       setPendingVehicleType(null);
                     }

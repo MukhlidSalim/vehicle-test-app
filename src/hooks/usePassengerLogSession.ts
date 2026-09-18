@@ -89,15 +89,15 @@ export function usePassengerLogSession() {
 
   const addTrip = useCallback((trip: Omit<Trip, 'id'>) => {
     const newTrip: Trip = { ...trip, id: `trip_${Date.now()}_${Math.random().toString(36).slice(2, 8)}` };
-    setTrips(prev => [...prev, newTrip]);
+    setTrips((prev: Trip[]) => [...prev, newTrip]);
   }, []);
 
   const updateTrip = useCallback((id: string, updated: Partial<Trip>) => {
-    setTrips(prev => prev.map(t => t.id === id ? { ...t, ...updated } : t));
+    setTrips((prev: Trip[]) => prev.map((t: Trip) => t.id === id ? { ...t, ...updated } : t));
   }, []);
 
   const deleteTrip = useCallback((id: string) => {
-    setTrips(prev => prev.filter(t => t.id !== id));
+    setTrips((prev: Trip[]) => prev.filter((t: Trip) => t.id !== id));
   }, []);
 
   const resetDay = useCallback(() => {

@@ -89,7 +89,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
              { mode: 'driver_only', icon: UserCheck, label: t.mode_driver, desc: t.mode_driver_desc, color: 'purple', bg: 'bg-purple-50', text: 'text-purple-600' },
              { mode: 'vehicle_only', icon: Car, label: t.mode_vehicle, desc: t.mode_vehicle_desc, color: 'blue', bg: 'bg-blue-50', text: 'text-blue-600' },
              { mode: 'full', icon: ClipboardCheck, label: t.mode_full, desc: t.mode_full_desc, color: 'primary', bg: 'bg-primary-50', text: 'text-primary-600' },
-             { mode: 'maintenance', icon: Wrench, label: isRTL ? 'قسم الصيانة' : 'Maintenance', desc: isRTL ? 'فحص المركبة من قبل الفني المختص' : 'Vehicle inspection by technician', color: 'orange', bg: 'bg-orange-50', text: 'text-orange-600' }
+             { mode: 'maintenance', icon: Wrench, label: t.mode_maintenance, desc: t.mode_maintenance_desc, color: 'orange', bg: 'bg-orange-50', text: 'text-orange-600' }
            ].map((item: any) => (
             <button 
               type="button"
@@ -105,7 +105,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <p className="text-[11px] text-gray-400 font-bold leading-relaxed">{item.desc}</p>
               </div>
               <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-primary-600 opacity-0 md:group-hover:opacity-100 transition-all translate-y-2 md:group-hover:translate-y-0 uppercase tracking-widest">
-                 {isRTL ? 'بدء العملية' : 'Initialize Operation'} 
+                 {t.init_operation} 
                  {isRTL ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
               </div>
             </button>
@@ -117,7 +117,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <div className="flex flex-col gap-1 border-b border-gray-400 pb-3">
             <h2 className="text-lg font-black text-gray-900 flex items-center gap-3">
               <ArrowLeftRight size={20} className="text-primary-600" />
-              {isRTL ? 'الاستمارات' : 'Forms'}
+              {t.forms}
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -132,14 +132,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
               <div className="space-y-1.5 flex-1">
                 <h3 className="text-base font-black text-gray-900 group-hover:text-primary-600 transition-colors">
-                  {isRTL ? 'إستمارة تسليم مركبة' : 'Vehicle Handover Form'}
+                  {t.form_handover}
                 </h3>
                 <p className="text-[11px] text-gray-400 font-bold leading-relaxed">
-                  {isRTL ? 'تسليم واستلام المركبات' : 'Vehicle handover & receiving'}
+                  {t.form_handover_desc}
                 </p>
               </div>
               <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-primary-600 opacity-0 md:group-hover:opacity-100 transition-all translate-y-2 md:group-hover:translate-y-0 uppercase tracking-widest">
-                {isRTL ? 'فتح الاستمارة' : 'Open Form'}
+                {t.open_form}
                 {isRTL ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
               </div>
             </button>
@@ -155,14 +155,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
               <div className="space-y-1.5 flex-1">
                 <h3 className="text-base font-black text-gray-900 group-hover:text-teal-600 transition-colors">
-                  {isRTL ? 'استمارة تسجيل الركاب' : 'Passenger Registration Log'}
+                  {t.form_passenger}
                 </h3>
                 <p className="text-[11px] text-gray-400 font-bold leading-relaxed">
-                  {isRTL ? 'تسجيل النقلات اليومية للحافلات الصغيرة' : 'Daily trip logging for light buses'}
+                  {t.form_passenger_desc}
                 </p>
               </div>
               <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-teal-600 opacity-0 md:group-hover:opacity-100 transition-all translate-y-2 md:group-hover:translate-y-0 uppercase tracking-widest">
-                {isRTL ? 'فتح الاستمارة' : 'Open Form'}
+                {t.open_form}
                 {isRTL ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
               </div>
             </button>
@@ -178,14 +178,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
               <div className="space-y-1.5 flex-1">
                 <h3 className="text-base font-black text-gray-900 group-hover:text-indigo-600 transition-colors">
-                  {isRTL ? 'استمارة TBT' : 'TBT Form'}
+                  {t.form_tbt}
                 </h3>
                 <p className="text-[11px] text-gray-400 font-bold leading-relaxed">
-                  {isRTL ? 'إجتماع السلامة قبل الرحلة' : 'Toolbox Talk safety meeting before journey'}
+                  {t.form_tbt_desc}
                 </p>
               </div>
               <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-indigo-600 opacity-0 md:group-hover:opacity-100 transition-all translate-y-2 md:group-hover:translate-y-0 uppercase tracking-widest">
-                {isRTL ? 'فتح الاستمارة' : 'Open Form'}
+                {t.open_form}
                 {isRTL ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
               </div>
             </button>
@@ -201,14 +201,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
               <div className="space-y-1.5 flex-1">
                 <h3 className="text-base font-black text-gray-900 group-hover:text-amber-600 transition-colors">
-                  {isRTL ? 'استمارة فحص الحافلة بعد الصيانة' : 'Post-Maintenance Acceptance'}
+                  {t.form_pm}
                 </h3>
                 <p className="text-[11px] text-gray-400 font-bold leading-relaxed">
-                  {isRTL ? 'التحقق من إصلاح الأعطال والفحص الشامل للمركبة' : 'Post-maintenance bus acceptance checklist'}
+                  {t.form_pm_desc}
                 </p>
               </div>
               <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-amber-600 opacity-0 md:group-hover:opacity-100 transition-all translate-y-2 md:group-hover:translate-y-0 uppercase tracking-widest">
-                {isRTL ? 'فتح الاستمارة' : 'Open Form'}
+                {t.open_form}
                 {isRTL ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
               </div>
             </button>

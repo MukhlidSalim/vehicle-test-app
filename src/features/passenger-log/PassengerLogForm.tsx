@@ -122,8 +122,13 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
     return true;
   };
 
+  const isSavingRef = React.useRef(false);
+
   const handleSaveTrip = () => {
+    if (isSavingRef.current) return;
     if (!validateTrip()) return;
+    
+    isSavingRef.current = true;
     const tripData = {
       type: newTrip.type as 'routine' | 'shift',
       pickupLocation: newTrip.pickupLocation,
@@ -138,6 +143,11 @@ export const PassengerLogForm: React.FC<Props> = ({ lang, isRTL, onExit }) => {
       addTrip(tripData);
     }
     resetTripForm();
+    
+    // Release the lock after a short delay (enough time for modal to close)
+    setTimeout(() => {
+      isSavingRef.current = false;
+    }, 500);
   };
 
   const handleEditTrip = (trip: Trip) => {

@@ -42,6 +42,8 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
   const [attemptedStep4, setAttemptedStep4] = useState<boolean>(false);
   const [attemptedSignature, setAttemptedSignature] = useState<boolean>(false);
   const [showOdoWarning, setShowOdoWarning] = useState<boolean>(false);
+  const [odoAcknowledged, setOdoAcknowledged] = useState<boolean>(false);
+  const [showChecklistConfirm, setShowChecklistConfirm] = useState<boolean>(false);
   const [showExpiryWarning, setShowExpiryWarning] = useState<string[] | null>(null);
 
   const checkExpiryAndProceed = () => {
@@ -79,6 +81,7 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
   };
 
   const handleConfirmOdo = () => {
+    setOdoAcknowledged(true);
     setShowOdoWarning(false);
     checkExpiryAndProceed();
   };
@@ -177,13 +180,14 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
 
        {/* Step Rendering */}
        {step === 2 && (
-         <BasicInfoStep 
-           t={t} 
-           isRTL={isRTL} 
-           data={data} 
-           setData={setData} 
-           attemptedStep2={attemptedStep2} 
-         />
+          <BasicInfoStep 
+            t={t} 
+            isRTL={isRTL} 
+            data={data} 
+            setData={setData} 
+            attemptedStep2={attemptedStep2}
+            odoAcknowledged={odoAcknowledged} 
+          />
        )}
        {step === 3 && (
          <DriverReadinessStep 
@@ -278,7 +282,7 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
                       scrollToFirstErrorInDOM();
                       return;
                     }
-                    if (Number(data.driverInfo.currentOdometer) >= Number(data.driverInfo.odometer)) {
+                    if (!odoAcknowledged && Number(data.driverInfo.currentOdometer) >= Number(data.driverInfo.odometer)) {
                       setShowOdoWarning(true);
                       return;
                     }

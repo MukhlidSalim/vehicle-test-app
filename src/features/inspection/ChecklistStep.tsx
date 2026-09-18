@@ -59,6 +59,10 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
 
   const [photoMenu, setPhotoMenu] = useState<{ isOpen: boolean; itemId: number | null; damageIdx?: number }>({ isOpen: false, itemId: null });
   const [dateWarning, setDateWarning] = React.useState<{ show: boolean; msg: string }>({ show: false, msg: '' });
+  
+  // C05 FIX: Persistent hidden file input ref to prevent iOS Safari garbage collection
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const pendingCaptureRef = React.useRef<{ itemId: number; damageIdx?: number } | null>(null);
 
   const showDateWarning = (msg: string) => {
     setDateWarning({ show: true, msg });
@@ -66,7 +70,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
   };
 
   // Tyre pressure toggle — hidden by default until explicitly opened
-  const [showTyrePressure, setShowTyrePressure] = useState(false);
+  const [showTyrePressure, setShowTyrePressure] = useState(() => Object.values(data.tyrePressures || {}).some(v => typeof v === 'string' && v.trim() !== ''));
 
   const vType = data.driverInfo.vehicleType;
   const activeChecklistDef = getChecklistDefForType(vType, data.mode);
@@ -103,68 +107,65 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
   };
 
   const handlePhotoCapture = async (itemId: number, mode: 'camera' | 'gallery', damageIdx?: number) => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.style.display = 'none';
-
+    if (!fileInputRef.current) return;
+    
+    // Store the context for the pending capture
+    pendingCaptureRef.current = { itemId, damageIdx };
+    
+    // Configure the persistent input for camera or gallery
     if (mode === 'camera') {
-      input.setAttribute('capture', 'environment');
+      fileInputRef.current.setAttribute('capture', 'environment');
+    } else {
+      fileInputRef.current.removeAttribute('capture');
+    }
+    
+    // Reset value to allow re-selecting the same file
+    fileInputRef.current.value = '';
+    fileInputRef.current.click();
+  };
+
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const pending = pendingCaptureRef.current;
+    
+    if (file && pending) {
+      try {
+        const compressed = await compressImage(file);
+        setData((p) => ({
+          ...p,
+          checklist: p.checklist.map((item) => {
+            if (item.id === pending.itemId) {
+              if (pending.damageIdx !== undefined) {
+                const pts = item.damagePoints || [];
+                const nextPts = pts.map((pt, i) => {
+                  if (i === pending.damageIdx) {
+                    const cp = pt.photos || [];
+                    if (cp.length < 3) return { ...pt, photos: [...cp, compressed] };
+                  }
+                  return pt;
+                });
+                return { ...item, damagePoints: nextPts };
+              } else {
+                let currentPhotos = item.photos || [];
+                if (currentPhotos.length === 0 && item.photo) {
+                  currentPhotos = [item.photo];
+                }
+                if (currentPhotos.length < 3) {
+                  return { ...item, photos: [...currentPhotos, compressed], photo: undefined };
+                }
+                return item;
+              }
+            }
+            return item;
+          })
+        }));
+      } catch (err) {
+        console.error('Photo processing error:', err);
+      }
     }
 
-    input.onchange = async (e: Event) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        try {
-          const compressed = await compressImage(file);
-          setData((p) => ({
-            ...p,
-            checklist: p.checklist.map((item) => {
-              if (item.id === itemId) {
-                if (damageIdx !== undefined) {
-                  const pts = item.damagePoints || [];
-                  const nextPts = pts.map((pt, i) => {
-                    if (i === damageIdx) {
-                      const cp = pt.photos || [];
-                      if (cp.length < 3) return { ...pt, photos: [...cp, compressed] };
-                    }
-                    return pt;
-                  });
-                  return { ...item, damagePoints: nextPts };
-                } else {
-                  let currentPhotos = item.photos || [];
-                  if (currentPhotos.length === 0 && item.photo) {
-                    currentPhotos = [item.photo];
-                  }
-                  if (currentPhotos.length < 3) {
-                    return { ...item, photos: [...currentPhotos, compressed], photo: undefined };
-                  }
-                  return item;
-                }
-              }
-              return item;
-            })
-          }));
-        } catch (err) {
-          console.error('Photo processing error:', err);
-        }
-      }
-
-      if (document.body.contains(input)) {
-        document.body.removeChild(input);
-      }
-      setPhotoMenu({ isOpen: false, itemId: null });
-    };
-
-    input.oncancel = () => {
-      if (document.body.contains(input)) {
-        document.body.removeChild(input);
-      }
-      setPhotoMenu({ isOpen: false, itemId: null });
-    };
-
-    document.body.appendChild(input);
-    input.click();
+    pendingCaptureRef.current = null;
+    setPhotoMenu({ isOpen: false, itemId: null });
   };
 
   const handleRemovePhoto = (itemId: number, indexToRemove: number = 0, damageIdx?: number) => {
@@ -322,11 +323,11 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
              showDateWarning(isRTL ? 'تنبيه: الإطار منتهي الصلاحية (أكثر من 5 سنوات)!' : 'Warning: Tyre is expired (older than 5 years)!');
              return { ...item, expiryDate: value, status: 'fail' as CheckStatus };
            } else {
-             return { ...item, expiryDate: value, status: 'pass' as CheckStatus, notes: '' };
+             return { ...item, expiryDate: value };
            }
         } else if (value) {
           if (isFuture) {
-            return { ...item, expiryDate: value, status: 'pass' as CheckStatus, notes: '' };
+            return { ...item, expiryDate: value };
           } else if (isExpired) {
             showDateWarning(isRTL ? 'تنبيه: التاريخ المدخل منتهي الصلاحية!' : 'Warning: The entered date is expired!');
             const isFire = item.key === 'fire_ext' || item.key === 'fire_ext_1' || item.key === 'fire_ext_2';
@@ -672,12 +673,12 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                                  {/* Thumbnails Gallery for individual damage point */}
                                  {(pt.photos && pt.photos.length > 0) && (
                                    <div className="flex gap-2 mt-3 overflow-x-auto pb-1 no-scrollbar">
-                                     {pt.photos.map((img, idx) => (
-                                       <div key={idx} className="relative w-16 h-16 rounded-lg border border-gray-300 overflow-hidden flex-shrink-0 shadow-sm">
-                                         <img src={img} alt={`Damage photo ${idx + 1}`} className="w-full h-full object-cover" />
+                                     {pt.photos.map((img, pIdx) => (
+                                       <div key={pIdx} className="relative w-16 h-16 rounded-lg border border-gray-300 overflow-hidden flex-shrink-0 shadow-sm">
+                                         <img src={img} alt={`Damage photo ${pIdx + 1}`} className="w-full h-full object-cover" />
                                          <button
                                            type="button"
-                                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemovePhoto(item.id, idx, i); }}
+                                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemovePhoto(item.id, pIdx, i); }}
                                            className="absolute top-1 right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-all"
                                          >
                                            <Trash2 size={10} />
@@ -707,8 +708,8 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                         needsExpiry ? 'text-red-600' : 'text-gray-400'
                       }`}>
                         {isRTL 
-                          ? (isTyresCond || isSpareTyreCond ? 'تاريخ تصنيع الإطارات (أسبوع/سنة) *' : (isAed ? 'تاريخ انتهاء صلاحية جهاز الإنعاش *' : (isFireExt || isFireExt2 ? 'تاريخ انتهاء صلاحية طفاية الحريق *' : 'تاريخ انتهاء صلاحية حقيبة الإسعافات الأولية *')))
-                          : (isTyresCond || isSpareTyreCond ? 'Tyre Manufacturing Date (WW/YYYY) *' : (isAed ? 'AED Device Expiry Date *' : (isFireExt || isFireExt2 ? 'Fire Extinguisher Expiry Date *' : 'First Aid Kit Expiry Date *')))
+                          ? (isTyresCond || isSpareTyreCond ? 'تاريخ تصنيع الإطارات (أسبوع/سنة) (اختياري)' : (isAed ? 'تاريخ انتهاء صلاحية جهاز الإنعاش *' : (isFireExt || isFireExt2 ? 'تاريخ انتهاء صلاحية طفاية الحريق *' : 'تاريخ انتهاء صلاحية حقيبة الإسعافات الأولية *')))
+                          : (isTyresCond || isSpareTyreCond ? 'Tyre Manufacturing Date (WW/YYYY) (Optional)' : (isAed ? 'AED Device Expiry Date *' : (isFireExt || isFireExt2 ? 'Fire Extinguisher Expiry Date *' : 'First Aid Kit Expiry Date *')))
                         }
                       </label>
                       {(isTyresCond || isSpareTyreCond) ? (
@@ -929,6 +930,17 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
             </div>
          </div>
        )}
+
+       {/* C05 FIX: Persistent hidden file input for iOS Safari compatibility */}
+       <input
+         ref={fileInputRef}
+         type="file"
+         accept="image/*"
+         className="hidden"
+         onChange={handleFileInputChange}
+         tabIndex={-1}
+         aria-hidden="true"
+       />
     </div>
   );
 };

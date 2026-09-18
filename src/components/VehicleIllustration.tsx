@@ -16,7 +16,8 @@ export const VehicleIllustration: React.FC<VehicleIllustrationProps> = ({
   size = 100, 
   className = "" 
 }) => {
-  const imageUrl = VEHICLE_SELECTION_IMAGES[type];
+  const baseImageUrl = VEHICLE_SELECTION_IMAGES[type];
+  const imageUrl = `${baseImageUrl}?v=2`;
   return (
     <div 
       className={`flex items-center justify-center rounded-lg bg-white overflow-hidden ${className} border border-gray-300 shadow-sm`} 
@@ -24,7 +25,7 @@ export const VehicleIllustration: React.FC<VehicleIllustrationProps> = ({
     >
        <img 
          src={imageUrl} 
-         alt={type} 
+         alt={`${type.replace('_', ' ')} illustration`} 
          className="w-full h-full object-contain" 
          crossOrigin="anonymous" 
          loading="eager" 

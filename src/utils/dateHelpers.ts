@@ -17,7 +17,12 @@ export const formatStringDDMMYYYY = (dateStr?: string): string => {
   if (!dateStr) return '';
   const parts = dateStr.split('T')[0].split('-');
   if (parts.length === 3) {
-    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    // If first part is 4 digits, it's YYYY-MM-DD → reverse to DD-MM-YYYY
+    // If first part is 1-2 digits, it's already DD-MM-YYYY → return as-is
+    if (parts[0].length === 4) {
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    return dateStr.split('T')[0];
   }
   return dateStr;
 };

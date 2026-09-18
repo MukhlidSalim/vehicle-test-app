@@ -33,21 +33,29 @@ export const VehicleBodyMap: React.FC<VehicleBodyMapProps> = ({
   const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  // H02 FIX: Use ref for live offset during drag to avoid re-render storm
+  const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const mapRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const imageUrl = VEHICLE_IMAGES[type as keyof typeof VEHICLE_IMAGES];
+  const baseImageUrl = VEHICLE_IMAGES[type as keyof typeof VEHICLE_IMAGES];
+  // Add a cache-buster query parameter to force the browser to ignore the immutable cache
+  const imageUrl = `${baseImageUrl}?v=2`;
 
   const resetView = () => {
     setZoom(1);
     setOffset({ x: 0, y: 0 });
+    dragOffsetRef.current = { x: 0, y: 0 };
   };
 
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.5, 4));
   const handleZoomOut = () => {
     setZoom((prev) => {
       const next = Math.max(prev - 0.5, 1);
-      if (next === 1) setOffset({ x: 0, y: 0 });
+      if (next === 1) {
+        setOffset({ x: 0, y: 0 });
+        dragOffsetRef.current = { x: 0, y: 0 };
+      }
       return next;
     });
   };
@@ -63,10 +71,20 @@ export const VehicleBodyMap: React.FC<VehicleBodyMapProps> = ({
     if (!isDragging || zoom <= 1) return;
     const newX = e.clientX - dragStart.x;
     const newY = e.clientY - dragStart.y;
-    setOffset({ x: newX, y: newY });
+    // H02 FIX: Update DOM directly via ref, skip React re-render during drag
+    dragOffsetRef.current = { x: newX, y: newY };
+    if (mapRef.current) {
+      mapRef.current.style.transform = `scale(${zoom}) translate(${newX}px, ${newY}px)`;
+    }
   };
 
-  const handlePointerUp = () => setIsDragging(false);
+  const handlePointerUp = () => {
+    if (isDragging) {
+      // Commit final position to state for React to take over
+      setOffset(dragOffsetRef.current);
+    }
+    setIsDragging(false);
+  };
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (readOnly || !onAddPoint || !mapRef.current) return;
@@ -162,7 +180,6 @@ export const VehicleBodyMap: React.FC<VehicleBodyMapProps> = ({
             src={imageUrl}
             alt="Vehicle Map"
             className="w-full h-full object-contain pointer-events-none"
-            crossOrigin="anonymous"
           />
           {!isExpanded && renderMarkers()}
         </div>
@@ -239,8 +256,7 @@ export const VehicleBodyMap: React.FC<VehicleBodyMapProps> = ({
                 <img 
                   src={imageUrl} 
                   alt="Vehicle Map" 
-                  className="w-full h-full object-contain pointer-events-none select-none" 
-                  crossOrigin="anonymous" 
+                  className="w-full h-full object-contain pointer-events-none select-none"
                 />
                 {renderMarkers()}
               </div>

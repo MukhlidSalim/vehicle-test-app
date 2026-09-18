@@ -10,13 +10,13 @@ export const VEHICLE_TYPES: { value: VehicleType; labelAr: string; labelEn: stri
 ];
 
 export const VEHICLE_IMAGES: Record<VehicleType, string> = {
-  light_vehicle: "/assest/vehicles/landcruser.png",
-  heavy_bus: "/assest/vehicles/heavybus.png",
-  light_bus: "/assest/vehicles/coster.png",
-  small_bus: "/assest/vehicles/coster.png",
-  ambulance: "/assest/vehicles/ambulance.png",
-  pickup: "/assest/vehicles/pickup.png",
-  electric_vehicle: "/assest/vehicles/BYD4D.png",
+  light_vehicle: "/assets/vehicles/landcruser.png",
+  heavy_bus: "/assets/vehicles/heavybus.png",
+  light_bus: "/assets/vehicles/coster.png",
+  small_bus: "/assets/vehicles/coster.png",
+  ambulance: "/assets/vehicles/ambulance.png",
+  pickup: "/assets/vehicles/pickup.png",
+  electric_vehicle: "/assets/vehicles/BYD4D.png",
 };
 
 export const VEHICLE_SELECTION_IMAGES: Record<VehicleType, string> = {

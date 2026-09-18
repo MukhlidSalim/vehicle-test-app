@@ -85,6 +85,7 @@ export const CustomDatePicker: React.FC<Props> = ({
           setDay(e.target.value);
           handleUpdate(year, month, e.target.value);
         }}
+        aria-label="Select day"
       >
         <option value="" disabled>{isRTL ? 'يوم' : 'Day'}</option>
         {Array.from({ length: maxDays }, (_, i) => String(i + 1).padStart(2, '0')).map(d => (
@@ -99,6 +100,7 @@ export const CustomDatePicker: React.FC<Props> = ({
           setMonth(e.target.value);
           handleUpdate(year, e.target.value, day);
         }}
+        aria-label="Select month"
       >
         <option value="" disabled>{isRTL ? 'شهر' : 'Month'}</option>
         {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map(m => (
@@ -113,6 +115,7 @@ export const CustomDatePicker: React.FC<Props> = ({
           setYear(e.target.value);
           handleUpdate(e.target.value, month, day);
         }}
+        aria-label="Select year"
       >
         <option value="" disabled>{isRTL ? 'سنة' : 'Year'}</option>
         {Array.from({ length: endYear - startYear + 1 }, (_, i) => startYear + i).map(y => (

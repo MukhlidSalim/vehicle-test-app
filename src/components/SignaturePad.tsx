@@ -145,11 +145,26 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, lab
     redraw();
   };
 
+  const animationFrameId = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (animationFrameId.current !== null) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+    };
+  }, []);
+
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingRef.current) return;
     const { x, y, pressure } = getCoordinates(e);
     currentStrokeRef.current.push([x, y, pressure]);
-    redraw();
+    if (animationFrameId.current === null) {
+      animationFrameId.current = requestAnimationFrame(() => {
+        redraw();
+        animationFrameId.current = null;
+      });
+    }
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -164,9 +179,16 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave, onClear, lab
       currentStrokeRef.current = [];
     }
     
-    // Save to parent component
+    // Check if signature is substantial enough (not just a single tap/dot)
+    const totalPoints = strokesRef.current.reduce((sum, stroke) => sum + stroke.length, 0);
+    
+    // Save to parent component if substantial, otherwise clear
     if (canvas) {
-      onSave(canvas.toDataURL('image/png'));
+      if (totalPoints > 10) {
+        onSave(canvas.toDataURL('image/png'));
+      } else {
+        handleClear();
+      }
     }
   };
 

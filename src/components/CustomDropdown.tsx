@@ -60,6 +60,14 @@ export const CustomDropdown: React.FC<CustomDropdownProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            setIsOpen(!isOpen);
+          }
+        }}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
         className={`w-full flex items-center justify-between py-3.5 px-4 border rounded-xl bg-white transition-all duration-300 outline-none
           ${error ? 'border-red-500 ring-4 ring-red-500/20' : 'border-gray-200 hover:border-primary-400 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20'}
           ${isOpen ? 'border-primary-500 ring-4 ring-primary-500/20' : ''}
@@ -77,15 +85,39 @@ export const CustomDropdown: React.FC<CustomDropdownProps> = ({
       </button>
 
       {isOpen && (
-        <div className={`absolute z-50 w-full bg-white/95 backdrop-blur-md border border-gray-100 rounded-xl shadow-xl overflow-hidden animate-fade-in-up ${dropdownDirection === 'up' ? 'bottom-full mb-2 origin-bottom' : 'top-full mt-2 origin-top'}`}>
+        <div 
+          role="listbox"
+          className={`absolute z-50 w-full bg-white/95 backdrop-blur-md border border-gray-100 rounded-xl shadow-xl overflow-hidden animate-fade-in-up ${dropdownDirection === 'up' ? 'bottom-full mb-2 origin-bottom' : 'top-full mt-2 origin-top'}`}
+        >
           <div className="max-h-60 overflow-y-auto py-2 scrollbar-hide">
-            {options.map((opt) => (
+            {options.map((opt, index) => (
               <button
                 key={opt.value}
+                role="option"
+                aria-selected={value === opt.value}
+                tabIndex={0}
                 type="button"
                 onClick={() => {
                   onChange(opt.value);
                   setIsOpen(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onChange(opt.value);
+                    setIsOpen(false);
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setIsOpen(false);
+                  } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const next = e.currentTarget.nextElementSibling as HTMLElement;
+                    if (next) next.focus();
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const prev = e.currentTarget.previousElementSibling as HTMLElement;
+                    if (prev) prev.focus();
+                  }
                 }}
                 className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors
                   ${value === opt.value ? 'bg-primary-50 text-primary-700 font-black' : 'text-gray-700 font-bold hover:bg-gray-50'}

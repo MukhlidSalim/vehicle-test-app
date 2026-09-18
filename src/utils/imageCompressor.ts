@@ -9,17 +9,21 @@ export const compressImage = (file: File): Promise<string> => {
     try {
       const bitmap = await createImageBitmap(file);
       const canvas = document.createElement('canvas');
-      const MAX_WIDTH = 600; // Aggressive compression for localStorage limits
+      const MAX_DIMENSION = 600; // Aggressive compression for localStorage limits
       let width = bitmap.width;
       let height = bitmap.height;
-      if (width > MAX_WIDTH) {
-        height *= MAX_WIDTH / width;
-        width = MAX_WIDTH;
+      const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height, 1);
+      if (ratio < 1) {
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
       }
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (ctx) {
+        // Fill with white to prevent PNG transparency turning black on JPEG conversion
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
         ctx.drawImage(bitmap, 0, 0, width, height);
         // Using 0.5 quality for tiny file size (~20-40KB) to prevent 5MB localStorage crash
         const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
