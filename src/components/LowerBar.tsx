@@ -15,7 +15,7 @@ export const LowerBar: React.FC = () => (
         </div>
         <a 
           href="mailto:Maklad.alrawahi@bp.com" 
-          className="text-primary-400 hover:text-white hover:underline transition-all duration-300 transform hover:scale-105"
+          className="text-primary-400 hover:text-white hover:underline transition-all duration-300 transform md:hover:scale-105"
         >
           Maklad.alrawahi@bp.com
         </a>

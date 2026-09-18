@@ -901,7 +901,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                     onClick={() => photoMenu.itemId && handlePhotoCapture(photoMenu.itemId, 'camera', photoMenu.damageIdx)} 
                     className="flex flex-col items-center gap-4 p-8 bg-primary-50 hover:bg-primary-600 group transition-all rounded-[2rem] border-2 border-primary-100"
                   >
-                     <div className="p-4 bg-white text-primary-600 rounded-2xl shadow-xl shadow-primary-200 group-hover:scale-110 group-hover:rotate-3 transition-transform">
+                     <div className="p-4 bg-white text-primary-600 rounded-2xl shadow-xl shadow-primary-200 md:group-hover:scale-110 md:group-hover:rotate-3 transition-transform">
                        <Camera size={36} strokeWidth={2.5} />
                      </div>
                      <span className="font-black text-primary-900 group-hover:text-white transition-colors v-center-cairo">
@@ -912,7 +912,7 @@ export const ChecklistStep: React.FC<ChecklistStepProps> = ({
                     onClick={() => photoMenu.itemId && handlePhotoCapture(photoMenu.itemId, 'gallery', photoMenu.damageIdx)} 
                     className="flex flex-col items-center gap-4 p-8 bg-gray-50 hover:bg-primary-600 group transition-all rounded-[2rem] border-2 border-gray-300"
                   >
-                     <div className="p-4 bg-white text-primary-600 rounded-2xl shadow-xl shadow-gray-200 group-hover:scale-110 group-hover:-rotate-3 transition-transform">
+                     <div className="p-4 bg-white text-primary-600 rounded-2xl shadow-xl shadow-gray-200 md:group-hover:scale-110 md:group-hover:-rotate-3 transition-transform">
                        <Images size={36} strokeWidth={2.5} />
                      </div>
                      <span className="font-black text-primary-900 group-hover:text-white transition-colors v-center-cairo">

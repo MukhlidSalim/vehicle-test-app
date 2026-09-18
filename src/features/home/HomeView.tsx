@@ -60,7 +60,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   return (
     <div className="animate-fade-in space-y-8 pb-20">
       {/* Hero Welcome Banner */}
-      <div className="bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900 text-white p-6 md:p-10 rounded-[1.5rem] shadow-2xl shadow-primary-900/20 relative overflow-hidden flex flex-col gap-5 border border-white/10 transition-all duration-500 hover:shadow-primary-900/40 hover:-translate-y-0.5">
+      <div className="bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900 text-white p-6 md:p-10 rounded-[1.5rem] shadow-2xl shadow-primary-900/20 relative overflow-hidden flex flex-col gap-5 border border-white/10 transition-all duration-500 hover:shadow-primary-900/40 md:hover:-translate-y-0.5">
          <div className="absolute top-0 right-0 w-[40%] h-full bg-gradient-to-l from-primary-600/30 to-transparent skew-x-[-15deg] translate-x-20"></div>
          <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-primary-500/10 rounded-full blur-[80px]"></div>
          
@@ -95,16 +95,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
               type="button"
               key={item.mode} 
               onClick={() => startInspection(item.mode as InspectionMode)} 
-              className="group bg-white/80 backdrop-blur-lg p-5 rounded-[1.25rem] border border-gray-200/60 shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-primary-500/10 hover:border-primary-300 hover:-translate-y-1 transition-all duration-300 text-start flex flex-col h-full"
+              className="group bg-white/80 backdrop-blur-lg p-5 rounded-[1.25rem] border border-gray-200/60 shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-primary-500/10 hover:border-primary-300 md:hover:-translate-y-1 transition-all duration-300 text-start flex flex-col h-full"
             >
-              <div className={`p-3 ${item.bg} ${item.text} rounded-xl w-fit group-hover:scale-105 transition-transform duration-300 mb-5`}>
+              <div className={`p-3 ${item.bg} ${item.text} rounded-xl w-fit md:group-hover:scale-105 transition-transform duration-300 mb-5`}>
                 <item.icon size={24} strokeWidth={2.5} />
               </div>
               <div className="space-y-1.5 flex-1">
                 <h3 className="text-base font-black text-gray-900 group-hover:text-primary-600 transition-colors">{item.label}</h3>
                 <p className="text-[11px] text-gray-400 font-bold leading-relaxed">{item.desc}</p>
               </div>
-              <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-primary-600 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 uppercase tracking-widest">
+              <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-primary-600 opacity-0 md:group-hover:opacity-100 transition-all translate-y-2 md:group-hover:translate-y-0 uppercase tracking-widest">
                  {isRTL ? 'بدء العملية' : 'Initialize Operation'} 
                  {isRTL ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
               </div>
@@ -125,9 +125,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <button 
               type="button"
               onClick={() => setCurrentView('bus_handover')}
-              className="group bg-white/80 backdrop-blur-lg p-5 rounded-[1.25rem] border border-gray-200/60 shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-primary-500/10 hover:border-primary-300 hover:-translate-y-1 transition-all duration-300 text-start flex flex-col h-full"
+              className="group bg-white/80 backdrop-blur-lg p-5 rounded-[1.25rem] border border-gray-200/60 shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-primary-500/10 hover:border-primary-300 md:hover:-translate-y-1 transition-all duration-300 text-start flex flex-col h-full"
             >
-              <div className="p-3 bg-primary-50 text-primary-600 rounded-xl w-fit group-hover:scale-105 transition-transform duration-300 mb-5">
+              <div className="p-3 bg-primary-50 text-primary-600 rounded-xl w-fit md:group-hover:scale-105 transition-transform duration-300 mb-5">
                 <Truck size={24} strokeWidth={2.5} />
               </div>
               <div className="space-y-1.5 flex-1">
@@ -138,7 +138,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   {isRTL ? 'تسليم واستلام المركبات' : 'Vehicle handover & receiving'}
                 </p>
               </div>
-              <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-primary-600 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 uppercase tracking-widest">
+              <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-primary-600 opacity-0 md:group-hover:opacity-100 transition-all translate-y-2 md:group-hover:translate-y-0 uppercase tracking-widest">
                 {isRTL ? 'فتح الاستمارة' : 'Open Form'}
                 {isRTL ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
               </div>
@@ -148,9 +148,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <button 
               type="button"
               onClick={() => setCurrentView('passenger_log')}
-              className="group bg-white/80 backdrop-blur-lg p-5 rounded-[1.25rem] border border-gray-200/60 shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-teal-500/10 hover:border-teal-300 hover:-translate-y-1 transition-all duration-300 text-start flex flex-col h-full"
+              className="group bg-white/80 backdrop-blur-lg p-5 rounded-[1.25rem] border border-gray-200/60 shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-teal-500/10 hover:border-teal-300 md:hover:-translate-y-1 transition-all duration-300 text-start flex flex-col h-full"
             >
-              <div className="p-3 bg-teal-50 text-teal-600 rounded-xl w-fit group-hover:scale-105 transition-transform duration-300 mb-5">
+              <div className="p-3 bg-teal-50 text-teal-600 rounded-xl w-fit md:group-hover:scale-105 transition-transform duration-300 mb-5">
                 <Users size={24} strokeWidth={2.5} />
               </div>
               <div className="space-y-1.5 flex-1">
@@ -161,7 +161,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   {isRTL ? 'تسجيل النقلات اليومية للحافلات الصغيرة' : 'Daily trip logging for light buses'}
                 </p>
               </div>
-              <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-teal-600 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 uppercase tracking-widest">
+              <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-teal-600 opacity-0 md:group-hover:opacity-100 transition-all translate-y-2 md:group-hover:translate-y-0 uppercase tracking-widest">
                 {isRTL ? 'فتح الاستمارة' : 'Open Form'}
                 {isRTL ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
               </div>
@@ -171,9 +171,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <button 
               type="button"
               onClick={() => setCurrentView('tbt_form')}
-              className="group bg-white/80 backdrop-blur-lg p-5 rounded-[1.25rem] border border-gray-200/60 shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-indigo-500/10 hover:border-indigo-300 hover:-translate-y-1 transition-all duration-300 text-start flex flex-col h-full"
+              className="group bg-white/80 backdrop-blur-lg p-5 rounded-[1.25rem] border border-gray-200/60 shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-indigo-500/10 hover:border-indigo-300 md:hover:-translate-y-1 transition-all duration-300 text-start flex flex-col h-full"
             >
-              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl w-fit group-hover:scale-105 transition-transform duration-300 mb-5">
+              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl w-fit md:group-hover:scale-105 transition-transform duration-300 mb-5">
                 <ClipboardCheck size={24} strokeWidth={2.5} />
               </div>
               <div className="space-y-1.5 flex-1">
@@ -184,7 +184,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   {isRTL ? 'إجتماع السلامة قبل الرحلة' : 'Toolbox Talk safety meeting before journey'}
                 </p>
               </div>
-              <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-indigo-600 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 uppercase tracking-widest">
+              <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-indigo-600 opacity-0 md:group-hover:opacity-100 transition-all translate-y-2 md:group-hover:translate-y-0 uppercase tracking-widest">
                 {isRTL ? 'فتح الاستمارة' : 'Open Form'}
                 {isRTL ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
               </div>
@@ -194,9 +194,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <button 
               type="button"
               onClick={() => setCurrentView('post_maintenance')}
-              className="group bg-white/80 backdrop-blur-lg p-5 rounded-[1.25rem] border border-gray-200/60 shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-amber-500/10 hover:border-amber-300 hover:-translate-y-1 transition-all duration-300 text-start flex flex-col h-full"
+              className="group bg-white/80 backdrop-blur-lg p-5 rounded-[1.25rem] border border-gray-200/60 shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-amber-500/10 hover:border-amber-300 md:hover:-translate-y-1 transition-all duration-300 text-start flex flex-col h-full"
             >
-              <div className="p-3 bg-amber-50 text-amber-600 rounded-xl w-fit group-hover:scale-105 transition-transform duration-300 mb-5">
+              <div className="p-3 bg-amber-50 text-amber-600 rounded-xl w-fit md:group-hover:scale-105 transition-transform duration-300 mb-5">
                 <Wrench size={24} strokeWidth={2.5} />
               </div>
               <div className="space-y-1.5 flex-1">
@@ -207,7 +207,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   {isRTL ? 'التحقق من إصلاح الأعطال والفحص الشامل للمركبة' : 'Post-maintenance bus acceptance checklist'}
                 </p>
               </div>
-              <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-amber-600 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 uppercase tracking-widest">
+              <div className="mt-6 flex items-center gap-3 text-[10px] font-black text-amber-600 opacity-0 md:group-hover:opacity-100 transition-all translate-y-2 md:group-hover:translate-y-0 uppercase tracking-widest">
                 {isRTL ? 'فتح الاستمارة' : 'Open Form'}
                 {isRTL ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
               </div>
@@ -236,7 +236,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
              <div 
                key={idx} 
                style={{ transitionDelay: isWhyVisible ? item.delay : '0ms' }}
-               className={`flex gap-4 items-center bg-white p-4 rounded-xl shadow-sm hover:shadow-md border border-gray-100 hover:border-gray-300 transition-all duration-700 transform hover:-translate-y-0.5 ${
+               className={`flex gap-4 items-center bg-white p-4 rounded-xl shadow-sm hover:shadow-md border border-gray-100 hover:border-gray-300 transition-all duration-700 transform md:hover:-translate-y-0.5 ${
                  isWhyVisible ? 'scale-100 opacity-100' : 'scale-90 opacity-0'
                }`}
              >
@@ -256,9 +256,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
            <button 
              type="button"
              onClick={() => setCurrentView('driver_safety')} 
-             className="flex items-center gap-4 p-4 bg-white rounded-xl hover:bg-gray-50/80 border border-gray-200 hover:border-primary-300 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group shadow-sm"
+             className="flex items-center gap-4 p-4 bg-white rounded-xl hover:bg-gray-50/80 border border-gray-200 hover:border-primary-300 md:hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group shadow-sm"
            >
-              <div className="p-2.5 bg-white text-primary-600 rounded-lg shadow-md group-hover:rotate-6 transition-transform">
+              <div className="p-2.5 bg-white text-primary-600 rounded-lg shadow-md md:group-hover:rotate-6 transition-transform">
                 <ShieldCheck size={20} />
               </div>
               <div className="text-start">
@@ -269,9 +269,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
            <button 
              type="button"
              onClick={() => setCurrentView('vehicle_safety')} 
-             className="flex items-center gap-4 p-4 bg-white rounded-xl hover:bg-gray-50/80 border border-gray-200 hover:border-amber-300 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group shadow-sm"
+             className="flex items-center gap-4 p-4 bg-white rounded-xl hover:bg-gray-50/80 border border-gray-200 hover:border-amber-300 md:hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group shadow-sm"
            >
-              <div className="p-2.5 bg-white text-amber-500 rounded-lg shadow-md group-hover:rotate-6 transition-transform">
+              <div className="p-2.5 bg-white text-amber-500 rounded-lg shadow-md md:group-hover:rotate-6 transition-transform">
                 <Wrench size={20} />
               </div>
               <div className="text-start">
@@ -282,9 +282,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
            <button 
              type="button"
              onClick={() => setCurrentView('emergency_procedures')} 
-             className="flex items-center gap-4 p-4 bg-white rounded-xl hover:bg-gray-50/80 border border-gray-200 hover:border-red-300 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group shadow-sm"
+             className="flex items-center gap-4 p-4 bg-white rounded-xl hover:bg-gray-50/80 border border-gray-200 hover:border-red-300 md:hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group shadow-sm"
            >
-              <div className="p-2.5 bg-white text-red-600 rounded-lg shadow-md group-hover:rotate-6 transition-transform">
+              <div className="p-2.5 bg-white text-red-600 rounded-lg shadow-md md:group-hover:rotate-6 transition-transform">
                 <Siren size={20} />
               </div>
               <div className="text-start">
@@ -295,9 +295,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
            <button 
              type="button"
              onClick={() => setCurrentView('pre_trip_tips')} 
-             className="flex items-center gap-4 p-4 bg-white rounded-xl hover:bg-gray-50/80 border border-gray-200 hover:border-indigo-300 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group shadow-sm"
+             className="flex items-center gap-4 p-4 bg-white rounded-xl hover:bg-gray-50/80 border border-gray-200 hover:border-indigo-300 md:hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group shadow-sm"
            >
-              <div className="p-2.5 bg-white text-indigo-600 rounded-lg shadow-md group-hover:rotate-6 transition-transform">
+              <div className="p-2.5 bg-white text-indigo-600 rounded-lg shadow-md md:group-hover:rotate-6 transition-transform">
                 <Zap size={20} />
               </div>
               <div className="text-start">

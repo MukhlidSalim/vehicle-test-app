@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Truck, User, Hash, MapPin, Gauge, FileText,
+  ShieldAlert, Truck, User, Hash, MapPin, Gauge, FileText,
   CheckCircle, XCircle, AlertTriangle, ChevronLeft, ChevronRight,
   Share2, Clipboard, Check, ArrowLeft,
   FileCheck, MessageSquare
@@ -92,7 +92,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
   const [ropExpiry, setRopExpiry] = useState('');
   const [notes, setNotes] = useState('');
   const [signature, setSignature] = useState('');
-  const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
+  const [formDate, setFormDate] = useState(new Date().toISOString());
   const [extraFields, setExtraFields] = useState<Record<string, string>>({});
   
   const category = getVehicleCategory(vehicleType);
@@ -107,6 +107,8 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
   }, [vehicleType]);
   
   const [uiAlert, setUiAlert] = useState({ show: false, message: '', type: 'warning' as 'warning' | 'fail' });
+  const [showExpiryWarning, setShowExpiryWarning] = useState<string[] | null>(null);
+  const [ignoreExpiry, setIgnoreExpiry] = useState<boolean>(false);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -127,7 +129,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
           setRopExpiry(parsed.ropExpiry ?? '');
           setNotes(parsed.notes ?? '');
           setSignature(parsed.signature ?? '');
-          setFormDate(parsed.formDate ?? new Date().toISOString().split('T')[0]);
+          setFormDate(parsed.formDate ?? new Date().toISOString());
           setExtraFields(parsed.extraFields ?? {});
           if (parsed.items) setItems(parsed.items);
         }
@@ -186,7 +188,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
     setOpalExpiry('');
     setNotes('');
     setSignature('');
-    setFormDate(new Date().toISOString().split('T')[0]);
+    setFormDate(new Date().toISOString());
     setExtraFields({});
     setItems(getCategoryConfig(getVehicleCategory(vehicleType)).items.map(i => ({
       id: i.id, labelAr: i.labelAr, labelEn: i.labelEn, status: null, note: '',
@@ -223,16 +225,15 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
     if (!ropExpiry) isValid = false;
 
     const today = new Date().toISOString().split('T')[0];
-    if (ropExpiry && ropExpiry < today) {
-      showAlert(isRTL ? 'تنبيه: ملكية المركبة منتهية الصلاحية!' : 'Warning: Vehicle registration is expired!');
-      return false;
-    }
-    if (opalExpiry && opalExpiry < today) {
-      showAlert(isRTL ? `تنبيه: ${config.expiryLabel2Ar} منتهي الصلاحية!` : `Warning: ${config.expiryLabel2En} is expired!`);
-      return false;
-    }
+      let expiredNotes: string[] = [];
+      if (ropExpiry && ropExpiry < today) {
+        expiredNotes.push(isRTL ? 'تنبيه: ملكية المركبة منتهية الصلاحية' : 'Warning: Vehicle registration is expired');
+      }
+      if (opalExpiry && opalExpiry < today) {
+        expiredNotes.push(isRTL ? `تنبيه: ${config.expiryLabel2Ar} منتهي الصلاحية` : `Warning: ${config.expiryLabel2En} is expired`);
+      }
 
-    // Check required extra fields
+      // Check required extra fields
     const missingExtra = config.extraFields?.filter(f => f.required && !extraFields[f.id]?.trim());
     if (missingExtra && missingExtra.length > 0) isValid = false;
 
@@ -242,9 +243,14 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
     if (items.some(i => i.hasCount && i.status === 'good' && !i.count.trim())) isValid = false;
 
     if (!isValid) {
-      scrollToFirstError();
-      return false;
-    }
+        scrollToFirstError();
+        return false;
+      }
+
+      if (expiredNotes.length > 0 && !ignoreExpiry) {
+        setShowExpiryWarning(expiredNotes);
+        return false;
+      }
 
     return true;
   };
@@ -255,6 +261,54 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
 
   return (
     <div className="space-y-6 relative pb-20 animate-fade-in" dir={isRTL ? 'rtl' : 'ltr'}>
+            {/* Expiry Warning Modal */}
+      {showExpiryWarning && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] p-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200" dir={isRTL ? 'rtl' : 'ltr'}>
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center text-red-500 mb-2">
+                <ShieldAlert size={32} />
+              </div>
+              <h3 className="text-xl font-black text-gray-800">
+                {isRTL ? 'تواريخ منتهية الصلاحية' : 'Expired Dates'}
+              </h3>
+              <div className="text-gray-500 text-sm font-bold leading-relaxed text-center w-full">
+                <p className="mb-3">{isRTL ? 'يوجد تواريخ منتهية الصلاحية. للاستمرار في التقرير، يرجى الموافقة.' : 'There are expired dates. To continue with the report, please agree.'}</p>
+                <div className="bg-red-50 rounded-xl p-3 border border-red-100 flex flex-col gap-1.5 w-full items-start">
+                  {showExpiryWarning.map((note, i) => (
+                    <div key={i} className="flex items-center gap-2 text-red-600 text-xs text-start">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></div>
+                      <span>{note}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-3 w-full pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setShowExpiryWarning(null)}
+                  className="flex-1 py-3.5 rounded-xl font-black text-gray-700 bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all"
+                >
+                  {isRTL ? 'إلغاء' : 'Cancel'}
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setShowExpiryWarning(null);
+                    setIgnoreExpiry(true);
+                    // Slight delay to allow state update
+                    setTimeout(() => setStep(2), 50);
+                  }}
+                  className="flex-1 py-3.5 rounded-xl font-black text-white bg-red-600 hover:bg-red-700 active:scale-95 transition-all"
+                >
+                  {isRTL ? 'موافق، استمر' : 'Yes, Proceed'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Toast */}
       {uiAlert.show && typeof document !== 'undefined' && createPortal(
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[300] w-11/12 max-w-md pointer-events-none no-print animate-fade-in-down">
@@ -309,7 +363,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
               onClick={() => { setAction('sender'); setStep(1); }}
               className="bg-white rounded-2xl border border-gray-200 hover:border-primary-500 hover:bg-primary-50/50 p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col sm:flex-row items-center sm:items-start gap-5 group text-center sm:text-start relative overflow-hidden"
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary-500/10 to-transparent rounded-bl-full -z-10 group-hover:scale-125 transition-transform duration-500"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary-500/10 to-transparent rounded-bl-full -z-10 md:group-hover:scale-125 transition-transform duration-500"></div>
               <div className="w-16 h-16 shrink-0 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors duration-300 shadow-inner group-hover:shadow-primary-500/30">
                 <Truck size={30} />
               </div>
@@ -322,7 +376,7 @@ export const HandoverForm: React.FC<Props> = ({ lang: appLang, isRTL: appIsRTL, 
               onClick={() => { setAction('receiver'); setStep(1); }}
               className="bg-white rounded-2xl border border-gray-200 hover:border-primary-500 hover:bg-primary-50/50 p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col sm:flex-row items-center sm:items-start gap-5 group text-center sm:text-start relative overflow-hidden"
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary-500/10 to-transparent rounded-bl-full -z-10 group-hover:scale-125 transition-transform duration-500"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary-500/10 to-transparent rounded-bl-full -z-10 md:group-hover:scale-125 transition-transform duration-500"></div>
               <div className="w-16 h-16 shrink-0 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors duration-300 shadow-inner group-hover:shadow-primary-500/30">
                 <FileCheck size={30} />
               </div>

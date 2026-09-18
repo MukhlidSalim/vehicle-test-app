@@ -94,12 +94,14 @@ export const captureNode = async (node: HTMLElement, forcePixelRatio?: number): 
     if (isMobile) {
       try {
         await toJpeg(node, {
-          pixelRatio: 0.1,
+          pixelRatio: forcePixelRatio || 2,
           quality: 0.1,
           skipAutoScale: true,
           style: { margin: '0', background: '#ffffff' },
         } as any);
-        // Tiny paint frame delay to let the browser actually draw it
+        // Adaptive delay to allow GPU rasterization of SVGs and Base64 images
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
         await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       } catch (e) {
         // ignore micro-warmup failure
@@ -193,7 +195,17 @@ export const generatePdfReport = async ({
       await new Promise((resolve) => setTimeout(resolve, 200));
 
       try {
-        const { dataUrl, incomplete } = await captureNode(nodes[i] as HTMLElement);
+        let dataUrl, incomplete = false;
+        try {
+          const res = await captureNode(nodes[i] as HTMLElement);
+          dataUrl = res.dataUrl;
+          incomplete = res.incomplete;
+        } catch(err) {
+          console.warn("captureNode failed, retrying with pixelRatio 1...");
+          const res = await captureNode(nodes[i] as HTMLElement, 1);
+          dataUrl = res.dataUrl;
+          incomplete = res.incomplete;
+        }
         if (incomplete) hadIncompleteCapture = true;
 
         if (i > 0) pdf.addPage();
@@ -342,7 +354,15 @@ export const generateSmartPdf = async ({
     onProgress?.({ phase: isRTL ? 'جاري تجهيز بيانات التقرير...' : 'Capturing report data...' });
 
     // 2. Capture the entire container as one giant canvas
-    const { dataUrl } = await captureNode(container, safePixelRatio);
+    let dataUrl;
+    try {
+      const result = await captureNode(container, safePixelRatio);
+      dataUrl = result.dataUrl;
+    } catch (err) {
+      console.warn("captureNode failed with pixelRatio", safePixelRatio, "retrying with 1...");
+      const result = await captureNode(container, 1);
+      dataUrl = result.dataUrl;
+    }
 
     // 2. We need the original image dimensions to map DOM coordinates to image pixels
     const img = new Image();

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { CheckCircle, ChevronLeft, ChevronRight, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { InspectionData, InspectionMode } from '../../types';
 import { READINESS_QUESTIONS } from '../../constants';
 import { BasicInfoStep } from './BasicInfoStep';
@@ -42,9 +42,30 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
   const [attemptedStep4, setAttemptedStep4] = useState<boolean>(false);
   const [attemptedSignature, setAttemptedSignature] = useState<boolean>(false);
   const [showOdoWarning, setShowOdoWarning] = useState<boolean>(false);
+  const [showExpiryWarning, setShowExpiryWarning] = useState<string[] | null>(null);
 
-  const handleConfirmOdo = () => {
-    setShowOdoWarning(false);
+  const checkExpiryAndProceed = () => {
+    const today = new Date().toISOString().split('T')[0];
+    let expiredNotes: string[] = [];
+    if (data.driverInfo.vehicleExpiryDate && data.driverInfo.vehicleExpiryDate < today) {
+      expiredNotes.push(isRTL ? 'تنبيه: ملكية المركبة منتهية الصلاحية' : 'Warning: Vehicle registration is expired');
+    }
+    if (data.driverInfo.opalExpiryDate && data.driverInfo.opalExpiryDate < today) {
+      expiredNotes.push(isRTL ? 'تنبيه: تصريح أوبال منتهي الصلاحية' : 'Warning: OPAL permit is expired');
+    }
+    if (data.driverInfo.vocExpiryDate && data.driverInfo.vocExpiryDate < today) {
+      expiredNotes.push(isRTL ? 'تنبيه: تصريح VOC منتهي الصلاحية' : 'Warning: VOC permit is expired');
+    }
+
+    if (expiredNotes.length > 0) {
+      setShowExpiryWarning(expiredNotes);
+      return;
+    }
+
+    proceedToNextStep();
+  };
+
+  const proceedToNextStep = () => {
     if (currentStepIndex === totalSteps - 2) {
       const sigRequired = data.mode === 'maintenance' ? data.signatures?.inspector : data.signatures?.driver;
       if (!sigRequired) {
@@ -55,6 +76,11 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
       }
     }
     setStep(currentModeSteps[currentStepIndex + 1]);
+  };
+
+  const handleConfirmOdo = () => {
+    setShowOdoWarning(false);
+    checkExpiryAndProceed();
   };
 
   const [uiAlert, setUiAlert] = useState<{ show: boolean; message: string; type: 'warning' | 'fail' | 'info' }>({
@@ -257,17 +283,7 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
                       return;
                     }
 
-                    // If we are about to proceed to the summary, ensure signature is captured
-                    if (currentStepIndex === totalSteps - 2) {
-                      const sigRequired = data.mode === 'maintenance' ? data.signatures?.inspector : data.signatures?.driver;
-                      if (!sigRequired) {
-                        setAttemptedSignature(true);
-                        showUiAlert(isRTL ? "التوقيع إلزامي قبل عرض التقرير النهائي." : "Signature is mandatory before viewing the summary.", 'warning');
-                        scrollToFirstErrorInDOM();
-                        return;
-                      }
-                    }
-                    setStep(currentModeSteps[currentStepIndex + 1]);
+                    checkExpiryAndProceed();
                   } 
                   else if (step === 3) { 
                     setAttemptedStep3(true);
@@ -330,6 +346,60 @@ export const InspectionProcess: React.FC<InspectionProcessProps> = ({
           </div>
         </div>
        )}
+
+      {showExpiryWarning && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] p-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200" dir={isRTL ? 'rtl' : 'ltr'}>
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center text-red-500 mb-2">
+                <ShieldAlert size={32} />
+              </div>
+              <h3 className="text-xl font-black text-gray-800">
+                {isRTL ? 'تواريخ منتهية الصلاحية' : 'Expired Dates'}
+              </h3>
+              <div className="text-gray-500 text-sm font-bold leading-relaxed text-center w-full">
+                <p className="mb-3">{isRTL ? 'يوجد تواريخ منتهية الصلاحية. للاستمرار في التقرير، يرجى الموافقة.' : 'There are expired dates. To continue with the report, please agree.'}</p>
+                <div className="bg-red-50 rounded-xl p-3 border border-red-100 flex flex-col gap-1.5 w-full items-start">
+                  {showExpiryWarning.map((note, i) => (
+                    <div key={i} className="flex items-center gap-2 text-red-600 text-xs text-start">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></div>
+                      <span>{note}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-3 w-full pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setShowExpiryWarning(null)}
+                  className="flex-1 py-3.5 rounded-xl font-black text-gray-700 bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all"
+                >
+                  {isRTL ? 'إلغاء' : 'Cancel'}
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setShowExpiryWarning(null);
+                    if (currentStepIndex === totalSteps - 2) {
+                      const sigRequired = data.mode === 'maintenance' ? data.signatures?.inspector : data.signatures?.driver;
+                      if (!sigRequired) {
+                        setAttemptedSignature(true);
+                        showUiAlert(isRTL ? "التوقيع إلزامي قبل عرض الملخص." : "Signature is mandatory before viewing the summary.", 'warning');
+                        scrollToFirstErrorInDOM();
+                        return;
+                      }
+                    }
+                    setStep(currentModeSteps[currentStepIndex + 1]);
+                  }}
+                  className="flex-1 py-3.5 rounded-xl font-black text-white bg-red-600 hover:bg-red-700 active:scale-95 transition-all"
+                >
+                  {isRTL ? 'موافق، استمر' : 'Yes, Proceed'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showOdoWarning && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">

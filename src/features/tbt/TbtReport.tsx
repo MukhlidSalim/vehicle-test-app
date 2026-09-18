@@ -14,7 +14,10 @@ interface Props {
 
 export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
   const reportRef = useRef<HTMLDivElement>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [toastMsg, setToastMsg] = useState<{message: string, type: 'fail' | 'warning'} | null>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [readyFile, setReadyFile] = useState<File | null>(null);
   
   const selectedTopic = TBT_TOPICS.find(t => t.id === data.selectedTopicId);
   const topicTitle = isRTL ? selectedTopic?.categoryAr : selectedTopic?.categoryEn;
@@ -24,7 +27,7 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
 
   const handleDownloadPDF = async () => {
     if (!reportRef.current) return;
-    setIsGenerating(true);
+    setIsGeneratingPDF(true);
     const dateStr = data.date;
     const cleanFrom = (data.routeFrom || '').trim().replace(/[/\\?%*:|"<>]/g, '-');
     const cleanTo = (data.routeTo || '').trim().replace(/[/\\?%*:|"<>]/g, '-');
@@ -37,18 +40,23 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
       isRTL,
       lang: isRTL ? 'ar' : 'en',
       shouldShare: false,
-      onSuccess: () => setIsGenerating(false),
+      onSuccess: () => setIsGeneratingPDF(false),
       onDownloadDirect: (pdf, filename) => {
         pdf.save(filename);
-        setIsGenerating(false);
+        setIsGeneratingPDF(false);
       },
-      onError: () => setIsGenerating(false),
+      onError: () => setIsGeneratingPDF(false),
     });
   };
 
+
+  const showToast = (message: string, type: 'fail' | 'warning' = 'fail') => {
+    setToastMsg({ message, type });
+    setTimeout(() => setToastMsg(null), 4000);
+  };
   const handleShare = async () => {
     if (!reportRef.current) return;
-    setIsGenerating(true);
+    setIsSharing(true);
     const dateStr = data.date;
     const cleanFrom = (data.routeFrom || '').trim().replace(/[/\\?%*:|"<>]/g, '-');
     const cleanTo = (data.routeTo || '').trim().replace(/[/\\?%*:|"<>]/g, '-');
@@ -61,18 +69,12 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
       isRTL,
       lang: isRTL ? 'ar' : 'en',
       shouldShare: true,
-      onSuccess: async (file) => {
-        if (navigator.share) {
-          try {
-            await navigator.share({ files: [file], title: isRTL ? 'نموذج حديث السلامة' : 'TBT Form' });
-          } catch (err) {
-            console.error('Share failed', err);
-          }
-        }
-        setIsGenerating(false);
-      },
-      onDownloadDirect: () => setIsGenerating(false),
-      onError: () => setIsGenerating(false),
+        onSuccess: (file) => {
+          setReadyFile(file);
+          setIsSharing(false);
+        },
+      onDownloadDirect: () => setIsSharing(false),
+      onError: () => setIsSharing(false),
     });
   };
 
@@ -220,8 +222,8 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
                 )}
               </div>
             </div>
-          </div>
             <ReportPageFooter pageNumber={1} totalPages={1} isRTL={isRTL} lang={isRTL ? 'ar' : 'en'} />
+          </div>
           
 
           </div>
@@ -232,7 +234,7 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
         <button type="button"
           onClick={onEdit}
-          disabled={isGenerating}
+          disabled={isGeneratingPDF || isSharing}
           className="flex items-center gap-2 px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors disabled:opacity-50"
         >
           <Edit2 size={18} />
@@ -242,23 +244,83 @@ export const TbtReport: React.FC<Props> = ({ data, isRTL, onEdit }) => {
           {navigator.share && (
             <button type="button"
               onClick={handleShare}
-              disabled={isGenerating}
+              disabled={isGeneratingPDF || isSharing}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold rounded-xl transition-colors disabled:opacity-50"
             >
-              <Share2 size={18} />
+              {isSharing ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
               {t('مشاركة', 'Share')}
             </button>
           )}
           <button type="button"
             onClick={handleDownloadPDF}
-            disabled={isGenerating}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
+            disabled={isGeneratingPDF || isSharing}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all  disabled:opacity-50 "
           >
-            {isGenerating ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+            {isGeneratingPDF ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
             {t('تحميل PDF', 'Download PDF')}
           </button>
         </div>
       </div>
-    </div>
+      {/* Share Success Modal */}
+      {readyFile && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md no-print animate-fade-in">
+          <div className="bg-white w-full max-w-sm rounded-[2rem] p-8 text-center space-y-6 shadow-2xl animate-scale-in">
+            <div className="mx-auto w-20 h-20 bg-green-50 text-green-600 rounded-3xl flex items-center justify-center shadow-inner">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-black text-gray-900">{isRTL ? 'التقرير جاهز الآن' : 'Report is Ready'}</h3>
+              <p className="text-sm font-bold text-gray-500 leading-relaxed">
+                {isRTL ? 'تم إنشاء التقرير بنجاح. اضغط على الزر أدناه لمشاركته فوراً بدون أي تأخير.' : 'Report generated successfully. Click the button below to share it instantly.'}
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <button 
+                type="button"
+                onClick={async () => {
+                  if (navigator.canShare && navigator.canShare({ files: [readyFile] })) {
+                    try {
+                      await navigator.share({ files: [readyFile], title: isRTL ? 'تقرير' : 'Report' });
+                    } catch (e) {
+                      console.log("Share cancelled or failed", e);
+                    }
+                  } else {
+                    showToast(isRTL ? "متصفحك لا يدعم المشاركة المباشرة. تم فتح التقرير." : "Direct sharing unsupported. Opening report.", 'warning');
+                    const url = URL.createObjectURL(readyFile);
+                    window.open(url, '_blank');
+                  }
+                  setReadyFile(null);
+                }}
+                className="w-full py-4 rounded-xl bg-primary-600 text-white font-black text-lg shadow-xl shadow-primary-200 active:scale-95 transition-all flex items-center justify-center gap-3"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                <span>{isRTL ? 'مشاركة الآن' : 'Share Now'}</span>
+              </button>
+              <button 
+                type="button"
+                onClick={() => setReadyFile(null)}
+                className="w-full py-3 text-gray-400 font-bold text-sm hover:text-gray-600 transition-colors"
+              >
+                {isRTL ? 'إلغاء' : 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    
+              {/* Toast Notification */}
+              {toastMsg && typeof document !== 'undefined' && (
+                <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[300] w-11/12 max-w-md pointer-events-none no-print animate-fade-in-down" dir={isRTL ? 'rtl' : 'ltr'}>
+                  <div className={`p-4 rounded-2xl border shadow-2xl font-black text-sm flex items-center gap-3 ${
+                    toastMsg.type === 'fail'
+                      ? 'bg-red-50 text-red-800 border-red-300 shadow-red-200'
+                      : 'bg-amber-50 text-amber-900 border-amber-300 shadow-amber-200'
+                  }`}>
+                    <span className="v-center-cairo leading-tight">{toastMsg.message}</span>
+                  </div>
+                </div>
+              )}
+        </div>
   );
 };

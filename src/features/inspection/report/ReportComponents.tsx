@@ -86,7 +86,19 @@ export const CompactInfoGrid: React.FC<{ data: InspectionData; t: any; lang: Lan
                )
              },
           ] : [
-             { label: t.vehicle_expiry_date, value: data.driverInfo.vehicleExpiryDate ? formatDisplayDate(data.driverInfo.vehicleExpiryDate, lang) : '-' },
+             { 
+             label: t.vehicle_expiry_date, 
+             value: data.driverInfo.vehicleExpiryDate ? (
+               <div className="flex items-center gap-1 flex-wrap">
+                 <span>{formatDisplayDate(data.driverInfo.vehicleExpiryDate, lang)}</span>
+                 {data.driverInfo.vehicleExpiryDate < new Date().toISOString().split('T')[0] && (
+                   <span className="text-[9px] text-red-600 bg-red-50 px-1 py-0.5 rounded border border-red-200 font-bold whitespace-nowrap leading-none">
+                     {lang === 'ar' ? '(منتهي)' : '(Expired)'}
+                   </span>
+                 )}
+               </div>
+             ) : (lang === 'ar' ? 'المركبة بدون تصريح VOC' : 'Vehicle without VOC permit') 
+           },
           ]),
           { label: (lang === 'ar' ? 'قراءة العداد الحالية (كم)' : 'Current Odometer (KM)'), value: data.driverInfo.currentOdometer || '-', mono: true },
           { 
@@ -104,8 +116,32 @@ export const CompactInfoGrid: React.FC<{ data: InspectionData; t: any; lang: Lan
             mono: true 
           },
           ...(data.mode === 'maintenance' ? [
-             { label: lang === 'ar' ? 'انتهاء تصريح أوبال' : 'OPAL Expiry Date', value: data.driverInfo.opalExpiryDate ? formatDisplayDate(data.driverInfo.opalExpiryDate, lang) : (lang === 'ar' ? 'المركبة لا تملك تصريح أوبال' : 'No OPAL permit for vehicle') },
-             { label: lang === 'ar' ? 'انتهاء تصريح VOC' : 'VOC Expiry Date', value: data.driverInfo.vocExpiryDate ? formatDisplayDate(data.driverInfo.vocExpiryDate, lang) : '-' },
+             { 
+             label: lang === 'ar' ? 'انتهاء تصريح أوبال' : 'OPAL Expiry Date', 
+             value: data.driverInfo.opalExpiryDate ? (
+               <div className="flex items-center gap-1 flex-wrap">
+                 <span>{formatDisplayDate(data.driverInfo.opalExpiryDate, lang)}</span>
+                 {data.driverInfo.opalExpiryDate < new Date().toISOString().split('T')[0] && (
+                   <span className="text-[9px] text-red-600 bg-red-50 px-1 py-0.5 rounded border border-red-200 font-bold whitespace-nowrap leading-none">
+                     {lang === 'ar' ? '(منتهي)' : '(Expired)'}
+                   </span>
+                 )}
+               </div>
+             ) : (lang === 'ar' ? 'المركبة لا تملك تصريح أوبال' : 'No OPAL permit for vehicle') 
+           },
+             { 
+             label: lang === 'ar' ? 'انتهاء تصريح VOC' : 'VOC Expiry Date', 
+             value: data.driverInfo.vocExpiryDate ? (
+               <div className="flex items-center gap-1 flex-wrap">
+                 <span>{formatDisplayDate(data.driverInfo.vocExpiryDate, lang)}</span>
+                 {data.driverInfo.vocExpiryDate < new Date().toISOString().split('T')[0] && (
+                   <span className="text-[9px] text-red-600 bg-red-50 px-1 py-0.5 rounded border border-red-200 font-bold whitespace-nowrap leading-none">
+                     {lang === 'ar' ? '(منتهي)' : '(Expired)'}
+                   </span>
+                 )}
+               </div>
+             ) : (lang === 'ar' ? 'المركبة بدون تصريح VOC' : 'Vehicle without VOC permit') 
+           },
           ] : []),
         ].map((info, idx) => (
           <div key={idx} className="flex flex-col border-b border-gray-400/50 pb-1.5 overflow-hidden">

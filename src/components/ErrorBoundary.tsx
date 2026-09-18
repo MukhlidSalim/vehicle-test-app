@@ -24,6 +24,14 @@ export class ErrorBoundary extends React.Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     this.setState({ errorInfo });
     console.error("Uncaught error:", error, errorInfo);
+    
+    if (error.message && error.message.includes('Failed to fetch dynamically imported module')) {
+      const isReloaded = sessionStorage.getItem('chunk_failed_reload');
+      if (!isReloaded) {
+        sessionStorage.setItem('chunk_failed_reload', 'true');
+        window.location.reload();
+      }
+    }
   }
 
   render() {
@@ -36,6 +44,11 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <br />
             An unexpected error occurred. Please try refreshing the page.
           </p>
+          <div className="mt-4 p-3 bg-red-200 text-red-900 text-xs font-mono rounded-lg overflow-auto max-h-40 text-left" dir="ltr">
+            <strong>{this.state.error?.toString()}</strong>
+            <br/>
+            {this.state.errorInfo?.componentStack}
+          </div>
           <button 
             type="button"
             onClick={() => window.location.href = '/'}

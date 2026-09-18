@@ -217,13 +217,13 @@ export const PostMaintenanceForm: React.FC<Props> = ({
 
   const renderStatusButtons = (status: PostMaintenanceStatus, onChange: (st: PostMaintenanceStatus) => void) => (
     <div className="flex bg-gray-100 rounded-xl p-1 gap-1 w-full md:w-auto min-w-[240px]">
-      <button type="button" onClick={() => onChange('pass')} className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-black text-xs md:text-sm transition-all ${status === 'pass' ? 'bg-emerald-500 text-white shadow-md scale-[1.05] z-10' : 'text-gray-500 hover:bg-gray-200 hover:scale-105 hover:z-10'}`}>
+      <button type="button" onClick={() => onChange('pass')} className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-black text-xs md:text-sm transition-all ${status === 'pass' ? 'bg-emerald-500 text-white shadow-md scale-[1.05] z-10' : 'text-gray-500 hover:bg-gray-200 md:hover:scale-105 hover:z-10'}`}>
         <CheckCircle size={14} className={status === 'pass' ? 'text-white' : 'text-emerald-500 opacity-50'} /> {isRTL ? 'ناجح' : 'Pass'}
       </button>
-      <button type="button" onClick={() => onChange('fail')} className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-black text-xs md:text-sm transition-all ${status === 'fail' ? 'bg-red-500 text-white shadow-md scale-[1.05] z-10' : 'text-gray-500 hover:bg-gray-200 hover:scale-105 hover:z-10'}`}>
+      <button type="button" onClick={() => onChange('fail')} className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-black text-xs md:text-sm transition-all ${status === 'fail' ? 'bg-red-500 text-white shadow-md scale-[1.05] z-10' : 'text-gray-500 hover:bg-gray-200 md:hover:scale-105 hover:z-10'}`}>
         <XCircle size={14} className={status === 'fail' ? 'text-white' : 'text-red-500 opacity-50'} /> {isRTL ? 'راسب' : 'Fail'}
       </button>
-      <button type="button" onClick={() => onChange('na')} className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-black text-xs md:text-sm transition-all ${status === 'na' ? 'bg-gray-500 text-white shadow-md scale-[1.05] z-10' : 'text-gray-500 hover:bg-gray-200 hover:scale-105 hover:z-10'}`}>
+      <button type="button" onClick={() => onChange('na')} className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-black text-xs md:text-sm transition-all ${status === 'na' ? 'bg-gray-500 text-white shadow-md scale-[1.05] z-10' : 'text-gray-500 hover:bg-gray-200 md:hover:scale-105 hover:z-10'}`}>
         {isRTL ? 'غير مطبق' : 'N/A'}
       </button>
     </div>

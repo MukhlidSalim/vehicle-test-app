@@ -1,4 +1,5 @@
 import React from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { InspectionData, VehicleType } from '../../types';
 import { VEHICLE_TYPES } from '../../constants';
 import { VehicleIllustration } from '../../components/VehicleIllustration';
@@ -28,6 +29,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
   attemptedStep2,
 }) => {
   const [dateWarning, setDateWarning] = React.useState({ show: false, msg: '' });
+  const [pendingVehicleType, setPendingVehicleType] = React.useState<string | null>(null);
   
   const showDateWarning = (msg: string) => {
     setDateWarning({ show: true, msg });
@@ -246,7 +248,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                  <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">
-                        {isRTL ? 'تاريخ انتهاء تصريح VOC' : 'VOC Expiry Date'} *
+                        {isRTL ? 'تاريخ انتهاء تصريح VOC' : 'VOC Expiry Date'}
                       </label>
                       {data.driverInfo.vocExpiryDate && data.driverInfo.vocExpiryDate < new Date().toISOString().split('T')[0] && (
                         <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
@@ -267,7 +269,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                             driverInfo: { ...p.driverInfo, vocExpiryDate: val } 
                           }));
                         }} 
-                        error={attemptedStep2 && !data.driverInfo.vocExpiryDate ? true : false}
+                        
                         isRTL={isRTL}
                         isExpiryDate={true}
                       />
@@ -326,15 +328,11 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                       type="button"
                       key={vt.value} 
                       onClick={() => {
-                        const hasExistingData = data.checklist?.some(item => item.status !== undefined && item.status !== '');
+                        const hasExistingData = data.checklist?.some(item => item.status !== 'unchecked');
                         if (hasExistingData && data.driverInfo.vehicleType !== vt.value) {
-                          const confirmed = window.confirm(
-                            isRTL 
-                              ? 'تغيير نوع المركبة سيؤدي إلى مسح جميع بيانات الفحص. هل تريد المتابعة؟'
-                              : 'Changing vehicle type will clear all inspection data. Continue?'
-                          );
-                          if (!confirmed) return;
-                        }
+                            setPendingVehicleType(vt.value);
+                            return;
+                          }
                         setData((p) => ({ 
                           ...p, 
                           driverInfo: { ...p.driverInfo, vehicleType: vt.value },
@@ -363,6 +361,52 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
        </div>
 
 
+
+      {/* Confirm Vehicle Type Change Modal */}
+      {pendingVehicleType && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] p-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200" dir={isRTL ? 'rtl' : 'ltr'}>
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center text-red-500 mb-2">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-xl font-black text-gray-800">
+                {isRTL ? 'تغيير نوع المركبة' : 'Change Vehicle Type'}
+              </h3>
+              <p className="text-gray-500 text-sm font-bold leading-relaxed text-center w-full">
+                {isRTL 
+                  ? 'تغيير نوع المركبة سيؤدي إلى مسح جميع بيانات الفحص المدخلة سابقاً. هل تريد الاستمرار؟' 
+                  : 'Changing the vehicle type will clear all previously entered inspection data. Do you want to continue?'}
+              </p>
+              <div className="flex gap-3 w-full pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setPendingVehicleType(null)}
+                  className="flex-1 py-3.5 rounded-xl font-black text-gray-700 bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all"
+                >
+                  {isRTL ? 'إلغاء' : 'Cancel'}
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    if (pendingVehicleType) {
+                      setData((p) => ({ 
+                        ...p, 
+                        driverInfo: { ...p.driverInfo, vehicleType: pendingVehicleType },
+                        checklist: getChecklistForType(pendingVehicleType, p.mode)
+                      }));
+                      setPendingVehicleType(null);
+                    }
+                  }}
+                  className="flex-1 py-3.5 rounded-xl font-black text-white bg-red-600 hover:bg-red-700 active:scale-95 transition-all"
+                >
+                  {isRTL ? 'موافق، استمر' : 'Yes, Proceed'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

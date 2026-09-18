@@ -16,6 +16,7 @@ interface Props {
 export const PassengerLogReport: React.FC<Props> = ({ dayInfo, trips, isRTL }) => {
   const reportRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [toastMsg, setToastMsg] = useState<{message: string, type: 'fail' | 'warning'} | null>(null);
 
   const t = (ar: string, en: string) => isRTL ? ar : en;
 
@@ -149,6 +150,11 @@ export const PassengerLogReport: React.FC<Props> = ({ dayInfo, trips, isRTL }) =
     return await workbook.xlsx.writeBuffer();
   };
 
+
+  const showToast = (message: string, type: 'fail' | 'warning' = 'fail') => {
+    setToastMsg({ message, type });
+    setTimeout(() => setToastMsg(null), 4000);
+  };
   const handleExportExcel = async () => {
     setIsGenerating(true);
     try {
@@ -161,7 +167,7 @@ export const PassengerLogReport: React.FC<Props> = ({ dayInfo, trips, isRTL }) =
       saveAs(blob, `[${dayInfo.date}]_[Bus ${cleanClass}]_[${cleanPlate}]_[${cleanName}].xlsx`);
     } catch (err) {
       console.error('Excel generation failed', err);
-      alert(t('حدث خطأ أثناء تصدير ملف الإكسل', 'Failed to export Excel file'));
+      showToast(t('حدث خطأ أثناء تصدير ملف الإكسل', 'Failed to export Excel file'), 'fail');
     }
     setIsGenerating(false);
   };
@@ -291,11 +297,24 @@ export const PassengerLogReport: React.FC<Props> = ({ dayInfo, trips, isRTL }) =
       {/* Action Buttons */}
       <div className="flex max-w-2xl mx-auto no-print">
         <button type="button" onClick={handleExportExcel} disabled={isGenerating}
-          className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-bold text-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:transform-none">
+          className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-bold text-sm shadow-md hover:shadow-lg  transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:transform-none">
           <FileText size={18} />
           {t('تصدير التقرير كملف Excel', 'Export Report as Excel')}
         </button>
-      </div>
+      
+              {/* Toast Notification */}
+              {toastMsg && typeof document !== 'undefined' && (
+                <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[300] w-11/12 max-w-md pointer-events-none no-print animate-fade-in-down" dir={isRTL ? 'rtl' : 'ltr'}>
+                  <div className={`p-4 rounded-2xl border shadow-2xl font-black text-sm flex items-center gap-3 ${
+                    toastMsg.type === 'fail'
+                      ? 'bg-red-50 text-red-800 border-red-300 shadow-red-200'
+                      : 'bg-amber-50 text-amber-900 border-amber-300 shadow-amber-200'
+                  }`}>
+                    <span className="v-center-cairo leading-tight">{toastMsg.message}</span>
+                  </div>
+                </div>
+              )}
+        </div>
     </div>
   );
 };

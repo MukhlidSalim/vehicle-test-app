@@ -78,7 +78,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             <Menu size={22} />
           </button>
           
-          <div className="transform transition-transform hover:scale-105 duration-300 cursor-pointer border-l border-gray-300 pl-3 rtl:pl-0 rtl:border-l-0 rtl:border-r rtl:pr-3">
+          <div className="transform transition-transform md:hover:scale-105 duration-300 cursor-pointer border-l border-gray-300 pl-3 rtl:pl-0 rtl:border-l-0 rtl:border-r rtl:pr-3">
             <BrandLogo onClick={() => handleNavigate('home')} />
           </div>
         </div>
@@ -94,7 +94,7 @@ export const TopBar: React.FC<TopBarProps> = ({
            <button 
              type="button"
              onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} 
-             className="flex items-center gap-2 text-[11px] font-black bg-gray-900 text-white px-4 py-1.5 rounded-full hover:bg-primary-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-md"
+             className="flex items-center gap-2 text-[11px] font-black bg-gray-900 text-white px-4 py-1.5 rounded-full hover:bg-primary-600 transition-all duration-300 transform md:hover:scale-105 hover:shadow-lg shadow-md"
            >
              <Globe size={14} /> {lang === 'ar' ? 'EN' : 'AR'}
            </button>

@@ -1,0 +1,17 @@
+{
+  "name": "Vehicle Inspection System",
+  "short_name": "VIS",
+  "description": "Comprehensive Vehicle Inspection and Maintenance System",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/assets/icons/VIS Logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
