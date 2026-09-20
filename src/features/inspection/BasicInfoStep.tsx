@@ -74,8 +74,8 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
              <div className="space-y-2">
-                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest" htmlFor="driver-name">
-                  {data.mode === 'maintenance' ? (isRTL ? 'اسم الفاحص' : 'Inspector Name') : data.mode === 'vehicle_only' ? (isRTL ? 'اسم الشخص المتواصل' : 'Contact Person Name') : t.driver_name} *
+                <label htmlFor="driver-name" className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 block">
+                  {(data.mode === 'maintenance' || data.mode === 'vehicle_only') ? (isRTL ? 'اسم الفاحص' : 'Inspector Name') : t.driver_name} *
                 </label>
                 <div className="relative">
                   <input
@@ -91,8 +91,8 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
 
              {/* Driver Phone Number */}
              <div className="space-y-2">
-                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">
-                  {data.mode === 'maintenance' ? (isRTL ? 'رقم الفاحص' : 'Inspector Phone') : data.mode === 'vehicle_only' ? (isRTL ? 'رقم التواصل' : 'Contact Number') : t.phone_number} *
+                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">
+                  {(data.mode === 'maintenance' || data.mode === 'vehicle_only') ? (isRTL ? 'رقم هاتف الفاحص' : 'Inspector Phone') : t.phone_number} *
                 </label>
                 <div className="relative">
                   <PhoneInput 

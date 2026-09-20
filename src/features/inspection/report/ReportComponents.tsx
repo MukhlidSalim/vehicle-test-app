@@ -66,8 +66,8 @@ export const CompactInfoGrid: React.FC<{ data: InspectionData; t: any; lang: Lan
       }`}>
         {[
           // Row 1: Driver/Inspector → phone → (Assistant → Assistant phone)
-          { label: data.mode === 'maintenance' ? (lang === 'ar' ? 'اسم الفاحص' : 'Inspector Name') : t.driver_name, value: data.driverInfo.name || '-' },
-          { label: t.phone_number, value: data.driverInfo.phoneNumber || '-', mono: true },
+          { label: (data.mode === 'maintenance' || data.mode === 'vehicle_only') ? (lang === 'ar' ? 'اسم الفاحص' : 'Inspector Name') : t.driver_name, value: data.driverInfo.name || '-' },
+          { label: (data.mode === 'maintenance' || data.mode === 'vehicle_only') ? (lang === 'ar' ? 'رقم هاتف الفاحص' : 'Inspector Phone') : t.phone_number, value: data.driverInfo.phoneNumber || '-', mono: true },
           ...(data.mode !== 'maintenance' && data.mode !== 'vehicle_only' ? [
              { label: t.assistant_name, value: data.driverInfo.assistantName || '-' },
              { label: t.assistant_phone, value: data.driverInfo.assistantPhone || '-', mono: true },
