@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Home, Globe, Menu, X, Truck, ClipboardCheck, Users, Wrench, FileText, CheckCircle, Car, UserCheck } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { Language, View, InspectionMode } from '../types';
+import { TrialEnvironmentBadge } from './trial-environment/TrialEnvironmentBadge';
 
 interface TopBarProps {
   t: any;
@@ -82,6 +83,9 @@ export const TopBar: React.FC<TopBarProps> = ({
             <BrandLogo onClick={() => handleNavigate('home')} />
           </div>
         </div>
+
+        {/* Trial Environment Badge */}
+        <TrialEnvironmentBadge />
         
         <div className="flex items-center gap-3">
            <button 

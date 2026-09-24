@@ -39,17 +39,17 @@ export const CompactReportHeader: React.FC<{ titleSuffix: string; lang: Language
   const locale = isRTL ? 'ar-SA' : 'en-US';
   
   return (
-    <div className="mb-2 border-b-2 border-primary-600 pb-2 flex justify-between items-center flex-shrink-0">
-       <h1 className="text-[18px] font-black text-gray-900 leading-tight v-center-cairo justify-start whitespace-nowrap overflow-hidden text-ellipsis">
+    <div className="mb-4 border-b-2 border-primary-600 pb-3 flex justify-between items-center">
+       <h1 className="text-xl font-bold text-gray-900 v-center-cairo justify-start">
          {titleSuffix}
        </h1>
-       <div className="flex items-center gap-5 text-gray-500 font-bold text-[10px]">
+       <div className="flex items-center gap-6 text-gray-500 font-semibold text-xs">
           <span className="v-center-cairo">
-            <span className="opacity-60 ml-1.5 mr-1.5">{isRTL ? 'التاريخ:' : 'Date:'}</span> 
+            <span className="opacity-60 ml-2 mr-2">{isRTL ? 'التاريخ:' : 'Date:'}</span> 
             <span dir="ltr" style={{ unicodeBidi: 'embed' }}>{formatDisplayDateObj(new Date(), lang)}</span>
           </span>
           <span className="v-center-cairo">
-            <span className="opacity-60 ml-1.5 mr-1.5">{isRTL ? 'الوقت:' : 'Time:'}</span> 
+            <span className="opacity-60 ml-2 mr-2">{isRTL ? 'الوقت:' : 'Time:'}</span> 
             {new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: true })}
           </span>
        </div>
@@ -58,8 +58,8 @@ export const CompactReportHeader: React.FC<{ titleSuffix: string; lang: Language
 };
 
 export const CompactInfoGrid: React.FC<{ data: InspectionData; t: any; lang: Language }> = ({ data, t, lang }) => (
-  <div className="mb-2 border border-gray-300 rounded-xl p-3 bg-gray-50 flex-shrink-0 shadow-sm">
-      <div className={`grid gap-y-2.5 gap-x-3 ${
+  <div className="mb-4 bg-transparent">
+      <div className={`grid gap-y-4 gap-x-4 ${
          (data.mode === 'full' || data.mode === 'driver_only' || data.mode === 'maintenance') 
            ? 'grid-cols-4' 
            : 'grid-cols-3'
@@ -80,7 +80,7 @@ export const CompactInfoGrid: React.FC<{ data: InspectionData; t: any; lang: Lan
                value: (
                  <div className="flex items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap">
                    <span>{data.driverInfo.departure || '-'}</span>
-                   <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`text-primary-500 shrink-0 ${lang === 'ar' ? 'rotate-180' : ''}`}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`text-primary-500 shrink-0 ${lang === 'ar' ? 'rotate-180' : ''}`}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                    <span>{data.driverInfo.destination || '-'}</span>
                  </div>
                )
@@ -92,7 +92,7 @@ export const CompactInfoGrid: React.FC<{ data: InspectionData; t: any; lang: Lan
                <div className="flex items-center gap-1 flex-wrap">
                  <span>{formatDisplayDate(data.driverInfo.vehicleExpiryDate, lang)}</span>
                  {data.driverInfo.vehicleExpiryDate < new Date().toISOString().split('T')[0] && (
-                   <span className="text-[9px] text-red-600 bg-red-50 px-1 py-0.5 rounded border border-red-200 font-bold whitespace-nowrap leading-none">
+                   <span className="text-xs text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-200 font-bold whitespace-nowrap leading-none">
                      {lang === 'ar' ? '(منتهي)' : '(Expired)'}
                    </span>
                  )}
@@ -107,7 +107,7 @@ export const CompactInfoGrid: React.FC<{ data: InspectionData; t: any; lang: Lan
               <div className="flex items-center gap-1 flex-wrap">
                 <span>{data.driverInfo.odometer || '-'}</span>
                 {(data.driverInfo.currentOdometer && data.driverInfo.odometer && Number(data.driverInfo.currentOdometer) >= Number(data.driverInfo.odometer)) && (
-                  <span className="text-[9px] text-orange-600 bg-orange-50 px-1 py-0.5 rounded border border-orange-200 font-bold whitespace-nowrap leading-none">
+                  <span className="text-xs text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200 font-bold whitespace-nowrap leading-none">
                     {lang === 'ar' ? '( تحتاج الى صيانة )' : '( Needs maintenance )'}
                   </span>
                 )}
@@ -122,7 +122,7 @@ export const CompactInfoGrid: React.FC<{ data: InspectionData; t: any; lang: Lan
                <div className="flex items-center gap-1 flex-wrap">
                  <span>{formatDisplayDate(data.driverInfo.opalExpiryDate, lang)}</span>
                  {data.driverInfo.opalExpiryDate < new Date().toISOString().split('T')[0] && (
-                   <span className="text-[9px] text-red-600 bg-red-50 px-1 py-0.5 rounded border border-red-200 font-bold whitespace-nowrap leading-none">
+                   <span className="text-xs text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-200 font-bold whitespace-nowrap leading-none">
                      {lang === 'ar' ? '(منتهي)' : '(Expired)'}
                    </span>
                  )}
@@ -135,7 +135,7 @@ export const CompactInfoGrid: React.FC<{ data: InspectionData; t: any; lang: Lan
                <div className="flex items-center gap-1 flex-wrap">
                  <span>{formatDisplayDate(data.driverInfo.vocExpiryDate, lang)}</span>
                  {data.driverInfo.vocExpiryDate < new Date().toISOString().split('T')[0] && (
-                   <span className="text-[9px] text-red-600 bg-red-50 px-1 py-0.5 rounded border border-red-200 font-bold whitespace-nowrap leading-none">
+                   <span className="text-xs text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-200 font-bold whitespace-nowrap leading-none">
                      {lang === 'ar' ? '(منتهي)' : '(Expired)'}
                    </span>
                  )}
@@ -144,9 +144,9 @@ export const CompactInfoGrid: React.FC<{ data: InspectionData; t: any; lang: Lan
            },
           ] : []),
         ].map((info, idx) => (
-          <div key={idx} className="flex flex-col border-b border-gray-400/50 pb-1.5 overflow-hidden">
-             <span className="text-[7.5px] font-black text-gray-400 uppercase leading-none mb-1 v-center-cairo justify-start">{info.label}</span>
-             <span className={`text-[10.5px] font-black text-gray-800 ${info.mono ? 'font-mono' : ''} v-center-cairo justify-start break-words`}>{info.value}</span>
+          <div key={idx} className="flex flex-col border-b border-gray-300 pb-2 overflow-hidden text-right">
+             <span className="text-xs font-semibold text-gray-500 mb-1 v-center-cairo justify-start">{info.label}</span>
+             <span className={`text-sm font-bold text-gray-900 ${info.mono ? 'font-mono' : ''} v-center-cairo justify-start break-words`}>{info.value}</span>
           </div>
         ))}
      </div>

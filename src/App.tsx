@@ -8,6 +8,7 @@ import { useInspectionSession } from './hooks/useInspectionSession';
 import { TopBar } from './components/TopBar';
 import { LowerBar } from './components/LowerBar';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { TrialEnvironmentNotice } from './components/trial-environment/TrialEnvironmentNotice';
 
 // Feature views
 const HomeView = React.lazy(() => import('./features/home/HomeView').then(m => ({ default: m.HomeView })));
@@ -86,6 +87,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <TrialEnvironmentNotice />
       <div className={`min-h-screen bg-white flex flex-col ${isRTL ? 'font-cairo' : 'font-sans'}`} dir={isRTL ? 'rtl' : 'ltr'}>
         <TopBar 
           t={t} 

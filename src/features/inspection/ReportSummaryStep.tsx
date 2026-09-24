@@ -393,7 +393,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
               <img src={data.signatures.inspector} alt="Inspector Signature" className="max-h-full max-w-[150px] object-contain mix-blend-multiply" />
             </div>
             <div className="w-40 border-t border-gray-400 text-center pt-1">
-              <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">
+              <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
                 {isRTL ? 'توقيع الفاحص' : 'Inspector Signature'}
               </span>
             </div>
@@ -405,7 +405,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
               <img src={data.signatures.driver} alt="Driver Signature" className="max-h-full max-w-[150px] object-contain mix-blend-multiply" />
             </div>
             <div className="w-40 border-t border-gray-400 text-center pt-1">
-              <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">
+              <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
                 {isRTL ? 'توقيع السائق' : 'Driver Signature'}
               </span>
             </div>
@@ -420,24 +420,24 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
       <div className="mt-4 mb-2 space-y-4" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
         {/* Digital Summary */}
         <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 shadow-sm">
-          <h4 className="text-[12px] font-black text-gray-800 mb-3 border-b border-gray-200 pb-2 v-center-cairo">
+          <h4 className="text-[12px] font-bold text-gray-800 mb-3 border-b border-gray-200 pb-2 v-center-cairo">
             {isRTL ? 'ملخص الفحص' : 'Inspection Summary'}
           </h4>
           <div className="grid grid-cols-4 gap-4 text-center">
             <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
-              <div className="text-2xl font-black text-blue-600">{checklistStats.total}</div>
+              <div className="text-2xl font-bold text-blue-600">{checklistStats.total}</div>
               <div className="text-[10px] font-bold text-gray-500 uppercase">{isRTL ? 'الإجمالي' : 'Total'}</div>
             </div>
             <div className="bg-white p-3 rounded-lg border border-green-100 shadow-sm">
-              <div className="text-2xl font-black text-green-600">{checklistStats.pass}</div>
+              <div className="text-2xl font-bold text-green-600">{checklistStats.pass}</div>
               <div className="text-[10px] font-bold text-gray-500 uppercase">{isRTL ? 'سليم' : 'Pass'}</div>
             </div>
             <div className="bg-white p-3 rounded-lg border border-amber-100 shadow-sm">
-              <div className="text-2xl font-black text-amber-500">{checklistStats.warning}</div>
+              <div className="text-2xl font-bold text-amber-500">{checklistStats.warning}</div>
               <div className="text-[10px] font-bold text-gray-500 uppercase">{isRTL ? 'تنبيه' : 'Warning'}</div>
             </div>
             <div className="bg-white p-3 rounded-lg border border-red-100 shadow-sm">
-              <div className="text-2xl font-black text-red-600">{checklistStats.fail}</div>
+              <div className="text-2xl font-bold text-red-600">{checklistStats.fail}</div>
               <div className="text-[10px] font-bold text-gray-500 uppercase">{isRTL ? 'معيب' : 'Fail'}</div>
             </div>
           </div>
@@ -497,8 +497,8 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
-                    <div className="text-2xl font-black text-primary-900 font-mono">{Math.round(pdfProgress.percent)}%</div>
-                    <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                    <div className="text-2xl font-bold text-primary-900 font-mono">{Math.round(pdfProgress.percent)}%</div>
+                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
                       {pdfProgress.total > 0 ? `${pdfProgress.current}/${pdfProgress.total}` : ''}
                     </div>
                   </div>
@@ -506,7 +506,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
               </div>
 
               <div className="text-center space-y-1">
-                <div className="font-black text-primary-900 uppercase tracking-widest text-sm">
+                <div className="font-bold text-primary-900 uppercase tracking-widest text-sm">
                   {isSharing ? (isRTL ? 'تجهيز المشاركة' : 'Preparing Share') : (isRTL ? 'جاري إنشاء التقرير' : 'Generating Report')}
                 </div>
                 {pdfProgress.phase && (
@@ -516,7 +516,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                   </div>
                 )}
                 {typeof pdfProgress.etaSec === 'number' && pdfProgress.etaSec > 0 && (
-                  <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
                     {isRTL ? 'الوقت المتبقي تقريبًا' : 'Approx. remaining'}: {Math.ceil(pdfProgress.etaSec)}s
                   </div>
                 )}
@@ -533,7 +533,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                   <CheckCircle size={48} />
                </div>
                <div className="space-y-2">
-                  <h3 className="text-xl font-black text-gray-900 v-center-cairo">{isRTL ? 'التقرير جاهز الآن' : 'Report is Ready'}</h3>
+                  <h3 className="text-xl font-bold text-gray-900 v-center-cairo">{isRTL ? 'التقرير جاهز الآن' : 'Report is Ready'}</h3>
                   <p className="text-sm font-bold text-gray-500 leading-relaxed">
                     {isRTL ? 'تم إنشاء التقرير بنجاح، اضغط على الزر أدناه لمشاركته فوراً عبر تطبيقات التواصل.' : 'Report generated successfully. Click the button below to share it via messaging apps.'}
                   </p>
@@ -542,7 +542,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                   <button 
                     type="button"
                     onClick={handleFinalShare}
-                    className="w-full py-4 rounded-xl bg-primary-600 text-white font-black text-lg shadow-xl shadow-primary-200 active:scale-95 transition-all flex items-center justify-center gap-3"
+                    className="w-full py-4 rounded-xl bg-primary-600 text-white font-bold text-lg shadow-xl shadow-primary-200 active:scale-95 transition-all flex items-center justify-center gap-3"
                   >
                     <Share2 size={22} />
                     <span className="v-center-cairo">{isRTL ? 'مشاركة التقرير' : 'Share Now'}</span>
@@ -572,7 +572,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                <button
                  type="button"
                  onClick={() => { setPdfWarnAck(true); setPdfWarning(null); setTimeout(() => { handleFinalShare(); }, 0); }}
-                 className="w-full py-4 rounded-xl bg-primary-600 text-white font-black text-lg shadow-xl shadow-primary-200 active:scale-95 transition-all"
+                 className="w-full py-4 rounded-xl bg-primary-600 text-white font-bold text-lg shadow-xl shadow-primary-200 active:scale-95 transition-all"
                >
                  <span className="v-center-cairo">{isRTL ? 'متابعة الإرسال' : 'Continue'}</span>
                </button>
@@ -584,7 +584,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
        {uiAlert.show && typeof document !== 'undefined' && createPortal(
          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[300] w-11/12 max-w-md pointer-events-none no-print animate-fade-in-down">
            <div
-             className={`p-4 rounded-2xl border shadow-2xl font-black text-sm flex items-center gap-3 ${
+             className={`p-4 rounded-2xl border shadow-2xl font-bold text-sm flex items-center gap-3 ${
                uiAlert.type === 'fail'
                  ? 'bg-red-50 text-red-800 border-red-300 shadow-red-200'
                  : uiAlert.type === 'warning'
@@ -602,7 +602,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
        {/* Title Header */}
        <div className="flex justify-between items-center px-1 no-print">
           <div className="flex flex-col gap-0.5">
-             <h2 className="text-2xl font-black text-gray-900 v-center-cairo justify-start">{t.summary}</h2>
+             <h2 className="text-2xl font-bold text-gray-900 v-center-cairo justify-start">{t.summary}</h2>
              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{isRTL ? "معاينة التقرير النهائي (A4)" : "Report Preview"}</p>
           </div>
        </div>
@@ -633,7 +633,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                             return (
                               <div 
                                 key={item.key} 
-                                className={`p-1.5 border rounded-xl flex flex-col gap-0.5 shadow-xs h-[92px] justify-between ${
+                                className={`p-2 border rounded-xl flex flex-col gap-2 shadow-sm justify-between ${
                                   item.status === 'fail' 
                                     ? 'bg-red-50 border-red-100' 
                                     : item.status === 'warning' 
@@ -648,14 +648,14 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                     {itemDef && <itemDef.icon size={22} />}
                                   </div>
                                   <span 
-                                    className="text-[10px] font-black text-gray-800 leading-[1.1] flex-1 v-center-cairo justify-start break-words overflow-hidden" 
+                                    className="text-xs font-bold text-gray-800 leading-tight flex-1 text-right break-words" 
                                     style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
                                   >
                                     {t[item.key as keyof typeof t] || item.key}
                                   </span>
                                 </div>
                                 
-                                <div className={`w-full rounded text-[8.5px] text-white font-black h-[22px] v-center-cairo shadow-sm ${
+                                <div className={`w-full rounded text-xs text-white font-bold py-1 px-1 shadow-sm mt-auto ${
                                   item.status === 'pass' 
                                     ? 'bg-green-600' 
                                     : item.status === 'warning' 
@@ -682,10 +682,10 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                               }`}
                                               style={{ paddingTop: '1.5px', paddingBottom: '1.5px' }}
                                             >
-                                              <span className="text-[7.5px] font-semibold opacity-90 mt-[1px] tracking-wide v-center-cairo">
+                                              <span className="text-[10px] font-semibold opacity-90 tracking-wide">
                                                 {isRTL ? 'الانتهاء:' : 'Exp:'}
                                               </span>
-                                              <span dir="ltr" className="text-[8px] font-mono tracking-widest font-bold v-center-cairo mt-[1px]">
+                                              <span dir="ltr" className="text-xs font-mono tracking-widest font-bold">
                                                 {formatDisplayDate(item.expiryDate, lang)}
                                               </span>
                                             </div>
@@ -707,7 +707,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                       <div className="mt-auto border-2 rounded-xl bg-gray-50/40 p-3 border-primary-50 shadow-sm flex-shrink-0 flex flex-col gap-2">
                           <div className="flex items-center gap-2 border-b-2 border-primary-100 pb-1 mb-0.5">
                               <MapIcon size={16} className="text-primary-600" />
-                              <h2 className="text-[14px] font-black text-primary-900 v-center-cairo">
+                              <h2 className="text-[14px] font-bold text-primary-900 v-center-cairo">
                                 {isRTL ? "خريطة الأضرار بهيكل المركبة" : "Vehicle Body Damage Diagram"}
                               </h2>
                           </div>
@@ -726,13 +726,13 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                 <div className="w-full grid grid-cols-2 gap-x-6 gap-y-1.5 mt-0.5 border-t border-primary-100 pt-2">
                                   {bodyDamagePoints.map((pt, idx) => (
                                     <div key={idx} className="flex items-start gap-2 min-w-0">
-                                      <div className={`w-4 h-4 flex-shrink-0 text-white rounded flex items-center justify-center text-[9px] font-black font-mono shadow-sm ${
+                                      <div className={`w-4 h-4 flex-shrink-0 text-white rounded flex items-center justify-center text-[9px] font-bold font-mono shadow-sm ${
                                         pt.severity === 'warning' ? 'bg-amber-500' : 'bg-red-600'
                                       }`}>
                                         {idx + 1}
                                       </div>
                                       <span className="text-[10px] font-semibold text-gray-800 justify-start leading-snug whitespace-normal break-words min-w-0">
-                                        <span className={`font-black text-[9px] px-1 rounded-sm mr-1 ${
+                                        <span className={`font-bold text-[9px] px-1 rounded-sm mr-1 ${
                                           pt.severity === 'warning' ? 'text-amber-700 bg-amber-50' : 'text-red-700 bg-red-50'
                                         }`}>
                                           {pt.severity === 'warning' ? (isRTL ? 'تنبيه' : 'Warning') : (isRTL ? 'ضرر' : 'Fail')}
@@ -774,7 +774,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                             return (
                               <div 
                                 key={item.key} 
-                                className={`p-1.5 border rounded-xl flex flex-col gap-0.5 shadow-xs h-[92px] justify-between ${
+                                className={`p-2 border rounded-xl flex flex-col gap-2 shadow-sm justify-between ${
                                   item.status === 'fail' 
                                     ? 'bg-red-50 border-red-100' 
                                     : item.status === 'warning' 
@@ -789,14 +789,14 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                     {itemDef && <itemDef.icon size={22} />}
                                   </div>
                                   <span 
-                                    className="text-[10px] font-black text-gray-800 leading-[1.1] flex-1 v-center-cairo justify-start break-words overflow-hidden" 
+                                    className="text-xs font-bold text-gray-800 leading-tight flex-1 text-right break-words" 
                                     style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
                                   >
                                     {t[item.key as keyof typeof t] || item.key}
                                   </span>
                                 </div>
                                 
-                                <div className={`w-full rounded text-[8.5px] text-white font-black h-[22px] v-center-cairo shadow-sm ${
+                                <div className={`w-full rounded text-xs text-white font-bold py-1 px-1 shadow-sm mt-auto ${
                                   item.status === 'pass' 
                                     ? 'bg-green-600' 
                                     : item.status === 'warning' 
@@ -823,10 +823,10 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                               }`}
                                               style={{ paddingTop: '1.5px', paddingBottom: '1.5px' }}
                                             >
-                                              <span className="text-[7.5px] font-semibold opacity-90 mt-[1px] tracking-wide v-center-cairo">
+                                              <span className="text-[10px] font-semibold opacity-90 tracking-wide">
                                                 {isRTL ? 'الانتهاء:' : 'Exp:'}
                                               </span>
-                                              <span dir="ltr" className="text-[8px] font-mono tracking-widest font-bold v-center-cairo mt-[1px]">
+                                              <span dir="ltr" className="text-xs font-mono tracking-widest font-bold">
                                                 {formatDisplayDate(item.expiryDate, lang)}
                                               </span>
                                             </div>
@@ -847,7 +847,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                     <div className="mt-auto border-2 rounded-xl bg-gray-50/40 p-3 border-primary-50 shadow-sm flex-shrink-0 flex flex-col gap-2">
                         <div className="flex items-center gap-2 border-b-2 border-primary-100 pb-1 mb-0.5">
                             <MapIcon size={16} className="text-primary-600" />
-                            <h2 className="text-[14px] font-black text-primary-900 v-center-cairo">
+                            <h2 className="text-[14px] font-bold text-primary-900 v-center-cairo">
                               {isRTL ? "خريطة الأضرار بهيكل المركبة" : "Vehicle Body Damage Diagram"}
                             </h2>
                         </div>
@@ -866,13 +866,13 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                               <div className="w-full grid grid-cols-2 gap-x-6 gap-y-1.5 mt-0.5 border-t border-primary-100 pt-2">
                                 {bodyDamagePoints.slice(0, 8).map((pt, idx) => (
                                   <div key={idx} className="flex items-start gap-2 min-w-0">
-                                    <div className={`w-4 h-4 flex-shrink-0 text-white rounded flex items-center justify-center text-[9px] font-black font-mono shadow-sm ${
+                                    <div className={`w-4 h-4 flex-shrink-0 text-white rounded flex items-center justify-center text-[9px] font-bold font-mono shadow-sm ${
                                       pt.severity === 'warning' ? 'bg-amber-500' : 'bg-red-600'
                                     }`}>
                                       {idx + 1}
                                     </div>
                                     <span className="text-[10px] font-semibold text-gray-800 justify-start leading-snug whitespace-normal break-words min-w-0">
-                                      <span className={`font-black text-[9px] px-1 rounded-sm mr-1 ${
+                                      <span className={`font-bold text-[9px] px-1 rounded-sm mr-1 ${
                                         pt.severity === 'warning' ? 'text-amber-700 bg-amber-50' : 'text-red-700 bg-red-50'
                                       }`}>
                                         {pt.severity === 'warning' ? (isRTL ? 'تنبيه' : 'Warning') : (isRTL ? 'ضرر' : 'Fail')}
@@ -928,7 +928,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                   <div className="p-1 bg-primary-100 text-primary-700 rounded text-[10px]">
                                     {(() => { const def = activeChecklistDef.find((c) => c.key === item.key); return def && <def.icon size={14} />; })()}
                                   </div>
-                                  <p className="text-[11px] font-black text-primary-900 truncate">{t[item.key as keyof typeof t]}</p>
+                                  <p className="text-[11px] font-bold text-primary-900 truncate">{t[item.key as keyof typeof t]}</p>
                                 </div>
                               </div>
                               {noteText && (
@@ -997,11 +997,11 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                               <div className={`flex flex-col h-full p-2.5 ${isRTL ? 'pr-4' : 'pl-4'}`}>
                                 <div className="flex items-center justify-between gap-3 mb-2 shrink-0">
                                   <div className="min-w-0">
-                                    <p className="text-[13px] font-black text-slate-800 v-center-cairo justify-start truncate">
+                                    <p className="text-[13px] font-bold text-slate-800 v-center-cairo justify-start truncate">
                                       {t[item.key as keyof typeof t] || item.id}
                                     </p>
                                   </div>
-                                  <div className={`flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black border flex-shrink-0 ${statusPill.cls}`}>
+                                  <div className={`flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border flex-shrink-0 ${statusPill.cls}`}>
                                     {statusPill.icon}
                                     <span className="v-center-cairo leading-none mt-0.5">{statusPill.text}</span>
                                   </div>
@@ -1046,12 +1046,12 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
 
                         return (
                           <div key={`u-tyres`} className={`${rowSpanClass} min-h-0 bg-gray-50 rounded-2xl border border-gray-300 p-3 shadow-sm flex flex-col`}>
-                            <h3 className="text-[10px] font-black text-primary-900 uppercase tracking-widest mb-2 pb-1 border-b border-gray-300">{isRTL ? 'قياسات ضغط الإطارات' : 'Tyre Pressures'}</h3>
+                            <h3 className="text-[10px] font-bold text-primary-900 uppercase tracking-widest mb-2 pb-1 border-b border-gray-300">{isRTL ? 'قياسات ضغط الإطارات' : 'Tyre Pressures'}</h3>
                             <div className={`grid ${activeTyres.length === 6 ? 'grid-cols-3' : 'grid-cols-4'} gap-2 flex-1 min-h-0`}>
                               {activeTyres.map((tyre) => (
                                 <div key={tyre.key} className="bg-white rounded-lg border border-gray-200 p-1 flex flex-col items-center justify-center">
-                                  <span className="text-[8px] font-black text-gray-400 uppercase">{tyre.key}</span>
-                                  <span className="text-sm font-black text-primary-900">{tyre.value}</span>
+                                  <span className="text-[8px] font-bold text-gray-400 uppercase">{tyre.key}</span>
+                                  <span className="text-sm font-bold text-primary-900">{tyre.value}</span>
                                 </div>
                               ))}
                             </div>
@@ -1062,7 +1062,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                       if (uItem.kind === 'additional') {
                         return (
                           <div key={`u-addl`} className={`${rowSpanClass} min-h-0 bg-gray-50 rounded-2xl border border-gray-300 p-3 shadow-sm flex flex-col`}>
-                            <h3 className="text-[10px] font-black text-primary-900 uppercase tracking-widest mb-2 pb-1 border-b border-gray-300">{isRTL ? 'ملاحظات إضافية' : 'Additional Notes'}</h3>
+                            <h3 className="text-[10px] font-bold text-primary-900 uppercase tracking-widest mb-2 pb-1 border-b border-gray-300">{isRTL ? 'ملاحظات إضافية' : 'Additional Notes'}</h3>
                             <div className="flex-1 overflow-hidden bg-white rounded-lg border border-gray-200 p-2">
                               <p className="text-[10px] font-bold text-gray-700 whitespace-pre-wrap leading-tight line-clamp-3">{data.additionalNotes}</p>
                             </div>
@@ -1144,7 +1144,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                           })()}
                                         </div>
                                         <div className="min-w-0">
-                                          <p className="text-[12px] font-black text-primary-900 v-center-cairo justify-start truncate">
+                                          <p className="text-[12px] font-bold text-primary-900 v-center-cairo justify-start truncate">
                                             {t[item.key as keyof typeof t]}
                                           </p>
                                         </div>
@@ -1270,11 +1270,11 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                                       <div className={`p-3 ${isRTL ? 'pr-5' : 'pl-5'}`}>
                                         <div className="flex items-center justify-between gap-3 mb-2.5">
                                           <div className="min-w-0">
-                                            <p className="text-[13px] font-black text-slate-800 v-center-cairo justify-start truncate">
+                                            <p className="text-[13px] font-bold text-slate-800 v-center-cairo justify-start truncate">
                                               {t[item.key as keyof typeof t] || item.id}
                                             </p>
                                           </div>
-                                          <div className={`flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black border flex-shrink-0 ${statusPill.cls}`}>
+                                          <div className={`flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border flex-shrink-0 ${statusPill.cls}`}>
                                             {statusPill.icon}
                                             <span className="v-center-cairo leading-none mt-0.5">{statusPill.text}</span>
                                           </div>
@@ -1326,14 +1326,14 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
 
                             return (
                               <div className="border border-gray-300 rounded-xl p-4 bg-gray-50/50 shadow-sm">
-                                <h3 className="text-[12px] font-black text-primary-900 uppercase tracking-widest mb-3 pb-1.5 border-b border-gray-300 v-center-cairo justify-start">
+                                <h3 className="text-[12px] font-bold text-primary-900 uppercase tracking-widest mb-3 pb-1.5 border-b border-gray-300 v-center-cairo justify-start">
                                   {isRTL ? `ضغط الإطارات (PSI) — ${tyreItems.length} إطارات` : `Tyre Pressure (PSI) — ${tyreItems.length} Tyres`}
                                 </h3>
                                 <div className={`grid ${tyreItems.length % 4 === 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-3`}>
                                   {tyreItems.map((tyre, idx) => (
                                     <div key={idx} className="flex flex-col items-center p-3 bg-white rounded-lg border border-gray-300 shadow-xs">
-                                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 text-center">{tyre.id}</span>
-                                      <span className="text-lg font-black text-primary-900 font-mono">{tyre.value || '-'}</span>
+                                      <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1 text-center">{tyre.id}</span>
+                                      <span className="text-lg font-bold text-primary-900 font-mono">{tyre.value || '-'}</span>
                                     </div>
                                   ))}
                                 </div>
@@ -1344,7 +1344,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                           {/* Additional Notes */}
                           {hasAdditionalNotes && (
                             <div className="border border-gray-300 rounded-xl p-4 bg-gray-50/50 shadow-sm mt-4">
-                              <h3 className="text-[12px] font-black text-primary-900 uppercase tracking-widest mb-3 pb-1.5 border-b border-gray-300 v-center-cairo justify-start">
+                              <h3 className="text-[12px] font-bold text-primary-900 uppercase tracking-widest mb-3 pb-1.5 border-b border-gray-300 v-center-cairo justify-start">
                                 {isRTL ? 'ملاحظات إضافية' : 'Additional Notes'}
                               </h3>
                               <div className="bg-white p-4 rounded-lg border border-gray-200">
@@ -1376,19 +1376,19 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                   <CompactReportHeader titleSuffix={isRTL ? "جاهزية السائق" : "Driver Readiness"} lang={lang} />
                   <CompactInfoGrid data={data} t={t} lang={lang} />
                   <div className="space-y-4 mt-4 mb-4">
-                      <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 border-b pb-1">{isRTL ? "بنود الجاهزية" : "Readiness Items"}</h3>
-                      <div className="grid grid-cols-1 gap-3">
+                      <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 border-b pb-1">{isRTL ? "بنود الجاهزية" : "Readiness Items"}</h3>
+                      <div className="grid grid-cols-1 gap-2">
                         {READINESS_QUESTIONS.map(q => {
                           const answer = data.readiness.answers[q.id];
                           return (
-                            <div key={q.id} className="flex items-center justify-between p-3 bg-gray-50/50 rounded-xl border border-gray-300 shadow-xs h-[52px]">
-                              <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <div className="p-2 rounded-lg bg-white text-primary-600 shadow-sm border border-gray-300 flex-shrink-0">
-                                  {(() => { const Icon = q.icon as React.ElementType; return <Icon size={22} />; })()}
+                            <div key={q.id} className="flex items-center justify-between py-3 px-2 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors rounded-lg">
+                              <div className="flex items-center gap-4 flex-1 min-w-0">
+                                <div className="text-primary-600 flex-shrink-0">
+                                  {(() => { const Icon = q.icon as React.ElementType; return <Icon size={24} />; })()}
                                 </div>
-                                <span className="text-[12px] font-black text-gray-700 v-center-cairo justify-start leading-tight">{t[q.key as keyof typeof t]}</span>
+                                <span className="text-sm font-semibold text-gray-700 v-center-cairo justify-start leading-relaxed">{t[q.key as keyof typeof t]}</span>
                               </div>
-                              <div className={`px-5 rounded-lg text-[10px] font-black h-[26px] min-w-[60px] v-center-cairo shadow-sm flex-shrink-0 ms-2 ${answer === true ? 'bg-green-600 text-white' : answer === false ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                              <div className={`px-6 py-1.5 rounded-lg text-sm font-bold min-w-[80px] text-center flex-shrink-0 ms-4 ${answer === true ? 'bg-green-600 text-white' : answer === false ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
                                 <span>{answer === true ? (isRTL ? "نعم" : "Yes") : answer === false ? (isRTL ? "لا" : "No") : '-'}</span>
                               </div>
                             </div>
@@ -1399,10 +1399,10 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
                   </div>
                   
                   {/* Final Readiness Status indicator */}
-                  <div className="mt-2 mb-2 flex-shrink-0">
-                     <div className={`flex items-center justify-center gap-3 p-3 rounded-xl border shadow-sm ${data.readiness.status === 'ready' ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
-                       {data.readiness.status === 'ready' ? <ShieldCheck size={24} className="text-green-600" /> : <ShieldAlert size={24} className="text-red-600" />}
-                       <span className={`text-[16px] font-black v-center-cairo ${data.readiness.status === 'ready' ? 'text-green-900' : 'text-red-900'}`}>
+                  <div className="mt-6 mb-4">
+                     <div className={`flex items-center justify-center gap-3 p-4 rounded-xl border ${data.readiness.status === 'ready' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                       {data.readiness.status === 'ready' ? <ShieldCheck size={28} className="text-green-600" /> : <ShieldAlert size={28} className="text-red-600" />}
+                       <span className={`text-lg font-bold v-center-cairo ${data.readiness.status === 'ready' ? 'text-green-900' : 'text-red-900'}`}>
                          {t.final_result_label}: {data.readiness.status === 'ready' ? t.ready_for_trip : t.not_ready_label}
                        </span>
                      </div>
@@ -1423,7 +1423,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
           <button 
             onClick={() => handleDownloadPDF(true)} 
             disabled={isSharing || isGeneratingPDF} 
-            className="py-5 rounded-2xl font-black text-lg shadow-lg bg-primary-600 text-white hover:bg-primary-700 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:bg-gray-400"
+            className="py-5 rounded-2xl font-bold text-lg shadow-lg bg-primary-600 text-white hover:bg-primary-700 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:bg-gray-400"
           >
             {isSharing ? <Loader2 size={24} className="animate-spin" /> : <Share2 size={24} />}
             <span className="v-center-cairo">{t.share_report}</span>
@@ -1433,7 +1433,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
           <button 
             onClick={() => handleDownloadPDF(false)} 
             disabled={isGeneratingPDF || isSharing} 
-            className="py-5 rounded-2xl font-black text-lg shadow-lg bg-red-600 text-white hover:bg-red-700 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:bg-gray-400"
+            className="py-5 rounded-2xl font-bold text-lg shadow-lg bg-red-600 text-white hover:bg-red-700 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:bg-gray-400"
           >
             {isGeneratingPDF ? <Loader2 size={24} className="animate-spin" /> : <FileIcon size={24} />}
             <span className="v-center-cairo">{isRTL ? 'تنزيل بصيغة PDF' : 'Download PDF'}</span>
@@ -1447,7 +1447,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
               else if (data.mode === 'driver_only') setStep(3);
               else setStep(2);
             }}
-            className="py-5 rounded-2xl font-black text-lg shadow-lg bg-amber-500 text-white hover:bg-amber-600 active:scale-95 transition-all flex items-center justify-center gap-3"
+            className="py-5 rounded-2xl font-bold text-lg shadow-lg bg-amber-500 text-white hover:bg-amber-600 active:scale-95 transition-all flex items-center justify-center gap-3"
           >
             <Edit3 size={24} />
             <span className="v-center-cairo">{isRTL ? 'تعديل الفحص' : 'Edit Inspection'}</span>
@@ -1456,7 +1456,7 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
           {/* Start New Inspection (Spans full width) */}
           <button
             onClick={onExit}
-            className="md:col-span-3 py-5 rounded-2xl font-black text-lg shadow-lg bg-gray-800 text-white hover:bg-gray-900 active:scale-95 transition-all flex items-center justify-center gap-3"
+            className="md:col-span-3 py-5 rounded-2xl font-bold text-lg shadow-lg bg-gray-800 text-white hover:bg-gray-900 active:scale-95 transition-all flex items-center justify-center gap-3"
           >
             <RotateCcw size={24} />
             <span className="v-center-cairo">{t.new_inspection}</span>
