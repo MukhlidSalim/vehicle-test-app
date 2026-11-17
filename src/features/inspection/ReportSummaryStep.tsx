@@ -32,6 +32,7 @@ import { VEHICLE_TYPES } from '../../constants/vehicleData';
 
 
 import { formatDisplayDate, CompactReportHeader, CompactInfoGrid } from './report/ReportComponents';
+import { SubmitReportButton } from './SubmitReportButton';
 
 
 // --- Main Component ---
@@ -1419,6 +1420,9 @@ export const ReportSummaryStep: React.FC<ReportSummaryStepProps> = ({
 
        {/* Actions Control Buttons Grid */}
        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-4 pb-20 no-print max-w-[1000px] mx-auto">
+          {/* Submit Report to SharePoint (TEST site only - hidden unless VITE_SUBMIT_* variables are set) */}
+          <SubmitReportButton data={data} lang={lang} isRTL={isRTL} getBaseFilename={getCustomFilename} />
+
           {/* Share Report */}
           <button 
             onClick={() => handleDownloadPDF(true)} 
